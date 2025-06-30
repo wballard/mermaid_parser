@@ -1,0 +1,163 @@
+//! # Mermaid Parser
+//!
+//! A Rust parser for Mermaid diagrams using the Chumsky parsing library.
+//! This crate focuses on parsing Mermaid syntax into Abstract Syntax Trees (ASTs)
+//! without rendering graphics.
+//!
+//! ## Supported Diagram Types
+//!
+//! - **Sankey Diagrams**: Flow data visualization
+//! - **Timeline Diagrams**: Chronological event sequences  
+//! - **User Journey**: User experience mapping with satisfaction scores
+//! - **Sequence Diagrams**: Message passing between actors
+//! - **Class Diagrams**: Object-oriented relationships
+//! - **State Diagrams**: State machine representations
+//! - **Flowcharts**: General-purpose flow diagrams
+//! - And many more...
+//!
+//! ## Example Usage
+//!
+//! ```rust
+//! use mermaid_parser::{parse_diagram, DiagramType};
+//!
+//! let input = r#"
+//! sankey-beta
+//! A,B,10
+//! B,C,5
+//! "#;
+//!
+//! match parse_diagram(input) {
+//!     Ok(DiagramType::Sankey(diagram)) => {
+//!         println!("Found {} nodes and {} links", 
+//!                  diagram.nodes.len(), diagram.links.len());
+//!     }
+//!     Err(e) => eprintln!("Parse error: {}", e),
+//! }
+//! ```
+
+pub mod common;
+pub mod parsers;
+pub mod error;
+
+pub use common::ast::DiagramType;
+pub use error::{ParseError, Result};
+
+/// Parse a Mermaid diagram from text input
+///
+/// This function automatically detects the diagram type and parses
+/// it into the appropriate AST representation.
+///
+/// # Arguments
+///
+/// * `input` - The Mermaid diagram text to parse
+///
+/// # Returns
+///
+/// Returns a `Result` containing the parsed diagram or a parse error.
+///
+/// # Example
+///
+/// ```rust
+/// use mermaid_parser::parse_diagram;
+///
+/// let result = parse_diagram("sankey-beta\nA,B,10");
+/// assert!(result.is_ok());
+/// ```
+pub fn parse_diagram(input: &str) -> Result<DiagramType> {
+    // Detect diagram type from input
+    let diagram_type = detect_diagram_type(input)?;
+    
+    // Parse based on detected type
+    match diagram_type {
+        "sankey" => parsers::sankey::parse(input).map(DiagramType::Sankey),
+        "timeline" => parsers::timeline::parse(input).map(DiagramType::Timeline),
+        "journey" => parsers::journey::parse(input).map(DiagramType::Journey),
+        "sequence" => parsers::sequence::parse(input).map(DiagramType::Sequence),
+        // Add other parsers as they're implemented
+        _ => Err(ParseError::UnsupportedDiagramType(diagram_type.to_string())),
+    }
+}
+
+/// Detect the type of Mermaid diagram from input text
+///
+/// This function examines the first non-comment, non-whitespace line
+/// to determine the diagram type.
+fn detect_diagram_type(input: &str) -> Result<&'static str> {
+    let first_line = input
+        .lines()
+        .map(|line| line.trim())
+        .find(|line| !line.is_empty() && !line.starts_with("//") && !line.starts_with('#'))
+        .ok_or(ParseError::EmptyInput)?;
+    
+    let first_word = first_line
+        .split_whitespace()
+        .next()
+        .ok_or(ParseError::EmptyInput)?
+        .to_lowercase();
+    
+    match first_word.as_str() {
+        "sankey-beta" => Ok("sankey"),
+        "timeline" => Ok("timeline"),
+        "journey" => Ok("journey"),
+        "sequencediagram" => Ok("sequence"),
+        "classDiagram" => Ok("class"),
+        "stateDiagram" | "stateDiagram-v2" => Ok("state"),
+        "flowchart" | "graph" => Ok("flowchart"),
+        "gantt" => Ok("gantt"),
+        "pie" => Ok("pie"),
+        "gitGraph" => Ok("git"),
+        "erDiagram" => Ok("er"),
+        "c4Context" | "c4Container" | "c4Component" | "c4Dynamic" | "c4Deployment" => Ok("c4"),
+        "mindmap" => Ok("mindmap"),
+        "quadrant" => Ok("quadrant"),
+        "xychart" => Ok("xychart"),
+        "kanban" => Ok("kanban"),
+        "block" => Ok("block"),
+        "architecture" => Ok("architecture"),
+        "packet" => Ok("packet"),
+        "requirement" => Ok("requirement"),
+        "sankey" => Ok("sankey"),
+        "treemap" => Ok("treemap"),
+        "radar" => Ok("radar"),
+        _ => Err(ParseError::UnknownDiagramType(first_word)),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_diagram_type_detection() {
+        assert_eq!(detect_diagram_type("sankey-beta\nA,B,10"), Ok("sankey"));
+        assert_eq!(detect_diagram_type("timeline\ntitle My Day"), Ok("timeline"));
+        assert_eq!(detect_diagram_type("journey\ntitle My Journey"), Ok("journey"));
+        assert_eq!(detect_diagram_type("sequenceDiagram\nAlice->Bob: Hi"), Ok("sequence"));
+        assert_eq!(detect_diagram_type("flowchart TD\nA --> B"), Ok("flowchart"));
+        assert_eq!(detect_diagram_type("graph LR\nA --> B"), Ok("flowchart"));
+    }
+
+    #[test]
+    fn test_detection_with_comments() {
+        let input = r#"
+        // This is a comment
+        # Another comment
+        
+        timeline
+        title My Day
+        "#;
+        assert_eq!(detect_diagram_type(input), Ok("timeline"));
+    }
+
+    #[test]
+    fn test_empty_input() {
+        assert!(detect_diagram_type("").is_err());
+        assert!(detect_diagram_type("   \n  \n  ").is_err());
+        assert!(detect_diagram_type("// Only comments\n# More comments").is_err());
+    }
+
+    #[test]
+    fn test_unknown_diagram_type() {
+        assert!(detect_diagram_type("unknown_diagram_type").is_err());
+    }
+}
