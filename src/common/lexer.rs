@@ -1,8 +1,5 @@
 //! Common lexing utilities
 
-use chumsky::prelude::*;
-use super::tokens::CommonToken;
-
 /// Remove metadata comments from input (lines starting with //)
 pub fn strip_metadata_comments(input: &str) -> String {
     input
@@ -23,9 +20,10 @@ timeline
 // Another metadata
 title My Timeline
 Normal content"#;
-        
+
         let result = strip_metadata_comments(input);
         let expected = "timeline\ntitle My Timeline\nNormal content";
         assert_eq!(result, expected);
     }
 }
+

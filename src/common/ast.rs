@@ -373,3 +373,4 @@ pub struct RadarDiagram {
     pub accessibility: AccessibilityInfo,
     // TODO: Add radar chart specific fields
 }
+

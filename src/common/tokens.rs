@@ -5,37 +5,37 @@
 pub enum CommonToken {
     /// Newline character(s)
     NewLine,
-    
+
     /// End of file
     Eof,
-    
+
     /// Title declaration
     Title(String),
-    
+
     /// Accessibility title
     AccTitle,
-    
+
     /// Accessibility title value
     AccTitleValue(String),
-    
+
     /// Accessibility description
     AccDescr,
-    
+
     /// Accessibility description value
     AccDescrValue(String),
-    
+
     /// Multiline accessibility description
     AccDescrMultiline(String),
-    
+
     /// Section declaration
     Section(String),
-    
+
     /// Comment (ignored during parsing)
     Comment(String),
-    
+
     /// Whitespace (usually ignored)
     Whitespace,
-    
+
     /// Invalid token
     Invalid(char),
 }
@@ -51,11 +51,21 @@ pub struct Span {
 
 impl Span {
     pub fn new(start: usize, end: usize, line: usize, column: usize) -> Self {
-        Self { start, end, line, column }
+        Self {
+            start,
+            end,
+            line,
+            column,
+        }
     }
-    
+
     pub fn single(position: usize, line: usize, column: usize) -> Self {
-        Self { start: position, end: position + 1, line, column }
+        Self {
+            start: position,
+            end: position + 1,
+            line,
+            column,
+        }
     }
 }
 
@@ -71,3 +81,4 @@ impl<T> SpannedToken<T> {
         Self { token, span }
     }
 }
+

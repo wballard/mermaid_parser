@@ -28,16 +28,17 @@
 //!
 //! match parse_diagram(input) {
 //!     Ok(DiagramType::Sankey(diagram)) => {
-//!         println!("Found {} nodes and {} links", 
+//!         println!("Found {} nodes and {} links",
 //!                  diagram.nodes.len(), diagram.links.len());
 //!     }
+//!     Ok(_) => println!("Parsed a different diagram type"),
 //!     Err(e) => eprintln!("Parse error: {}", e),
 //! }
 //! ```
 
 pub mod common;
-pub mod parsers;
 pub mod error;
+pub mod parsers;
 
 pub use common::ast::DiagramType;
 pub use error::{ParseError, Result};
@@ -66,7 +67,7 @@ pub use error::{ParseError, Result};
 pub fn parse_diagram(input: &str) -> Result<DiagramType> {
     // Detect diagram type from input
     let diagram_type = detect_diagram_type(input)?;
-    
+
     // Parse based on detected type
     match diagram_type {
         "sankey" => parsers::sankey::parse(input).map(DiagramType::Sankey),
@@ -88,13 +89,13 @@ fn detect_diagram_type(input: &str) -> Result<&'static str> {
         .map(|line| line.trim())
         .find(|line| !line.is_empty() && !line.starts_with("//") && !line.starts_with('#'))
         .ok_or(ParseError::EmptyInput)?;
-    
+
     let first_word = first_line
         .split_whitespace()
         .next()
         .ok_or(ParseError::EmptyInput)?
         .to_lowercase();
-    
+
     match first_word.as_str() {
         "sankey-beta" => Ok("sankey"),
         "timeline" => Ok("timeline"),
@@ -130,10 +131,22 @@ mod tests {
     #[test]
     fn test_diagram_type_detection() {
         assert_eq!(detect_diagram_type("sankey-beta\nA,B,10"), Ok("sankey"));
-        assert_eq!(detect_diagram_type("timeline\ntitle My Day"), Ok("timeline"));
-        assert_eq!(detect_diagram_type("journey\ntitle My Journey"), Ok("journey"));
-        assert_eq!(detect_diagram_type("sequenceDiagram\nAlice->Bob: Hi"), Ok("sequence"));
-        assert_eq!(detect_diagram_type("flowchart TD\nA --> B"), Ok("flowchart"));
+        assert_eq!(
+            detect_diagram_type("timeline\ntitle My Day"),
+            Ok("timeline")
+        );
+        assert_eq!(
+            detect_diagram_type("journey\ntitle My Journey"),
+            Ok("journey")
+        );
+        assert_eq!(
+            detect_diagram_type("sequenceDiagram\nAlice->Bob: Hi"),
+            Ok("sequence")
+        );
+        assert_eq!(
+            detect_diagram_type("flowchart TD\nA --> B"),
+            Ok("flowchart")
+        );
         assert_eq!(detect_diagram_type("graph LR\nA --> B"), Ok("flowchart"));
     }
 
@@ -161,3 +174,4 @@ mod tests {
         assert!(detect_diagram_type("unknown_diagram_type").is_err());
     }
 }
+

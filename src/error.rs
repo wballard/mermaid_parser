@@ -10,20 +10,20 @@ pub type Result<T> = std::result::Result<T, ParseError>;
 pub enum ParseError {
     /// The input is empty or contains only whitespace/comments
     EmptyInput,
-    
+
     /// Unknown diagram type encountered
     UnknownDiagramType(String),
-    
+
     /// Diagram type is recognized but not yet supported
     UnsupportedDiagramType(String),
-    
+
     /// Lexical analysis error
     LexError {
         message: String,
         line: usize,
         column: usize,
     },
-    
+
     /// Syntax parsing error
     SyntaxError {
         message: String,
@@ -32,13 +32,10 @@ pub enum ParseError {
         line: usize,
         column: usize,
     },
-    
+
     /// Semantic error (valid syntax but invalid meaning)
-    SemanticError {
-        message: String,
-        context: String,
-    },
-    
+    SemanticError { message: String, context: String },
+
     /// I/O error when reading input
     IoError(String),
 }
@@ -55,10 +52,24 @@ impl fmt::Display for ParseError {
             ParseError::UnsupportedDiagramType(diagram_type) => {
                 write!(f, "Diagram type '{}' is not yet supported", diagram_type)
             }
-            ParseError::LexError { message, line, column } => {
-                write!(f, "Lexical error at line {}, column {}: {}", line, column, message)
+            ParseError::LexError {
+                message,
+                line,
+                column,
+            } => {
+                write!(
+                    f,
+                    "Lexical error at line {}, column {}: {}",
+                    line, column, message
+                )
             }
-            ParseError::SyntaxError { message, expected, found, line, column } => {
+            ParseError::SyntaxError {
+                message,
+                expected,
+                found,
+                line,
+                column,
+            } => {
                 write!(
                     f,
                     "Syntax error at line {}, column {}: {}. Expected one of: [{}], but found: '{}'",
@@ -98,10 +109,13 @@ mod tests {
     fn test_error_display() {
         let error = ParseError::UnknownDiagramType("invalid".to_string());
         assert_eq!(error.to_string(), "Unknown diagram type: 'invalid'");
-        
+
         let error = ParseError::EmptyInput;
-        assert_eq!(error.to_string(), "Input is empty or contains no valid diagram content");
-        
+        assert_eq!(
+            error.to_string(),
+            "Input is empty or contains no valid diagram content"
+        );
+
         let error = ParseError::SyntaxError {
             message: "Unexpected token".to_string(),
             expected: vec!["identifier".to_string(), "number".to_string()],
@@ -118,8 +132,9 @@ mod tests {
         let error1 = ParseError::EmptyInput;
         let error2 = ParseError::EmptyInput;
         assert_eq!(error1, error2);
-        
+
         let error3 = ParseError::UnknownDiagramType("test".to_string());
         assert_ne!(error1, error3);
     }
 }
+
