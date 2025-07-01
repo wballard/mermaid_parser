@@ -463,7 +463,61 @@ pub enum ClickAction {
 pub struct GanttDiagram {
     pub title: Option<String>,
     pub accessibility: AccessibilityInfo,
-    // TODO: Add gantt specific fields
+    pub date_format: Option<String>,
+    pub axis_format: Option<String>,
+    pub tick_interval: Option<String>,
+    pub includes: Vec<String>,
+    pub excludes: Vec<String>,
+    pub today_marker: Option<String>,
+    pub inclusive_end_dates: bool,
+    pub top_axis: bool,
+    pub weekdays: WeekdaySettings,
+    pub sections: Vec<GanttSection>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct GanttSection {
+    pub name: String,
+    pub tasks: Vec<GanttTask>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct GanttTask {
+    pub name: String,
+    pub id: Option<String>,
+    pub start_date: Option<String>,
+    pub duration: Option<String>,
+    pub dependencies: Vec<String>,
+    pub status: TaskStatus,
+    pub progress: Option<f32>,
+    pub interactions: Vec<TaskInteraction>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum TaskStatus {
+    Active,
+    Done,
+    Critical,
+    Milestone,
+    None,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum TaskInteraction {
+    Click { task_id: String },
+    Href { url: String },
+    Call { function: String, args: Option<String> },
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct WeekdaySettings {
+    pub start_day: Option<Weekday>,
+    pub weekend: Vec<Weekday>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Weekday {
+    Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday,
 }
 
 #[derive(Debug, Clone, PartialEq)]

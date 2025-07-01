@@ -77,6 +77,7 @@ pub fn parse_diagram(input: &str) -> Result<DiagramType> {
         "class" => parsers::class::parse(input).map(DiagramType::Class),
         "er" => parsers::er::parse(input).map(DiagramType::Er),
         "flowchart" => parsers::flowchart::parse(input).map(DiagramType::Flowchart),
+        "gantt" => parsers::gantt::parse(input).map(DiagramType::Gantt),
         "timeline" => parsers::timeline::parse(input).map(DiagramType::Timeline),
         "journey" => parsers::journey::parse(input).map(DiagramType::Journey),
         "sequence" => parsers::sequence::parse(input).map(DiagramType::Sequence),

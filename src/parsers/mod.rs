@@ -8,6 +8,7 @@ pub mod c4;
 pub mod class;
 pub mod er;
 pub mod flowchart;
+pub mod gantt;
 
 // Future parsers (placeholders)
 // pub mod timeline;
