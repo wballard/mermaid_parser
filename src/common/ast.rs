@@ -252,8 +252,91 @@ pub struct AutoNumber {
 pub struct ClassDiagram {
     pub title: Option<String>,
     pub accessibility: AccessibilityInfo,
-    // TODO: Add class diagram specific fields
+    pub classes: std::collections::HashMap<String, Class>,
+    pub relationships: Vec<ClassRelationship>,
+    pub notes: Vec<Note>,
 }
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Class {
+    pub name: String,
+    pub stereotype: Option<Stereotype>,
+    pub members: Vec<ClassMember>,
+    pub annotations: Vec<String>,
+    pub css_class: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Stereotype {
+    Interface,
+    Abstract,
+    Service,
+    Enumeration,
+    Exception,
+    Custom(String),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ClassMember {
+    Property(Property),
+    Method(Method),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Property {
+    pub name: String,
+    pub prop_type: Option<String>,
+    pub visibility: Visibility,
+    pub is_static: bool,
+    pub default_value: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Method {
+    pub name: String,
+    pub parameters: Vec<Parameter>,
+    pub return_type: Option<String>,
+    pub visibility: Visibility,
+    pub is_static: bool,
+    pub is_abstract: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Parameter {
+    pub name: String,
+    pub param_type: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Visibility {
+    Public,    // +
+    Private,   // -
+    Protected, // #
+    Package,   // ~
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ClassRelationship {
+    pub from: String,
+    pub to: String,
+    pub relationship_type: ClassRelationshipType,
+    pub from_cardinality: Option<String>,
+    pub to_cardinality: Option<String>,
+    pub label: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ClassRelationshipType {
+    Inheritance,        // <|--
+    Composition,        // *--
+    Aggregation,        // o--
+    Association,        // <--
+    Link,              // --
+    DashedLink,        // ..
+    Dependency,        // <..
+    Realization,       // <|..
+}
+
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct StateDiagram {

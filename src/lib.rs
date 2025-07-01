@@ -74,6 +74,7 @@ pub fn parse_diagram(input: &str) -> Result<DiagramType> {
         "architecture" => parsers::architecture::parse(input).map(DiagramType::Architecture),
         "block" => parsers::block::parse(input).map(DiagramType::Block),
         "c4" => parsers::c4::parse(input).map(DiagramType::C4),
+        "class" => parsers::class::parse(input).map(DiagramType::Class),
         "timeline" => parsers::timeline::parse(input).map(DiagramType::Timeline),
         "journey" => parsers::journey::parse(input).map(DiagramType::Journey),
         "sequence" => parsers::sequence::parse(input).map(DiagramType::Sequence),

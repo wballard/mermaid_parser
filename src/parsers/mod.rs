@@ -5,12 +5,12 @@ pub mod sankey;
 pub mod architecture;
 pub mod block;
 pub mod c4;
+pub mod class;
 
 // Future parsers (placeholders)
 // pub mod timeline;
 // pub mod journey;
 // pub mod sequence;
-// pub mod class;
 // pub mod state;
 // pub mod flowchart;
 // pub mod gantt;
