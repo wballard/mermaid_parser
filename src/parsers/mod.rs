@@ -6,6 +6,7 @@ pub mod architecture;
 pub mod block;
 pub mod c4;
 pub mod class;
+pub mod er;
 
 // Future parsers (placeholders)
 // pub mod timeline;
@@ -16,7 +17,6 @@ pub mod class;
 // pub mod gantt;
 // pub mod pie;
 // pub mod git;
-// pub mod er;
 // pub mod c4;
 // pub mod mindmap;
 // pub mod quadrant;

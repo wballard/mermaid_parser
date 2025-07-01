@@ -377,7 +377,51 @@ pub struct GitDiagram {
 pub struct ErDiagram {
     pub title: Option<String>,
     pub accessibility: AccessibilityInfo,
-    // TODO: Add ER diagram specific fields
+    pub entities: std::collections::HashMap<String, Entity>,
+    pub relationships: Vec<ErRelationship>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Entity {
+    pub name: String,
+    pub attributes: Vec<Attribute>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Attribute {
+    pub name: String,
+    pub attr_type: String,
+    pub key_type: Option<KeyType>,
+    pub comment: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum KeyType {
+    PK,  // Primary Key
+    FK,  // Foreign Key
+    UK,  // Unique Key
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ErRelationship {
+    pub left_entity: String,
+    pub right_entity: String,
+    pub left_cardinality: ErCardinality,
+    pub right_cardinality: ErCardinality,
+    pub label: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ErCardinality {
+    pub min: CardinalityValue,
+    pub max: CardinalityValue,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum CardinalityValue {
+    Zero,
+    One,
+    Many,
 }
 
 #[derive(Debug, Clone, PartialEq)]
