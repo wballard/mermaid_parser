@@ -349,7 +349,114 @@ pub struct StateDiagram {
 pub struct FlowchartDiagram {
     pub title: Option<String>,
     pub accessibility: AccessibilityInfo,
-    // TODO: Add flowchart specific fields
+    pub direction: FlowDirection,
+    pub nodes: std::collections::HashMap<String, FlowNode>,
+    pub edges: Vec<FlowEdge>,
+    pub subgraphs: Vec<Subgraph>,
+    pub styles: Vec<StyleDefinition>,
+    pub class_defs: std::collections::HashMap<String, ClassDef>,
+    pub clicks: Vec<ClickEvent>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum FlowDirection {
+    TB, // Top to Bottom (same as TD)
+    TD, // Top Down
+    BT, // Bottom to Top
+    RL, // Right to Left
+    LR, // Left to Right
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct FlowNode {
+    pub id: String,
+    pub text: Option<String>,
+    pub shape: NodeShape,
+    pub classes: Vec<String>,
+    pub icon: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum NodeShape {
+    Rectangle,           // [text]
+    RoundedRectangle,   // (text)
+    Stadium,            // ([text])
+    Subroutine,         // [[text]]
+    Cylinder,           // [(text)]
+    Circle,             // ((text))
+    Asymmetric,         // >text]
+    Rhombus,            // {text}
+    Hexagon,            // {{text}}
+    Parallelogram,      // [/text/]
+    ParallelogramAlt,   // [\text\]
+    Trapezoid,          // [/text\]
+    TrapezoidAlt,       // [\text/]
+    DoubleCircle,       // (((text)))
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct FlowEdge {
+    pub from: String,
+    pub to: String,
+    pub edge_type: EdgeType,
+    pub label: Option<String>,
+    pub min_length: Option<i32>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum EdgeType {
+    Arrow,              // -->
+    DottedArrow,        // -.->
+    ThickArrow,         // ==>
+    OpenLink,           // ---
+    DottedLink,         // -.-
+    ThickLink,          // ===
+    Invisible,          // ~~~
+    CircleEdge,         // --o
+    CrossEdge,          // --x
+    MultiDirectional,   // <-->
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Subgraph {
+    pub id: String,
+    pub title: Option<String>,
+    pub nodes: Vec<String>,     // Node IDs
+    pub edges: Vec<FlowEdge>,
+    pub subgraphs: Vec<Subgraph>, // Nested subgraphs
+    pub direction: Option<FlowDirection>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct StyleDefinition {
+    pub target: StyleTarget,
+    pub styles: std::collections::HashMap<String, String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum StyleTarget {
+    Node(String),
+    Edge(String, String),
+    Subgraph(String),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ClassDef {
+    pub name: String,
+    pub styles: std::collections::HashMap<String, String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ClickEvent {
+    pub node_id: String,
+    pub action: ClickAction,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ClickAction {
+    Href(String, Option<String>), // URL, target
+    Callback(String),             // Function name
+    Both(String, String, Option<String>), // Callback, URL, target
 }
 
 #[derive(Debug, Clone, PartialEq)]
