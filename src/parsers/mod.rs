@@ -2,6 +2,7 @@
 
 // Implemented parsers
 pub mod sankey;
+pub mod architecture;
 
 // Future parsers (placeholders)
 // pub mod timeline;
@@ -20,7 +21,6 @@ pub mod sankey;
 // pub mod xychart;
 // pub mod kanban;
 // pub mod block;
-// pub mod architecture;
 // pub mod packet;
 // pub mod requirement;
 // pub mod treemap;

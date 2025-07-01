@@ -71,6 +71,7 @@ pub fn parse_diagram(input: &str) -> Result<DiagramType> {
     // Parse based on detected type
     match diagram_type {
         "sankey" => parsers::sankey::parse(input).map(DiagramType::Sankey),
+        "architecture" => parsers::architecture::parse(input).map(DiagramType::Architecture),
         "timeline" => parsers::timeline::parse(input).map(DiagramType::Timeline),
         "journey" => parsers::journey::parse(input).map(DiagramType::Journey),
         "sequence" => parsers::sequence::parse(input).map(DiagramType::Sequence),

@@ -343,7 +343,71 @@ pub struct BlockDiagram {
 pub struct ArchitectureDiagram {
     pub title: Option<String>,
     pub accessibility: AccessibilityInfo,
-    // TODO: Add architecture diagram specific fields
+    pub direction: ArchDirection,
+    pub services: std::collections::HashMap<String, Service>,
+    pub groups: std::collections::HashMap<String, Group>,
+    pub junctions: std::collections::HashMap<String, Junction>,
+    pub edges: Vec<ArchEdge>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ArchDirection {
+    TB, // Top to Bottom
+    BT, // Bottom to Top
+    LR, // Left to Right
+    RL, // Right to Left
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Service {
+    pub id: String,
+    pub icon: Option<String>,
+    pub title: String,
+    pub in_group: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Group {
+    pub id: String,
+    pub icon: Option<String>,
+    pub title: String,
+    pub in_group: Option<String>, // For nested groups
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Junction {
+    pub id: String,
+    pub in_group: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ArchEdge {
+    pub from: EdgeEndpoint,
+    pub to: EdgeEndpoint,
+    pub label: Option<String>,
+    pub edge_type: ArchEdgeType,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct EdgeEndpoint {
+    pub id: String,
+    pub port: Option<Port>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Port {
+    Left,   // L
+    Right,  // R
+    Top,    // T
+    Bottom, // B
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ArchEdgeType {
+    Solid,      // --
+    Dotted,     // ..
+    Arrow,      // ->
+    BiArrow,    // <->
 }
 
 #[derive(Debug, Clone, PartialEq)]
