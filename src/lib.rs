@@ -40,7 +40,7 @@ pub mod common;
 pub mod error;
 pub mod parsers;
 
-pub use common::ast::DiagramType;
+pub use common::ast::{DiagramType, KeyType, CardinalityValue};
 pub use error::{ParseError, Result};
 
 /// Parse a Mermaid diagram from text input
@@ -75,6 +75,7 @@ pub fn parse_diagram(input: &str) -> Result<DiagramType> {
         "block" => parsers::block::parse(input).map(DiagramType::Block),
         "c4" => parsers::c4::parse(input).map(DiagramType::C4),
         "class" => parsers::class::parse(input).map(DiagramType::Class),
+        "er" => parsers::er::parse(input).map(DiagramType::Er),
         "timeline" => parsers::timeline::parse(input).map(DiagramType::Timeline),
         "journey" => parsers::journey::parse(input).map(DiagramType::Journey),
         "sequence" => parsers::sequence::parse(input).map(DiagramType::Sequence),
@@ -105,14 +106,14 @@ fn detect_diagram_type(input: &str) -> Result<&'static str> {
         "timeline" => Ok("timeline"),
         "journey" => Ok("journey"),
         "sequencediagram" => Ok("sequence"),
-        "classDiagram" => Ok("class"),
-        "stateDiagram" | "stateDiagram-v2" => Ok("state"),
+        "classdiagram" => Ok("class"),
+        "statediagram" | "statediagram-v2" => Ok("state"),
         "flowchart" | "graph" => Ok("flowchart"),
         "gantt" => Ok("gantt"),
         "pie" => Ok("pie"),
-        "gitGraph" => Ok("git"),
-        "erDiagram" => Ok("er"),
-        "c4Context" | "c4Container" | "c4Component" | "c4Dynamic" | "c4Deployment" => Ok("c4"),
+        "gitgraph" => Ok("git"),
+        "erdiagram" => Ok("er"),
+        "c4context" | "c4container" | "c4component" | "c4dynamic" | "c4deployment" => Ok("c4"),
         "mindmap" => Ok("mindmap"),
         "quadrant" => Ok("quadrant"),
         "xychart" => Ok("xychart"),
