@@ -336,7 +336,68 @@ pub struct KanbanDiagram {
 pub struct BlockDiagram {
     pub title: Option<String>,
     pub accessibility: AccessibilityInfo,
-    // TODO: Add block diagram specific fields
+    pub columns: Option<i32>,
+    pub blocks: Vec<Block>,
+    pub connections: Vec<BlockConnection>,
+    pub styles: Vec<BlockStyleDefinition>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Block {
+    Simple {
+        id: String,
+        label: Option<String>,
+        shape: BlockShape,
+    },
+    Composite {
+        id: String,
+        label: Option<String>,
+        blocks: Vec<Block>,
+    },
+    Space {
+        size: Option<i32>,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum BlockShape {
+    Rectangle,      // Basic block
+    RoundedRect,    // Rounded corners
+    Rhombus,        // Diamond shape
+    Circle,         // Circular
+    Ellipse,        // Oval
+    Cylinder,       // Database-style
+    Custom(String), // Custom shape definition
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BlockConnection {
+    pub from: String,
+    pub to: String,
+    pub label: Option<String>,
+    pub arrow_type: BlockArrowType,
+    pub style: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum BlockArrowType {
+    Normal,        // -->
+    Dotted,        // -.->
+    Thick,         // ==>
+    Invisible,     // ~~~
+    Bidirectional, // <-->
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BlockStyleDefinition {
+    pub target: String,
+    pub properties: Vec<BlockStyleProperty>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct BlockStyleProperty {
+    pub name: String,
+    pub value: String,
 }
 
 #[derive(Debug, Clone, PartialEq)]

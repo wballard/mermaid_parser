@@ -72,6 +72,7 @@ pub fn parse_diagram(input: &str) -> Result<DiagramType> {
     match diagram_type {
         "sankey" => parsers::sankey::parse(input).map(DiagramType::Sankey),
         "architecture" => parsers::architecture::parse(input).map(DiagramType::Architecture),
+        "block" => parsers::block::parse(input).map(DiagramType::Block),
         "timeline" => parsers::timeline::parse(input).map(DiagramType::Timeline),
         "journey" => parsers::journey::parse(input).map(DiagramType::Journey),
         "sequence" => parsers::sequence::parse(input).map(DiagramType::Sequence),
@@ -115,6 +116,7 @@ fn detect_diagram_type(input: &str) -> Result<&'static str> {
         "xychart" => Ok("xychart"),
         "kanban" => Ok("kanban"),
         "block" => Ok("block"),
+        "block-beta" => Ok("block"),
         "architecture" => Ok("architecture"),
         "packet" => Ok("packet"),
         "requirement" => Ok("requirement"),

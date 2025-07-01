@@ -3,6 +3,7 @@
 // Implemented parsers
 pub mod sankey;
 pub mod architecture;
+pub mod block;
 
 // Future parsers (placeholders)
 // pub mod timeline;
