@@ -12,6 +12,10 @@ use std::collections::HashMap;
 pub enum ERToken {
     ERDiagram,                // "erDiagram"
     EntityName(String),       // Entity identifier
+    EntityAlias {             // alias[display name] or alias["display name"]
+        alias: String,
+        name: String,
+    },
     RelSymbol(String),        // ||--||, ||--o{, etc.
     Label(String),            // : "relationship label"
     LeftBrace,                // {
@@ -21,6 +25,14 @@ pub enum ERToken {
     KeyType(KeyType),         // PK, FK, UK
     QuotedString(String),     // "comment"
     Comment(String),          // %% comment
+    AccTitle(String),         // accTitle: content
+    AccDescr(String),         // accDescr: content
+    Style(String),            // style directive content
+    ClassDef(String),         // classDef directive content
+    ClassAssignment {         // entity:::class
+        entity: String,
+        class: String,
+    },
     Colon,                    // :
     NewLine,
     Eof,
@@ -42,15 +54,56 @@ fn er_lexer<'src>() -> impl Parser<'src, &'src str, Vec<ERToken>, extra::Err<Sim
     let er_keyword = just("erDiagram")
         .map(|_| ERToken::ERDiagram);
     
+    // Accessibility directives
+    let acc_title = just("accTitle:")
+        .ignore_then(whitespace)
+        .ignore_then(
+            none_of('\n')
+                .repeated()
+                .collect::<String>()
+        )
+        .map(|content| ERToken::AccTitle(content.trim().to_string()));
+    
+    let acc_descr = just("accDescr:")
+        .ignore_then(whitespace)
+        .ignore_then(
+            none_of('\n')
+                .repeated()
+                .collect::<String>()
+        )
+        .map(|content| ERToken::AccDescr(content.trim().to_string()));
+    
+    // Style directive - matches "style <id> <css-properties>"
+    let style_directive = just("style")
+        .ignore_then(whitespace.at_least(1))
+        .ignore_then(
+            none_of('\n')
+                .repeated()
+                .collect::<String>()
+        )
+        .map(|content| ERToken::Style(content.trim().to_string()));
+    
+    // ClassDef directive - matches "classDef <name> <css-properties>"
+    let class_def_directive = just("classDef")
+        .ignore_then(whitespace.at_least(1))
+        .ignore_then(
+            none_of('\n')
+                .repeated()
+                .collect::<String>()
+        )
+        .map(|content| ERToken::ClassDef(content.trim().to_string()));
+    
     // Relationship symbols (order matters for overlapping patterns - longer first)
     let rel_symbols = choice((
         just("}o--o{").to("many-to-many"),
         just("}o--||").to("many-to-one"),
         just("||--o{").to("one-to-many"),
+        just("||--o|").to("one-to-zero-or-one"),  // Added missing pattern  
         just("||--||").to("one-to-one"),
         just("||--|{").to("one-to-one-or-more"),  // Moved before shorter patterns
         just("}|--|{").to("one-or-more-to-one-or-more"),
         just("}|--||").to("one-or-more-to-one"),
+        just("}|..|{").to("one-or-more-to-one-or-more-optional"),  // Added missing pattern
         just("}o..o{").to("many-to-many-optional"),
         just("}o..||").to("many-to-one-optional"),
         just("||..o{").to("one-to-many-optional"),
@@ -65,8 +118,8 @@ fn er_lexer<'src>() -> impl Parser<'src, &'src str, Vec<ERToken>, extra::Err<Sim
         just("UK").to(ERToken::KeyType(KeyType::UK)),
     ));
     
-    // Attribute types
-    let attr_types = choice((
+    // Attribute types with optional modifiers
+    let base_attr_types = choice((
         just("string"),
         just("int"),
         just("integer"),
@@ -83,8 +136,29 @@ fn er_lexer<'src>() -> impl Parser<'src, &'src str, Vec<ERToken>, extra::Err<Sim
         just("text"),
         just("varchar"),
         just("char"),
-    ))
-    .map(|t: &str| ERToken::AttributeType(t.to_string()));
+    ));
+    
+    // Attribute type with optional length (e.g., string(99)) or array notation (e.g., string[])
+    let attr_types = base_attr_types
+        .then(
+            choice((
+                // Array notation: string[]
+                just("[]").to("[]".to_string()),
+                // Length notation: string(99)
+                just('(')
+                    .ignore_then(text::int(10))
+                    .then_ignore(just(')'))
+                    .map(|n| format!("({})", n)),
+            ))
+            .or_not()
+        )
+        .map(|(base, modifier)| {
+            if let Some(mod_str) = modifier {
+                ERToken::AttributeType(format!("{}{}", base, mod_str))
+            } else {
+                ERToken::AttributeType(base.to_string())
+            }
+        });
     
     // Quoted string
     let quoted_string = just('"')
@@ -93,6 +167,47 @@ fn er_lexer<'src>() -> impl Parser<'src, &'src str, Vec<ERToken>, extra::Err<Sim
         )
         .then_ignore(just('"'))
         .map(ERToken::QuotedString);
+    
+    // Entity alias: alias[name] or alias["quoted name"]
+    let entity_alias = text::ident()
+        .then_ignore(just('['))
+        .then(
+            choice((
+                // Quoted name: "Customer Account"
+                just('"')
+                    .ignore_then(none_of('"').repeated().collect::<String>())
+                    .then_ignore(just('"')),
+                // Unquoted name: Person
+                none_of(']').repeated().collect::<String>()
+            ))
+        )
+        .then_ignore(just(']'))
+        .map(|(alias, name): (&str, String)| ERToken::EntityAlias {
+            alias: alias.to_string(),
+            name: name.trim().to_string(),
+        });
+    
+    // Class assignment: entity:::class
+    let class_assignment = choice((
+        // Hyphenated entity with class: LINE-ITEM:::foo
+        text::ident()
+            .then_ignore(just('-'))
+            .then(text::ident())
+            .then_ignore(just(":::"))
+            .then(text::ident())
+            .map(|((first, second), class): ((&str, &str), &str)| ERToken::ClassAssignment {
+                entity: format!("{}-{}", first, second),
+                class: class.to_string(),
+            }),
+        // Regular entity with class: PERSON:::foo
+        text::ident()
+            .then_ignore(just(":::"))
+            .then(text::ident())
+            .map(|(entity, class): (&str, &str)| ERToken::ClassAssignment {
+                entity: entity.to_string(),
+                class: class.to_string(),
+            }),
+    ));
     
     // Entity/Attribute names (identifiers)
     let identifier = choice((
@@ -112,10 +227,14 @@ fn er_lexer<'src>() -> impl Parser<'src, &'src str, Vec<ERToken>, extra::Err<Sim
     let colon = just(':').to(ERToken::Colon);
     let newline = just('\n').to(ERToken::NewLine);
     
-    // Combine all tokens
+    // Combine all tokens (order matters - longer patterns first)
     let token = choice((
         comment,
         er_keyword,
+        acc_title,     // Must come before identifier since "accTitle" could match as identifier
+        acc_descr,     // Must come before identifier since "accDescr" could match as identifier
+        style_directive, // Must come before identifier since "style" could match as identifier
+        class_def_directive, // Must come before identifier since "classDef" could match as identifier
         key_type,
         attr_types,
         rel_symbols,
@@ -123,6 +242,8 @@ fn er_lexer<'src>() -> impl Parser<'src, &'src str, Vec<ERToken>, extra::Err<Sim
         right_brace,
         colon,
         quoted_string,
+        entity_alias,  // Must come before identifier since alias part could match as identifier
+        class_assignment, // Must come before identifier since entity part could match as identifier
         identifier,
     ));
     
@@ -142,10 +263,20 @@ fn er_parser<'src>() -> impl Parser<'src, &'src [ERToken], ErDiagram, extra::Err
                 .repeated()
         );
     
-    // Parse entity name
+    // Parse entity name (can be EntityName, EntityAlias, or ClassAssignment)
     let entity_name = any().try_map(|t, span| {
         match t {
             ERToken::EntityName(name) => Ok(name),
+            ERToken::EntityAlias { alias, name: _ } => Ok(alias), // Use alias for relationships
+            ERToken::ClassAssignment { entity, class: _ } => Ok(entity), // Use entity name, ignore class for now
+            _ => Err(Simple::new(Some(t.into()), span))
+        }
+    });
+    
+    // Parse entity alias specifically for entity definitions
+    let entity_alias = any().try_map(|t, span| {
+        match t {
+            ERToken::EntityAlias { alias, name } => Ok((alias, name)),
             _ => Err(Simple::new(Some(t.into()), span))
         }
     });
@@ -174,6 +305,37 @@ fn er_parser<'src>() -> impl Parser<'src, &'src [ERToken], ErDiagram, extra::Err
         }
     });
     
+    // Parse accessibility directives
+    let acc_title = any().try_map(|t, span| {
+        match t {
+            ERToken::AccTitle(title) => Ok(title),
+            _ => Err(Simple::new(Some(t.into()), span))
+        }
+    });
+    
+    let acc_descr = any().try_map(|t, span| {
+        match t {
+            ERToken::AccDescr(descr) => Ok(descr),
+            _ => Err(Simple::new(Some(t.into()), span))
+        }
+    });
+    
+    // Parse style directives
+    let style_directive = any().try_map(|t, span| {
+        match t {
+            ERToken::Style(content) => Ok(content),
+            _ => Err(Simple::new(Some(t.into()), span))
+        }
+    });
+    
+    // Parse classDef directives
+    let class_def_directive = any().try_map(|t, span| {
+        match t {
+            ERToken::ClassDef(content) => Ok(content),
+            _ => Err(Simple::new(Some(t.into()), span))
+        }
+    });
+    
     // Parse attribute: type name [key_type] ["comment"]
     let attribute = attr_type
         .then(entity_name)  // Attribute names use same parser as entity names
@@ -188,22 +350,44 @@ fn er_parser<'src>() -> impl Parser<'src, &'src [ERToken], ErDiagram, extra::Err
             }
         });
     
-    // Parse entity definition: ENTITY { attributes }
-    let entity_def = entity_name
-        .then_ignore(just(ERToken::LeftBrace))
-        .then(
-            any().filter(|t| matches!(t, ERToken::NewLine))
-                .repeated()
-                .ignore_then(attribute)
-                .then_ignore(
-                    any().filter(|t| matches!(t, ERToken::NewLine))
-                        .repeated()
-                )
-                .repeated()
-                .collect::<Vec<_>>()
-        )
-        .then_ignore(just(ERToken::RightBrace))
-        .map(|(name, attributes)| Entity { name, attributes });
+    // Parse entity definition: ENTITY { attributes } or alias[Entity Name] { attributes }
+    let entity_def = choice((
+        // Entity with alias: alias[name] { attributes }
+        entity_alias
+            .then_ignore(just(ERToken::LeftBrace))
+            .then(
+                any().filter(|t| matches!(t, ERToken::NewLine))
+                    .repeated()
+                    .ignore_then(attribute)
+                    .then_ignore(
+                        any().filter(|t| matches!(t, ERToken::NewLine))
+                            .repeated()
+                    )
+                    .repeated()
+                    .collect::<Vec<_>>()
+            )
+            .then_ignore(just(ERToken::RightBrace))
+            .map(|((alias, _display_name), attributes)| Entity { 
+                name: alias, // Use alias as the entity identifier
+                attributes 
+            }),
+        // Regular entity: ENTITY { attributes }
+        entity_name
+            .then_ignore(just(ERToken::LeftBrace))
+            .then(
+                any().filter(|t| matches!(t, ERToken::NewLine))
+                    .repeated()
+                    .ignore_then(attribute)
+                    .then_ignore(
+                        any().filter(|t| matches!(t, ERToken::NewLine))
+                            .repeated()
+                    )
+                    .repeated()
+                    .collect::<Vec<_>>()
+            )
+            .then_ignore(just(ERToken::RightBrace))
+            .map(|(name, attributes)| Entity { name, attributes })
+    ));
     
     // Parse relationship symbol and convert to cardinality
     let rel_symbol = any().try_map(|t, span| {
@@ -234,13 +418,22 @@ fn er_parser<'src>() -> impl Parser<'src, &'src [ERToken], ErDiagram, extra::Err
         });
     
     // Skip newlines and other tokens
-    let skip_token = any().filter(|t| !matches!(t, ERToken::EntityName(_) | ERToken::RelSymbol(_)));
+    let skip_token = any().filter(|t| !matches!(t, 
+        ERToken::EntityName(_) | 
+        ERToken::RelSymbol(_) | 
+        ERToken::ClassAssignment { .. } |
+        ERToken::EntityAlias { .. }
+    ));
     
-    // Parse diagram content
+    // Parse diagram content - include accessibility directives, style, and classDef
     let content = choice((
-        entity_def.map(|e| (Some(e), None)),
-        relationship.map(|r| (None, Some(r))),
-        skip_token.map(|_| (None, None)),
+        entity_def.map(|e| (Some(e), None, None, None, None, None)),
+        relationship.map(|r| (None, Some(r), None, None, None, None)),
+        acc_title.map(|t| (None, None, Some(t), None, None, None)),
+        acc_descr.map(|d| (None, None, None, Some(d), None, None)),
+        style_directive.map(|s| (None, None, None, None, Some(s), None)),
+        class_def_directive.map(|c| (None, None, None, None, None, Some(c))),
+        skip_token.map(|_| (None, None, None, None, None, None)),
     ))
         .repeated()
         .collect::<Vec<_>>();
@@ -250,19 +443,31 @@ fn er_parser<'src>() -> impl Parser<'src, &'src [ERToken], ErDiagram, extra::Err
         .map(|items| {
             let mut entities = HashMap::new();
             let mut relationships = Vec::new();
+            let mut acc_title = None;
+            let mut acc_descr = None;
             
-            for (entity_opt, rel_opt) in items {
+            for (entity_opt, rel_opt, title_opt, descr_opt, _style_opt, _class_def_opt) in items {
                 if let Some(entity) = entity_opt {
                     entities.insert(entity.name.clone(), entity);
                 }
                 if let Some(rel) = rel_opt {
                     relationships.push(rel);
                 }
+                if let Some(title) = title_opt {
+                    acc_title = Some(title);
+                }
+                if let Some(descr) = descr_opt {
+                    acc_descr = Some(descr);
+                }
+                // Style and classDef directives are parsed but not stored in the AST currently
             }
             
             ErDiagram {
                 title: None,
-                accessibility: AccessibilityInfo::default(),
+                accessibility: AccessibilityInfo {
+                    title: acc_title,
+                    description: acc_descr,
+                },
                 entities,
                 relationships,
             }
@@ -290,6 +495,14 @@ fn parse_cardinality(symbol: &str) -> (ErCardinality, ErCardinality) {
         "one-to-one-or-more" | "||--|{" => (
             ErCardinality { min: CardinalityValue::One, max: CardinalityValue::One },
             ErCardinality { min: CardinalityValue::One, max: CardinalityValue::Many },
+        ),
+        "one-or-more-to-one-or-more-optional" | "}|..|{" => (
+            ErCardinality { min: CardinalityValue::One, max: CardinalityValue::Many },
+            ErCardinality { min: CardinalityValue::One, max: CardinalityValue::Many },
+        ),
+        "one-to-zero-or-one" | "||--o|" => (
+            ErCardinality { min: CardinalityValue::One, max: CardinalityValue::One },
+            ErCardinality { min: CardinalityValue::Zero, max: CardinalityValue::One },
         ),
         _ => (
             ErCardinality { min: CardinalityValue::Zero, max: CardinalityValue::Many },

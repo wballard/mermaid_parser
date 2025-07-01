@@ -747,7 +747,22 @@ pub struct XyChartDiagram {
 pub struct KanbanDiagram {
     pub title: Option<String>,
     pub accessibility: AccessibilityInfo,
-    // TODO: Add kanban specific fields
+    pub sections: Vec<KanbanSection>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct KanbanSection {
+    pub id: String,
+    pub title: String,
+    pub items: Vec<KanbanItem>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct KanbanItem {
+    pub id: Option<String>,
+    pub text: String,
+    pub assigned: Vec<String>,
+    pub metadata: std::collections::HashMap<String, String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

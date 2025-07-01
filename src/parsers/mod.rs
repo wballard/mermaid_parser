@@ -10,6 +10,7 @@ pub mod er;
 pub mod flowchart;
 pub mod gantt;
 pub mod git;
+pub mod kanban;
 
 // Future parsers (placeholders)
 // pub mod timeline;
@@ -24,7 +25,6 @@ pub mod git;
 // pub mod mindmap;
 // pub mod quadrant;
 // pub mod xychart;
-// pub mod kanban;
 // pub mod block;
 // pub mod packet;
 // pub mod requirement;
