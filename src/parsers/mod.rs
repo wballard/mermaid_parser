@@ -9,6 +9,7 @@ pub mod class;
 pub mod er;
 pub mod flowchart;
 pub mod gantt;
+pub mod git;
 
 // Future parsers (placeholders)
 // pub mod timeline;

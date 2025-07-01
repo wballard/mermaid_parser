@@ -531,7 +531,59 @@ pub struct PieDiagram {
 pub struct GitDiagram {
     pub title: Option<String>,
     pub accessibility: AccessibilityInfo,
-    // TODO: Add git graph specific fields
+    pub theme: Option<String>,
+    pub commits: Vec<GitCommit>,
+    pub branches: Vec<GitBranch>,
+    pub operations: Vec<GitOperation>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct GitCommit {
+    pub id: Option<String>,
+    pub commit_type: CommitType,
+    pub tag: Option<String>,
+    pub branch: String, // Which branch this commit is on
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum CommitType {
+    Normal,
+    Reverse,
+    Highlight,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct GitBranch {
+    pub name: String,
+    pub order: Option<i32>,
+    pub color: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum GitOperation {
+    Commit {
+        id: Option<String>,
+        commit_type: CommitType,
+        tag: Option<String>,
+    },
+    Branch {
+        name: String,
+        order: Option<i32>,
+    },
+    Checkout {
+        branch: String,
+    },
+    Merge {
+        branch: String,
+        id: Option<String>,
+        tag: Option<String>,
+        commit_type: CommitType,
+    },
+    CherryPick {
+        id: String,
+        parent: Option<String>,
+        tag: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
