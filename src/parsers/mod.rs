@@ -4,6 +4,7 @@
 pub mod sankey;
 pub mod architecture;
 pub mod block;
+pub mod c4;
 
 // Future parsers (placeholders)
 // pub mod timeline;

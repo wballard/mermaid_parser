@@ -299,9 +299,87 @@ pub struct ErDiagram {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct C4Diagram {
+    pub diagram_type: C4DiagramType,
     pub title: Option<String>,
     pub accessibility: AccessibilityInfo,
-    // TODO: Add C4 diagram specific fields
+    pub elements: std::collections::HashMap<String, C4Element>,
+    pub boundaries: Vec<C4Boundary>,
+    pub relationships: Vec<C4Relationship>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum C4DiagramType {
+    Context,
+    Container,
+    Component,
+    Dynamic,
+    Deployment,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct C4Element {
+    pub id: String,
+    pub element_type: C4ElementType,
+    pub name: String,
+    pub description: Option<String>,
+    pub technology: Option<String>,
+    pub tags: Vec<String>,
+    pub is_external: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum C4ElementType {
+    Person,
+    System,
+    SystemDb,
+    SystemQueue,
+    Container,
+    ContainerDb,
+    ContainerQueue,
+    Component,
+    ComponentDb,
+    ComponentQueue,
+    Node,
+    DeploymentNode,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct C4Boundary {
+    pub id: String,
+    pub boundary_type: C4BoundaryType,
+    pub label: String,
+    pub tags: Vec<String>,
+    pub elements: Vec<String>,  // Element IDs
+    pub boundaries: Vec<C4Boundary>,  // Nested boundaries
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum C4BoundaryType {
+    System,
+    Container,
+    Enterprise,
+    Generic,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct C4Relationship {
+    pub from: String,
+    pub to: String,
+    pub label: Option<String>,
+    pub technology: Option<String>,
+    pub direction: C4RelationshipDirection,
+    pub is_bidirectional: bool,
+    pub tags: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum C4RelationshipDirection {
+    Default,
+    Up,
+    Down,
+    Left,
+    Right,
+    Back,
 }
 
 #[derive(Debug, Clone, PartialEq)]
