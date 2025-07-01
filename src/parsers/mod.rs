@@ -43,13 +43,7 @@ pub mod timeline {
     }
 }
 
-pub mod journey {
-    use super::*;
-
-    pub fn parse(_input: &str) -> Result<JourneyDiagram> {
-        Err(ParseError::UnsupportedDiagramType("journey".to_string()))
-    }
-}
+pub mod journey;
 
 pub mod sequence {
     use super::*;
