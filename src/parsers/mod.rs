@@ -13,6 +13,7 @@ pub mod git;
 pub mod kanban;
 pub mod mindmap;
 pub mod misc;
+pub mod packet;
 pub mod pie;
 
 // Future parsers (placeholders)

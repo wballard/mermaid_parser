@@ -938,7 +938,15 @@ pub enum ArchEdgeType {
 pub struct PacketDiagram {
     pub title: Option<String>,
     pub accessibility: AccessibilityInfo,
-    // TODO: Add packet diagram specific fields
+    pub fields: Vec<PacketField>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct PacketField {
+    pub start_bit: u32,
+    pub end_bit: u32,
+    pub name: String,
+    pub is_optional: bool, // Indicated by parentheses
 }
 
 #[derive(Debug, Clone, PartialEq)]
