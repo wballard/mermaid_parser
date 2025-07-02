@@ -19,25 +19,14 @@ pub mod radar;
 pub mod sankey;
 pub mod state;
 
-// Future parsers (placeholders)
-// pub mod timeline;
+pub mod timeline;
+pub mod requirement;
+
+// Future parsers (placeholders)  
 // pub mod journey;
 // pub mod sequence;
 // pub mod xychart;
-pub mod requirement;
 // pub mod treemap;
-
-// Placeholder implementations for now
-use crate::common::ast::*;
-use crate::error::{ParseError, Result};
-
-pub mod timeline {
-    use super::*;
-
-    pub fn parse(_input: &str) -> Result<TimelineDiagram> {
-        Err(ParseError::UnsupportedDiagramType("timeline".to_string()))
-    }
-}
 
 pub mod journey;
 pub mod sequence;
