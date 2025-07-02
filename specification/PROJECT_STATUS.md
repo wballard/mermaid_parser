@@ -110,7 +110,6 @@ mermaid-parser/
 ### Performance Targets
 - [ ] Parse 1000+ diagrams in <1 second
 - [ ] Memory-efficient AST representation
-- [ ] Support for streaming/incremental parsing
 
 ### Quality Standards
 - [ ] 100% test coverage
