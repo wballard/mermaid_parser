@@ -41,6 +41,7 @@ pub mod error;
 pub mod parsers;
 
 pub use common::ast::{DiagramType, KeyType, CardinalityValue};
+pub use common::visitor::{AstVisitor, AstVisitorMut, NodeCounter, ComplexityAnalyzer, ReferenceValidator, TitleSetter};
 pub use error::{ParseError, Result};
 
 /// Parse a Mermaid diagram from text input
