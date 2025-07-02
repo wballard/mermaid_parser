@@ -526,7 +526,14 @@ pub enum Weekday {
 pub struct PieDiagram {
     pub title: Option<String>,
     pub accessibility: AccessibilityInfo,
-    // TODO: Add pie chart specific fields
+    pub show_data: bool,
+    pub data: Vec<PieSlice>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct PieSlice {
+    pub label: String,
+    pub value: f64,
 }
 
 #[derive(Debug, Clone, PartialEq)]

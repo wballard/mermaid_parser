@@ -13,20 +13,15 @@ pub mod git;
 pub mod kanban;
 pub mod mindmap;
 pub mod misc;
+pub mod pie;
 
 // Future parsers (placeholders)
 // pub mod timeline;
 // pub mod journey;
 // pub mod sequence;
 // pub mod state;
-// pub mod flowchart;
-// pub mod gantt;
-// pub mod pie;
-// pub mod git;
-// pub mod c4;
 // pub mod quadrant;
 // pub mod xychart;
-// pub mod block;
 // pub mod packet;
 // pub mod requirement;
 // pub mod treemap;

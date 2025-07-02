@@ -81,6 +81,7 @@ pub fn parse_diagram(input: &str) -> Result<DiagramType> {
         "git" => parsers::git::parse(input).map(DiagramType::Git),
         "kanban" => parsers::kanban::parse(input).map(DiagramType::Kanban),
         "mindmap" => parsers::mindmap::parse(input).map(DiagramType::Mindmap),
+        "pie" => parsers::pie::parse(input).map(DiagramType::Pie),
         "timeline" => parsers::timeline::parse(input).map(DiagramType::Timeline),
         "journey" => parsers::journey::parse(input).map(DiagramType::Journey),
         "sequence" => parsers::sequence::parse(input).map(DiagramType::Sequence),
