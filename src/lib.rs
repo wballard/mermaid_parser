@@ -142,6 +142,7 @@ fn detect_diagram_type(input: &str) -> Result<&'static str> {
         "block" => Ok("block"),
         "block-beta" => Ok("block"),
         "architecture" => Ok("architecture"),
+        "architecture-beta" => Ok("architecture"),
         "packet-beta" => Ok("packet"),
         "packet" => Ok("packet"),
         "requirement" | "requirementdiagram" => Ok("requirement"),

@@ -19,6 +19,9 @@ pub enum ArchToken {
     RightParen,              // )
     LeftSquare,              // [
     RightSquare,             // ]
+    LeftBrace,               // {
+    RightBrace,              // }
+    Backslash,               // \
     Colon,                   // :
     Dash,                    // -
     DashDash,                // --
@@ -49,6 +52,7 @@ pub fn parse(input: &str) -> Result<ArchitectureDiagram> {
             line: 0,
             column: 0,
         })?;
+    
 
     let result = architecture_parser()
         .parse(&tokens[..])
@@ -73,24 +77,29 @@ fn architecture_lexer<'src>() -> impl Parser<'src, &'src str, Vec<ArchToken>, ex
     // Keywords - using just() instead of keyword() for hyphenated keywords
     let keywords = choice((
         just("architecture-beta").map(|_| ArchToken::ArchitectureBeta),
+        just("architecture").map(|_| ArchToken::ArchitectureBeta), // Also accept "architecture"
         text::keyword("group").map(|_| ArchToken::Group),
         text::keyword("service").map(|_| ArchToken::Service),
         text::keyword("junction").map(|_| ArchToken::Junction),
         text::keyword("in").map(|_| ArchToken::In),
     ));
     
-    // Port specifiers - single uppercase letters
-    let ports = one_of("LRTB").map(|c| match c {
-        'L' => ArchToken::PortL,
-        'R' => ArchToken::PortR,
-        'T' => ArchToken::PortT,
-        'B' => ArchToken::PortB,
-        _ => unreachable!(),
-    });
+    // Port specifiers - single uppercase letters when not followed by alphanumeric characters
+    let ports = one_of("LRTB")
+        .then_ignore(none_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_").rewind())
+        .map(|c| match c {
+            'L' => ArchToken::PortL,
+            'R' => ArchToken::PortR,
+            'T' => ArchToken::PortT,
+            'B' => ArchToken::PortB,
+            _ => unreachable!(),
+        });
     
     // Edge types
     let edges = choice((
+        just("<-->").map(|_| ArchToken::BiArrow),  // Also accept <-->
         just("<->").map(|_| ArchToken::BiArrow),
+        just("-->").map(|_| ArchToken::Arrow),    // Also accept -->
         just("->").map(|_| ArchToken::Arrow),
         just("--").map(|_| ArchToken::DashDash),
         just("..").map(|_| ArchToken::DotDot),
@@ -117,21 +126,48 @@ fn architecture_lexer<'src>() -> impl Parser<'src, &'src str, Vec<ArchToken>, ex
         .then_ignore(just(']'))
         .map(ArchToken::Title);
     
-    // Identifier - after keywords
-    let identifier = text::ident()
-        .map(|s: &str| ArchToken::Identifier(s.to_string()));
+    // Custom identifier that allows starting with numbers
+    let identifier = choice((
+        // Regular identifier  
+        text::ident().map(|s: &str| s.to_string()),
+        // Numeric identifier (digits optionally followed by letters/digits/underscore)
+        one_of("0123456789")
+            .then(
+                one_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_")
+                    .repeated()
+                    .collect::<String>()
+            )
+            .map(|(first, rest)| format!("{}{}", first, rest))
+    ))
+    .map(|s: String| ArchToken::Identifier(s));
     
     let colon = just(':').map(|_| ArchToken::Colon);
+    let left_brace = just('{').map(|_| ArchToken::LeftBrace);
+    let right_brace = just('}').map(|_| ArchToken::RightBrace);
+    let left_paren = just('(').map(|_| ArchToken::LeftParen);
+    let right_paren = just(')').map(|_| ArchToken::RightParen);
+    let left_square = just('[').map(|_| ArchToken::LeftSquare);
+    let right_square = just(']').map(|_| ArchToken::RightSquare);
+    let dash = just('-').map(|_| ArchToken::Dash);
+    let backslash = just('\\').map(|_| ArchToken::Backslash);
     let newline = text::newline().map(|_| ArchToken::NewLine);
     
-    // Combine all tokens
+    // Combine all tokens - order matters: more specific parsers first
     let token = choice((
         comment,
         keywords,
-        edges,
-        icon,
-        title,
+        edges,          // Must come before dash (for -- and ->)
+        icon,           // Must come before left_paren/right_paren
+        title,          // Must come before left_square/right_square
         ports,
+        left_brace,
+        right_brace,
+        left_paren,
+        right_paren,
+        left_square,
+        right_square,
+        dash,           // Single dash after edge types
+        backslash,
         colon,
         identifier,
     ))
@@ -380,7 +416,7 @@ fn parse_edge(tokens: &[ArchToken], from_id: &str) -> Option<(ArchEdge, usize)> 
         return None;
     }
     
-    let mut i = 1; // Skip from_id
+    let mut i = 1; // Skip from_id which is at position 0
     
     // Check for two possible formats:
     // 1. source:port -- port:target (with colons)
@@ -406,15 +442,45 @@ fn parse_edge(tokens: &[ArchToken], from_id: &str) -> Option<(ArchEdge, usize)> 
                 i += 1;
                 Some(Port::Bottom)
             }
+            // Handle case where port is tokenized as identifier
+            ArchToken::Identifier(s) if s.len() == 1 => {
+                match s.as_str() {
+                    "L" => {
+                        i += 1;
+                        Some(Port::Left)
+                    }
+                    "R" => {
+                        i += 1;
+                        Some(Port::Right)
+                    }
+                    "T" => {
+                        i += 1;
+                        Some(Port::Top)
+                    }
+                    "B" => {
+                        i += 1;
+                        Some(Port::Bottom)
+                    }
+                    _ => None,
+                }
+            }
             _ => None,
         }
-    } else if matches!(&tokens[i], ArchToken::PortL | ArchToken::PortR | ArchToken::PortT | ArchToken::PortB) {
+    } else if matches!(&tokens[i], ArchToken::PortL | ArchToken::PortR | ArchToken::PortT | ArchToken::PortB) 
+        || matches!(&tokens[i], ArchToken::Identifier(s) if s.len() == 1 && matches!(s.as_str(), "L" | "R" | "T" | "B")) {
         // Format 2: source port (space separated)
         let port = match &tokens[i] {
             ArchToken::PortL => Port::Left,
             ArchToken::PortR => Port::Right,
             ArchToken::PortT => Port::Top,
             ArchToken::PortB => Port::Bottom,
+            ArchToken::Identifier(s) => match s.as_str() {
+                "L" => Port::Left,
+                "R" => Port::Right,
+                "T" => Port::Top,
+                "B" => Port::Bottom,
+                _ => unreachable!(),
+            },
             _ => unreachable!(),
         };
         i += 1;
@@ -445,12 +511,20 @@ fn parse_edge(tokens: &[ArchToken], from_id: &str) -> Option<(ArchEdge, usize)> 
     };
     
     // Parse to port and target
-    let (to_port, to_id) = if matches!(&tokens[i], ArchToken::PortL | ArchToken::PortR | ArchToken::PortT | ArchToken::PortB) {
+    let (to_port, to_id) = if matches!(&tokens[i], ArchToken::PortL | ArchToken::PortR | ArchToken::PortT | ArchToken::PortB) 
+        || matches!(&tokens[i], ArchToken::Identifier(s) if s.len() == 1 && matches!(s.as_str(), "L" | "R" | "T" | "B")) {
         let port = match &tokens[i] {
             ArchToken::PortL => Port::Left,
             ArchToken::PortR => Port::Right,
             ArchToken::PortT => Port::Top,
             ArchToken::PortB => Port::Bottom,
+            ArchToken::Identifier(s) => match s.as_str() {
+                "L" => Port::Left,
+                "R" => Port::Right,
+                "T" => Port::Top,
+                "B" => Port::Bottom,
+                _ => unreachable!(),
+            },
             _ => unreachable!(),
         };
         i += 1;
@@ -487,6 +561,38 @@ fn parse_edge(tokens: &[ArchToken], from_id: &str) -> Option<(ArchEdge, usize)> 
         }
     };
     
+    // Check for optional label after colon
+    let label = if i < tokens.len() && matches!(&tokens[i], ArchToken::Colon) {
+        i += 1;
+        // Collect all tokens until end of line or statement as label
+        let mut label_parts = Vec::new();
+        while i < tokens.len() {
+            match &tokens[i] {
+                ArchToken::Identifier(s) => {
+                    // Check if this identifier is followed by an arrow (indicating start of new edge)
+                    if i + 1 < tokens.len() && matches!(&tokens[i + 1], ArchToken::Arrow) {
+                        break;
+                    }
+                    label_parts.push(s.clone());
+                    i += 1;
+                }
+                ArchToken::Title(s) => {
+                    label_parts.push(s.clone());
+                    i += 1;
+                }
+                ArchToken::NewLine => break,
+                _ => break,
+            }
+        }
+        if !label_parts.is_empty() {
+            Some(label_parts.join(" "))
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+    
     Some((
         ArchEdge {
             from: EdgeEndpoint {
@@ -497,7 +603,7 @@ fn parse_edge(tokens: &[ArchToken], from_id: &str) -> Option<(ArchEdge, usize)> 
                 id: to_id,
                 port: to_port,
             },
-            label: None,
+            label,
             edge_type,
         },
         i,
