@@ -15,15 +15,14 @@ pub mod mindmap;
 pub mod misc;
 pub mod packet;
 pub mod pie;
+pub mod quadrant;
 
 // Future parsers (placeholders)
 // pub mod timeline;
 // pub mod journey;
 // pub mod sequence;
 // pub mod state;
-// pub mod quadrant;
 // pub mod xychart;
-// pub mod packet;
 // pub mod requirement;
 // pub mod treemap;
 // pub mod radar;

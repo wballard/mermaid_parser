@@ -763,7 +763,39 @@ pub enum MindmapNodeShape {
 pub struct QuadrantDiagram {
     pub title: Option<String>,
     pub accessibility: AccessibilityInfo,
-    // TODO: Add quadrant chart specific fields
+    pub x_axis: Option<AxisDefinition>,
+    pub y_axis: Option<AxisDefinition>,
+    pub quadrants: QuadrantLabels,
+    pub points: Vec<DataPoint>,
+    pub styles: Vec<ClassDefinition>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct AxisDefinition {
+    pub label_start: Option<String>,
+    pub label_end: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct QuadrantLabels {
+    pub quadrant_1: Option<String>, // Top-right
+    pub quadrant_2: Option<String>, // Top-left
+    pub quadrant_3: Option<String>, // Bottom-left
+    pub quadrant_4: Option<String>, // Bottom-right
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct DataPoint {
+    pub name: String,
+    pub x: f64, // 0.0 to 1.0
+    pub y: f64, // 0.0 to 1.0
+    pub class: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ClassDefinition {
+    pub name: String,
+    pub styles: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
