@@ -855,7 +855,42 @@ pub struct ClassDefinition {
 pub struct XyChartDiagram {
     pub title: Option<String>,
     pub accessibility: AccessibilityInfo,
-    // TODO: Add XY chart specific fields
+    pub orientation: ChartOrientation,
+    pub x_axis: XAxis,
+    pub y_axis: YAxis,
+    pub data_series: Vec<DataSeries>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ChartOrientation {
+    Vertical,   // Default
+    Horizontal,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct XAxis {
+    pub title: Option<String>,
+    pub labels: Vec<String>,
+    pub range: Option<(f64, f64)>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct YAxis {
+    pub title: Option<String>,
+    pub range: Option<(f64, f64)>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct DataSeries {
+    pub series_type: SeriesType,
+    pub name: Option<String>,
+    pub data: Vec<f64>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum SeriesType {
+    Line,
+    Bar,
 }
 
 #[derive(Debug, Clone, PartialEq)]

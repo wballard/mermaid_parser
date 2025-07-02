@@ -91,6 +91,7 @@ pub fn parse_diagram(input: &str) -> Result<DiagramType> {
         "journey" => parsers::journey::parse(input).map(DiagramType::Journey),
         "sequence" => parsers::sequence::parse(input).map(DiagramType::Sequence),
         "state" => parsers::state::parse(input).map(DiagramType::State),
+        "xychart" => parsers::xy::parse(input).map(DiagramType::XyChart),
         // Add other parsers as they're implemented
         _ => {
             // Try misc parser as a fallback for unknown diagram types
@@ -136,6 +137,7 @@ fn detect_diagram_type(input: &str) -> Result<&'static str> {
         "quadrant" => Ok("quadrant"),
         "quadrantchart" => Ok("quadrant"),
         "xychart" => Ok("xychart"),
+        "xychart-beta" => Ok("xychart"),
         "kanban" => Ok("kanban"),
         "block" => Ok("block"),
         "block-beta" => Ok("block"),
