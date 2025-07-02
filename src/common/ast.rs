@@ -985,7 +985,69 @@ pub struct PacketField {
 pub struct RequirementDiagram {
     pub title: Option<String>,
     pub accessibility: AccessibilityInfo,
-    // TODO: Add requirement diagram specific fields
+    pub requirements: std::collections::HashMap<String, Requirement>,
+    pub elements: std::collections::HashMap<String, Element>,
+    pub relationships: Vec<RequirementRelationship>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Requirement {
+    pub name: String,
+    pub req_type: RequirementType,
+    pub id: String,
+    pub text: String,
+    pub risk: Option<RiskLevel>,
+    pub verify_method: Option<VerificationMethod>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum RequirementType {
+    Requirement,
+    FunctionalRequirement,
+    PerformanceRequirement,
+    InterfaceRequirement,
+    PhysicalRequirement,
+    DesignConstraint,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum RiskLevel {
+    Low,
+    Medium,
+    High,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum VerificationMethod {
+    Analysis,
+    Inspection,
+    Test,
+    Demonstration,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Element {
+    pub name: String,
+    pub element_type: String,
+    pub doc_ref: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct RequirementRelationship {
+    pub source: String,
+    pub target: String,
+    pub relationship_type: RelationshipType,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum RelationshipType {
+    Contains,
+    Copies,
+    Derives,
+    Satisfies,
+    Verifies,
+    Refines,
+    Traces,
 }
 
 #[derive(Debug, Clone, PartialEq)]

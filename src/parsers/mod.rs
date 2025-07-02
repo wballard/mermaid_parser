@@ -24,7 +24,7 @@ pub mod radar;
 // pub mod sequence;
 // pub mod state;
 // pub mod xychart;
-// pub mod requirement;
+pub mod requirement;
 // pub mod treemap;
 
 // Placeholder implementations for now
