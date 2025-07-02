@@ -12,6 +12,7 @@ pub mod gantt;
 pub mod git;
 pub mod kanban;
 pub mod mindmap;
+pub mod misc;
 
 // Future parsers (placeholders)
 // pub mod timeline;

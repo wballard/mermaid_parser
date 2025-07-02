@@ -47,6 +47,8 @@ pub enum DiagramType {
     Treemap(TreemapDiagram),
     /// Radar charts
     Radar(RadarDiagram),
+    /// Miscellaneous/experimental diagrams
+    Misc(MiscDiagram),
 }
 
 /// Common accessibility information used across diagram types
@@ -951,5 +953,39 @@ pub struct RadarDiagram {
     pub title: Option<String>,
     pub accessibility: AccessibilityInfo,
     // TODO: Add radar chart specific fields
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MiscDiagram {
+    pub diagram_type: String,
+    pub content: MiscContent,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum MiscContent {
+    Info(InfoDiagram),
+    GitGraph(GitGraphAlt),
+    Raw(RawDiagram),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct InfoDiagram {
+    pub command: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct GitGraphAlt {
+    pub commits: Vec<MiscGitCommit>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MiscGitCommit {
+    pub action: String,
+    pub params: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct RawDiagram {
+    pub lines: Vec<String>,
 }
 

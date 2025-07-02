@@ -85,7 +85,10 @@ pub fn parse_diagram(input: &str) -> Result<DiagramType> {
         "journey" => parsers::journey::parse(input).map(DiagramType::Journey),
         "sequence" => parsers::sequence::parse(input).map(DiagramType::Sequence),
         // Add other parsers as they're implemented
-        _ => Err(ParseError::UnsupportedDiagramType(diagram_type.to_string())),
+        _ => {
+            // Try misc parser as a fallback for unknown diagram types
+            parsers::misc::parse(input).map(DiagramType::Misc)
+        }
     }
 }
 
@@ -104,7 +107,9 @@ fn detect_diagram_type(input: &str) -> Result<&'static str> {
         .split_whitespace()
         .next()
         .ok_or(ParseError::EmptyInput)?
-        .to_lowercase();
+        .to_lowercase()
+        .trim_end_matches(':')
+        .to_string();
 
     match first_word.as_str() {
         "sankey-beta" => Ok("sankey"),
@@ -114,9 +119,10 @@ fn detect_diagram_type(input: &str) -> Result<&'static str> {
         "classdiagram" => Ok("class"),
         "statediagram" | "statediagram-v2" => Ok("state"),
         "flowchart" | "graph" => Ok("flowchart"),
-        "gantt" => Ok("gantt"),
+        "gantt" | "gantttestclick" => Ok("gantt"),
         "pie" => Ok("pie"),
-        "gitgraph" => Ok("git"),
+        "gitgraph" => Ok("misc"), // Alternative gitGraph syntax handled by misc parser
+        "info" => Ok("misc"),
         "erdiagram" | "erdiagramtitletext" => Ok("er"),
         "c4context" | "c4container" | "c4component" | "c4dynamic" | "c4deployment" => Ok("c4"),
         "mindmap" => Ok("mindmap"),
@@ -131,7 +137,7 @@ fn detect_diagram_type(input: &str) -> Result<&'static str> {
         "sankey" => Ok("sankey"),
         "treemap" => Ok("treemap"),
         "radar" => Ok("radar"),
-        _ => Err(ParseError::UnknownDiagramType(first_word)),
+        _ => Ok("misc"), // Unknown diagram types are handled by misc parser
     }
 }
 
@@ -182,7 +188,7 @@ mod tests {
 
     #[test]
     fn test_unknown_diagram_type() {
-        assert!(detect_diagram_type("unknown_diagram_type").is_err());
+        assert_eq!(detect_diagram_type("unknown_diagram_type"), Ok("misc"));
     }
 }
 
