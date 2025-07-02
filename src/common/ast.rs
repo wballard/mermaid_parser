@@ -726,7 +726,28 @@ pub enum C4RelationshipDirection {
 pub struct MindmapDiagram {
     pub title: Option<String>,
     pub accessibility: AccessibilityInfo,
-    // TODO: Add mindmap specific fields
+    pub root: MindmapNode,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MindmapNode {
+    pub id: String,
+    pub text: String,
+    pub shape: MindmapNodeShape,
+    pub icon: Option<String>,
+    pub class: Option<String>,
+    pub children: Vec<MindmapNode>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum MindmapNodeShape {
+    Default,        // No brackets
+    Square,         // [text]
+    Rounded,        // (text)
+    Circle,         // ((text))
+    Cloud,          // (-text-)
+    Bang,           // ))text((
+    Hexagon,        // {{text}}
 }
 
 #[derive(Debug, Clone, PartialEq)]

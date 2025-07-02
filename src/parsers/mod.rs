@@ -11,6 +11,7 @@ pub mod flowchart;
 pub mod gantt;
 pub mod git;
 pub mod kanban;
+pub mod mindmap;
 
 // Future parsers (placeholders)
 // pub mod timeline;
@@ -22,7 +23,6 @@ pub mod kanban;
 // pub mod pie;
 // pub mod git;
 // pub mod c4;
-// pub mod mindmap;
 // pub mod quadrant;
 // pub mod xychart;
 // pub mod block;
