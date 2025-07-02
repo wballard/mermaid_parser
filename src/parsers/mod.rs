@@ -21,12 +21,12 @@ pub mod state;
 
 pub mod timeline;
 pub mod requirement;
+pub mod treemap;
 
 // Future parsers (placeholders)  
 // pub mod journey;
 // pub mod sequence;
 // pub mod xychart;
-// pub mod treemap;
 
 pub mod journey;
 pub mod sequence;

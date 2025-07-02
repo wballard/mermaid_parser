@@ -87,6 +87,7 @@ pub fn parse_diagram(input: &str) -> Result<DiagramType> {
         "radar" => parsers::radar::parse(input).map(DiagramType::Radar),
         "requirement" => parsers::requirement::parse(input).map(DiagramType::Requirement),
         "timeline" => parsers::timeline::parse(input).map(DiagramType::Timeline),
+        "treemap" => parsers::treemap::parse(input).map(DiagramType::Treemap),
         "journey" => parsers::journey::parse(input).map(DiagramType::Journey),
         "sequence" => parsers::sequence::parse(input).map(DiagramType::Sequence),
         "state" => parsers::state::parse(input).map(DiagramType::State),
@@ -143,7 +144,7 @@ fn detect_diagram_type(input: &str) -> Result<&'static str> {
         "packet" => Ok("packet"),
         "requirement" | "requirementdiagram" => Ok("requirement"),
         "sankey" => Ok("sankey"),
-        "treemap" => Ok("treemap"),
+        "treemap" | "treemap-beta" => Ok("treemap"),
         "radar" => Ok("radar"),
         _ => Ok("misc"), // Unknown diagram types are handled by misc parser
     }

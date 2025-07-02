@@ -1107,7 +1107,14 @@ pub enum RelationshipType {
 pub struct TreemapDiagram {
     pub title: Option<String>,
     pub accessibility: AccessibilityInfo,
-    // TODO: Add treemap specific fields
+    pub root: TreemapNode,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct TreemapNode {
+    pub name: String,
+    pub value: Option<f64>,
+    pub children: Vec<TreemapNode>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
