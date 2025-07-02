@@ -17,12 +17,12 @@ pub mod pie;
 pub mod quadrant;
 pub mod radar;
 pub mod sankey;
+pub mod state;
 
 // Future parsers (placeholders)
 // pub mod timeline;
 // pub mod journey;
 // pub mod sequence;
-// pub mod state;
 // pub mod xychart;
 pub mod requirement;
 // pub mod treemap;

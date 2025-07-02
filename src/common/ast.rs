@@ -344,7 +344,60 @@ pub enum ClassRelationshipType {
 pub struct StateDiagram {
     pub title: Option<String>,
     pub accessibility: AccessibilityInfo,
-    // TODO: Add state diagram specific fields
+    pub version: StateVersion,
+    pub states: std::collections::HashMap<String, State>,
+    pub transitions: Vec<StateTransition>,
+    pub notes: Vec<StateNote>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum StateVersion {
+    V1,
+    V2,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct State {
+    pub id: String,
+    pub display_name: Option<String>,
+    pub state_type: StateType,
+    pub substates: Vec<String>,        // IDs of child states
+    pub concurrent_regions: Vec<Vec<String>>, // For parallel states
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum StateType {
+    Simple,
+    Composite,
+    Start,      // [*] as source
+    End,        // [*] as target
+    Choice,     // <<choice>>
+    Fork,       // <<fork>>
+    Join,       // <<join>>
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct StateTransition {
+    pub from: String,
+    pub to: String,
+    pub event: Option<String>,
+    pub guard: Option<String>,
+    pub action: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct StateNote {
+    pub position: StateNotePosition,
+    pub target: String,
+    pub text: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum StateNotePosition {
+    LeftOf,
+    RightOf,
+    Above,
+    Below,
 }
 
 #[derive(Debug, Clone, PartialEq)]

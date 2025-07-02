@@ -84,10 +84,12 @@ pub fn parse_diagram(input: &str) -> Result<DiagramType> {
         "packet" => parsers::packet::parse(input).map(DiagramType::Packet),
         "pie" => parsers::pie::parse(input).map(DiagramType::Pie),
         "quadrant" => parsers::quadrant::parse(input).map(DiagramType::Quadrant),
+        "radar" => parsers::radar::parse(input).map(DiagramType::Radar),
         "requirement" => parsers::requirement::parse(input).map(DiagramType::Requirement),
         "timeline" => parsers::timeline::parse(input).map(DiagramType::Timeline),
         "journey" => parsers::journey::parse(input).map(DiagramType::Journey),
         "sequence" => parsers::sequence::parse(input).map(DiagramType::Sequence),
+        "state" => parsers::state::parse(input).map(DiagramType::State),
         // Add other parsers as they're implemented
         _ => {
             // Try misc parser as a fallback for unknown diagram types
