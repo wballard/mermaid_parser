@@ -1,7 +1,6 @@
 //! Individual parsers for each Mermaid diagram type
 
 // Implemented parsers
-pub mod sankey;
 pub mod architecture;
 pub mod block;
 pub mod c4;
@@ -17,6 +16,7 @@ pub mod packet;
 pub mod pie;
 pub mod quadrant;
 pub mod radar;
+pub mod sankey;
 
 // Future parsers (placeholders)
 // pub mod timeline;
@@ -40,14 +40,6 @@ pub mod timeline {
 }
 
 pub mod journey;
-
-pub mod sequence {
-    use super::*;
-
-    pub fn parse(_input: &str) -> Result<SequenceDiagram> {
-        Err(ParseError::UnsupportedDiagramType("sequence".to_string()))
-    }
-}
+pub mod sequence;
 
 // Add other placeholder modules as needed...
-
