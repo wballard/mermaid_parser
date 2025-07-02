@@ -33,7 +33,20 @@ pub enum ERToken {
         entity: String,
         class: String,
     },
+    // Natural language relationship tokens
+    To,                       // "to"
+    Optionally,               // "optionally"
+    Zero,                     // "zero"
+    One,                      // "one"
+    Many,                     // "many"
+    Only,                     // "only"
+    Exactly,                  // "exactly"
+    Or,                       // "or"
+    More,                     // "more"
+    Number(String),           // "1", "0+", "1+", etc.
+    ManyWithParam(i32),       // many(0), many(1), etc.
     Colon,                    // :
+    Comma,                    // ,
     NewLine,
     Eof,
 }
@@ -95,6 +108,7 @@ fn er_lexer<'src>() -> impl Parser<'src, &'src str, Vec<ERToken>, extra::Err<Sim
     
     // Relationship symbols (order matters for overlapping patterns - longer first)
     let rel_symbols = choice((
+        just("}o--|{").to("many-to-one-or-more"),  // Added missing pattern
         just("}o--o{").to("many-to-many"),
         just("}o--||").to("many-to-one"),
         just("||--o{").to("one-to-many"),
@@ -103,7 +117,16 @@ fn er_lexer<'src>() -> impl Parser<'src, &'src str, Vec<ERToken>, extra::Err<Sim
         just("||--|{").to("one-to-one-or-more"),  // Moved before shorter patterns
         just("}|--|{").to("one-or-more-to-one-or-more"),
         just("}|--||").to("one-or-more-to-one"),
+        just("o{--||").to("zero-or-one-to-one"),  // Added missing pattern
+        just("|o--|{").to("zero-or-one-to-one-or-more"),  // Added missing pattern
+        just("u--o{").to("unique-to-many"),  // Added missing pattern
+        just("}|..o{").to("one-or-more-to-many-optional"),  // Added missing pattern  
+        just("}|..o|").to("one-or-more-to-zero-or-one-optional"),  // Added missing pattern
         just("}|..|{").to("one-or-more-to-one-or-more-optional"),  // Added missing pattern
+        just("|o..o{").to("zero-or-one-to-many-optional"),  // Added missing pattern
+        just("|o..o|").to("zero-or-one-to-zero-or-one-optional"),  // Added missing pattern
+        just("|o..||").to("zero-or-one-to-one-optional"),  // Added missing pattern
+        just("}o..o|").to("many-to-zero-or-one-optional"),  // Added missing pattern
         just("}o..o{").to("many-to-many-optional"),
         just("}o..||").to("many-to-one-optional"),
         just("||..o{").to("one-to-many-optional"),
@@ -225,25 +248,88 @@ fn er_lexer<'src>() -> impl Parser<'src, &'src str, Vec<ERToken>, extra::Err<Sim
     let left_brace = just('{').to(ERToken::LeftBrace);
     let right_brace = just('}').to(ERToken::RightBrace);
     let colon = just(':').to(ERToken::Colon);
+    let comma = just(',').to(ERToken::Comma);
     let newline = just('\n').to(ERToken::NewLine);
     
-    // Combine all tokens (order matters - longer patterns first)
-    let token = choice((
+    // Helper to ensure keywords are not followed by word characters
+    let keyword = |s: &'static str| {
+        just(s)
+            .then_ignore(text::ident().not().rewind())
+    };
+    
+    // Natural language relationship keywords
+    let to_keyword = keyword("to").to(ERToken::To);
+    let optionally_keyword = keyword("optionally").to(ERToken::Optionally);
+    let zero_keyword = keyword("zero").to(ERToken::Zero);
+    let one_keyword = keyword("one").to(ERToken::One);
+    let many_keyword = keyword("many").to(ERToken::Many);
+    let only_keyword = keyword("only").to(ERToken::Only);
+    let exactly_keyword = keyword("exactly").to(ERToken::Exactly);
+    let or_keyword = keyword("or").to(ERToken::Or);
+    let more_keyword = keyword("more").to(ERToken::More);
+    
+    // Numbers with optional + suffix (e.g., "1", "0+", "1+")
+    let number_token = text::int(10)
+        .then(just('+').or_not())
+        .map(|(n, plus): (&str, Option<char>)| {
+            if plus.is_some() {
+                ERToken::Number(format!("{n}+"))
+            } else {
+                ERToken::Number(n.to_string())
+            }
+        });
+    
+    // many(n) pattern
+    let many_with_param = just("many")
+        .then_ignore(just('('))
+        .then(text::int(10))
+        .then_ignore(just(')'))
+        .map(|(_, n): (&str, &str)| ERToken::ManyWithParam(n.parse().unwrap_or(0)));
+    
+    // Natural language keywords grouped together
+    let nat_lang_keywords = choice((
+        many_with_param,  // Must come before "many" keyword
+        to_keyword,
+        optionally_keyword,
+        zero_keyword,
+        one_keyword,
+        many_keyword,
+        only_keyword,
+        exactly_keyword,
+        or_keyword,
+        more_keyword,
+        number_token,
+    ));
+
+    // Directive tokens grouped together
+    let directives = choice((
+        acc_title,
+        acc_descr,
+        style_directive,
+        class_def_directive,
+    ));
+
+    // Special tokens group
+    let special_tokens = choice((
         comment,
         er_keyword,
-        acc_title,     // Must come before identifier since "accTitle" could match as identifier
-        acc_descr,     // Must come before identifier since "accDescr" could match as identifier
-        style_directive, // Must come before identifier since "style" could match as identifier
-        class_def_directive, // Must come before identifier since "classDef" could match as identifier
         key_type,
         attr_types,
         rel_symbols,
+        quoted_string,
+        entity_alias,
+        class_assignment,
+    ));
+
+    // Combine all tokens (order matters - longer patterns first)
+    let token = choice((
+        directives,        // Must come before identifier
+        special_tokens,
+        nat_lang_keywords, // Must come before identifier
         left_brace,
         right_brace,
         colon,
-        quoted_string,
-        entity_alias,  // Must come before identifier since alias part could match as identifier
-        class_assignment, // Must come before identifier since entity part could match as identifier
+        comma,
         identifier,
     ));
     
@@ -253,6 +339,7 @@ fn er_lexer<'src>() -> impl Parser<'src, &'src str, Vec<ERToken>, extra::Err<Sim
         .or(newline)
         .repeated()
         .collect::<Vec<_>>()
+        .then_ignore(end())
 }
 
 fn er_parser<'src>() -> impl Parser<'src, &'src [ERToken], ErDiagram, extra::Err<Simple<'src, ERToken>>> {
@@ -263,12 +350,13 @@ fn er_parser<'src>() -> impl Parser<'src, &'src [ERToken], ErDiagram, extra::Err
                 .repeated()
         );
     
-    // Parse entity name (can be EntityName, EntityAlias, or ClassAssignment)
+    // Parse entity name (can be EntityName, EntityAlias, ClassAssignment, or QuotedString)
     let entity_name = any().try_map(|t, span| {
         match t {
             ERToken::EntityName(name) => Ok(name),
             ERToken::EntityAlias { alias, name: _ } => Ok(alias), // Use alias for relationships
             ERToken::ClassAssignment { entity, class: _ } => Ok(entity), // Use entity name, ignore class for now
+            ERToken::QuotedString(name) => Ok(name), // Support quoted entity names
             _ => Err(Simple::new(Some(t.into()), span))
         }
     });
@@ -336,10 +424,19 @@ fn er_parser<'src>() -> impl Parser<'src, &'src [ERToken], ErDiagram, extra::Err
         }
     });
     
+    // Parse multiple key types separated by commas (e.g., "PK, FK")
+    let key_types = key_type
+        .then(
+            just(ERToken::Comma)
+                .ignore_then(key_type)
+                .repeated()
+        )
+        .map(|(first, _rest)| first);  // For now, only use the first key type
+    
     // Parse attribute: type name [key_type] ["comment"]
     let attribute = attr_type
         .then(entity_name)  // Attribute names use same parser as entity names
-        .then(key_type.or_not())
+        .then(key_types.or_not())
         .then(quoted_string.or_not())
         .map(|(((attr_type, name), key_type), comment)| {
             Attribute {
@@ -350,7 +447,7 @@ fn er_parser<'src>() -> impl Parser<'src, &'src [ERToken], ErDiagram, extra::Err
             }
         });
     
-    // Parse entity definition: ENTITY { attributes } or alias[Entity Name] { attributes }
+    // Parse entity definition: ENTITY { attributes } or alias[Entity Name] { attributes } or "Entity Name" { attributes }
     let entity_def = choice((
         // Entity with alias: alias[name] { attributes }
         entity_alias
@@ -358,7 +455,7 @@ fn er_parser<'src>() -> impl Parser<'src, &'src [ERToken], ErDiagram, extra::Err
             .then(
                 any().filter(|t| matches!(t, ERToken::NewLine))
                     .repeated()
-                    .ignore_then(attribute)
+                    .ignore_then(attribute.clone())
                     .then_ignore(
                         any().filter(|t| matches!(t, ERToken::NewLine))
                             .repeated()
@@ -371,13 +468,13 @@ fn er_parser<'src>() -> impl Parser<'src, &'src [ERToken], ErDiagram, extra::Err
                 name: alias, // Use alias as the entity identifier
                 attributes 
             }),
-        // Regular entity: ENTITY { attributes }
+        // Regular entity: ENTITY { attributes } or "Entity Name" { attributes }
         entity_name
             .then_ignore(just(ERToken::LeftBrace))
             .then(
                 any().filter(|t| matches!(t, ERToken::NewLine))
                     .repeated()
-                    .ignore_then(attribute)
+                    .ignore_then(attribute.clone())
                     .then_ignore(
                         any().filter(|t| matches!(t, ERToken::NewLine))
                             .repeated()
@@ -397,8 +494,93 @@ fn er_parser<'src>() -> impl Parser<'src, &'src [ERToken], ErDiagram, extra::Err
         }
     });
     
+    // Parse natural language cardinality (e.g., "1", "zero or more", "many(0)", etc.)
+    let nat_lang_cardinality = choice((
+        // many(n) pattern
+        any().try_map(|t, span| match t {
+            ERToken::ManyWithParam(n) => Ok((
+                if n == 0 { CardinalityValue::Zero } else { CardinalityValue::One },
+                CardinalityValue::Many
+            )),
+            _ => Err(Simple::new(Some(t.into()), span))
+        }),
+        // "only one" or "exactly one"
+        just(ERToken::Only).or(just(ERToken::Exactly))
+            .ignore_then(just(ERToken::One))
+            .map(|_| (CardinalityValue::One, CardinalityValue::One)),
+        // "zero or more", "zero or many"
+        just(ERToken::Zero)
+            .ignore_then(just(ERToken::Or))
+            .ignore_then(just(ERToken::More).or(just(ERToken::Many)))
+            .map(|_| (CardinalityValue::Zero, CardinalityValue::Many)),
+        // "one or more", "one or many"
+        just(ERToken::One)
+            .ignore_then(just(ERToken::Or))
+            .ignore_then(just(ERToken::More).or(just(ERToken::Many)))
+            .map(|_| (CardinalityValue::One, CardinalityValue::Many)),
+        // "one or zero"
+        just(ERToken::One)
+            .ignore_then(just(ERToken::Or))
+            .ignore_then(just(ERToken::Zero))
+            .map(|_| (CardinalityValue::Zero, CardinalityValue::One)),
+        // "zero or one"
+        just(ERToken::Zero)
+            .ignore_then(just(ERToken::Or))
+            .ignore_then(just(ERToken::One))
+            .map(|_| (CardinalityValue::Zero, CardinalityValue::One)),
+        // Simple "zero", "one", "many"
+        just(ERToken::Zero).map(|_| (CardinalityValue::Zero, CardinalityValue::Zero)),
+        just(ERToken::One).map(|_| (CardinalityValue::One, CardinalityValue::One)),
+        just(ERToken::Many).map(|_| (CardinalityValue::Zero, CardinalityValue::Many)),
+        // Numbers like "1", "0+", "1+"
+        any().try_map(|t, span| match &t {
+            ERToken::Number(n) => {
+                if n == "0+" {
+                    Ok((CardinalityValue::Zero, CardinalityValue::Many))
+                } else if n == "1+" {
+                    Ok((CardinalityValue::One, CardinalityValue::Many))
+                } else if n == "1" {
+                    Ok((CardinalityValue::One, CardinalityValue::One))
+                } else if n == "0" {
+                    Ok((CardinalityValue::Zero, CardinalityValue::Zero))
+                } else {
+                    Err(Simple::new(Some(t.into()), span))
+                }
+            }
+            _ => Err(Simple::new(Some(t.into()), span))
+        }),
+    ));
+
+    // Parse natural language relationship: ENTITY cardinality [optionally] to cardinality ENTITY : label
+    let nat_lang_relationship = entity_name.clone()
+        .then(nat_lang_cardinality.clone())
+        .then(just(ERToken::Optionally).or_not())
+        .then_ignore(just(ERToken::To))
+        .then(nat_lang_cardinality)
+        .then(entity_name.clone())
+        .then(
+            just(ERToken::Colon)
+                .ignore_then(entity_name.clone())
+                .or_not()
+        )
+        .map(|(((((left_entity, left_card), _optionally), right_card), right_entity), label)| {
+            ErRelationship {
+                left_entity,
+                right_entity,
+                left_cardinality: ErCardinality { 
+                    min: left_card.0, 
+                    max: left_card.1 
+                },
+                right_cardinality: ErCardinality { 
+                    min: right_card.0, 
+                    max: right_card.1 
+                },
+                label,
+            }
+        });
+
     // Parse a simple relationship: ENTITY1 ||--o{ ENTITY2 : label
-    let relationship = entity_name
+    let symbolic_relationship = entity_name
         .then(rel_symbol)
         .then(entity_name)
         .then(
@@ -416,16 +598,37 @@ fn er_parser<'src>() -> impl Parser<'src, &'src [ERToken], ErDiagram, extra::Err
                 label,
             }
         });
+
+    // Either symbolic or natural language relationship
+    let relationship = choice((nat_lang_relationship, symbolic_relationship));
     
     // Skip newlines and other tokens
     let skip_token = any().filter(|t| !matches!(t, 
         ERToken::EntityName(_) | 
         ERToken::RelSymbol(_) | 
         ERToken::ClassAssignment { .. } |
-        ERToken::EntityAlias { .. }
+        ERToken::EntityAlias { .. } |
+        ERToken::QuotedString(_) |
+        ERToken::To | 
+        ERToken::Optionally |
+        ERToken::Zero |
+        ERToken::One |
+        ERToken::Many |
+        ERToken::Only |
+        ERToken::Exactly |
+        ERToken::Or |
+        ERToken::More |
+        ERToken::Number(_) |
+        ERToken::ManyWithParam(_) |
+        ERToken::Comma
     ));
     
+    // Parse standalone entity (just entity name, no braces or relationships)
+    let standalone_entity = entity_name
+        .map(|name| Entity { name, attributes: Vec::new() });
+
     // Parse diagram content - include accessibility directives, style, and classDef
+    // Order matters: try more specific patterns first
     let content = choice((
         entity_def.map(|e| (Some(e), None, None, None, None, None)),
         relationship.map(|r| (None, Some(r), None, None, None, None)),
@@ -433,6 +636,7 @@ fn er_parser<'src>() -> impl Parser<'src, &'src [ERToken], ErDiagram, extra::Err
         acc_descr.map(|d| (None, None, None, Some(d), None, None)),
         style_directive.map(|s| (None, None, None, None, Some(s), None)),
         class_def_directive.map(|c| (None, None, None, None, None, Some(c))),
+        standalone_entity.map(|e| (Some(e), None, None, None, None, None)),
         skip_token.map(|_| (None, None, None, None, None, None)),
     ))
         .repeated()
@@ -440,6 +644,7 @@ fn er_parser<'src>() -> impl Parser<'src, &'src [ERToken], ErDiagram, extra::Err
     
     header
         .ignore_then(content)
+        .then_ignore(end())
         .map(|items| {
             let mut entities = HashMap::new();
             let mut relationships = Vec::new();
@@ -496,6 +701,10 @@ fn parse_cardinality(symbol: &str) -> (ErCardinality, ErCardinality) {
             ErCardinality { min: CardinalityValue::One, max: CardinalityValue::One },
             ErCardinality { min: CardinalityValue::One, max: CardinalityValue::Many },
         ),
+        "one-or-more-to-zero-or-one-optional" | "}|..o|" => (
+            ErCardinality { min: CardinalityValue::One, max: CardinalityValue::Many },
+            ErCardinality { min: CardinalityValue::Zero, max: CardinalityValue::One },
+        ),
         "one-or-more-to-one-or-more-optional" | "}|..|{" => (
             ErCardinality { min: CardinalityValue::One, max: CardinalityValue::Many },
             ErCardinality { min: CardinalityValue::One, max: CardinalityValue::Many },
@@ -503,6 +712,42 @@ fn parse_cardinality(symbol: &str) -> (ErCardinality, ErCardinality) {
         "one-to-zero-or-one" | "||--o|" => (
             ErCardinality { min: CardinalityValue::One, max: CardinalityValue::One },
             ErCardinality { min: CardinalityValue::Zero, max: CardinalityValue::One },
+        ),
+        "zero-or-one-to-one" | "o{--||" => (
+            ErCardinality { min: CardinalityValue::Zero, max: CardinalityValue::One },
+            ErCardinality { min: CardinalityValue::One, max: CardinalityValue::One },
+        ),
+        "zero-or-one-to-one-or-more" | "|o--|{" => (
+            ErCardinality { min: CardinalityValue::Zero, max: CardinalityValue::One },
+            ErCardinality { min: CardinalityValue::One, max: CardinalityValue::Many },
+        ),
+        "unique-to-many" | "u--o{" => (
+            ErCardinality { min: CardinalityValue::One, max: CardinalityValue::One },
+            ErCardinality { min: CardinalityValue::Zero, max: CardinalityValue::Many },
+        ),
+        "many-to-zero-or-one-optional" | "}o..o|" => (
+            ErCardinality { min: CardinalityValue::Zero, max: CardinalityValue::Many },
+            ErCardinality { min: CardinalityValue::Zero, max: CardinalityValue::One },
+        ),
+        "zero-or-one-to-one-optional" | "|o..||" => (
+            ErCardinality { min: CardinalityValue::Zero, max: CardinalityValue::One },
+            ErCardinality { min: CardinalityValue::One, max: CardinalityValue::One },
+        ),
+        "zero-or-one-to-zero-or-one-optional" | "|o..o|" => (
+            ErCardinality { min: CardinalityValue::Zero, max: CardinalityValue::One },
+            ErCardinality { min: CardinalityValue::Zero, max: CardinalityValue::One },
+        ),
+        "many-to-one-or-more" | "}o--|{" => (
+            ErCardinality { min: CardinalityValue::Zero, max: CardinalityValue::Many },
+            ErCardinality { min: CardinalityValue::One, max: CardinalityValue::Many },
+        ),
+        "one-or-more-to-many-optional" | "}|..o{" => (
+            ErCardinality { min: CardinalityValue::One, max: CardinalityValue::Many },
+            ErCardinality { min: CardinalityValue::Zero, max: CardinalityValue::Many },
+        ),
+        "zero-or-one-to-many-optional" | "|o..o{" => (
+            ErCardinality { min: CardinalityValue::Zero, max: CardinalityValue::One },
+            ErCardinality { min: CardinalityValue::Zero, max: CardinalityValue::Many },
         ),
         _ => (
             ErCardinality { min: CardinalityValue::Zero, max: CardinalityValue::Many },
@@ -512,8 +757,11 @@ fn parse_cardinality(symbol: &str) -> (ErCardinality, ErCardinality) {
 }
 
 pub fn parse(input: &str) -> Result<ErDiagram> {
+    // Strip metadata comments before parsing
+    let clean_input = crate::common::lexer::strip_metadata_comments(input);
+    
     let tokens = er_lexer()
-        .parse(input)
+        .parse(&clean_input)
         .into_result()
         .map_err(|e| ParseError::SyntaxError {
             message: "Failed to tokenize ER diagram".to_string(),
@@ -522,6 +770,8 @@ pub fn parse(input: &str) -> Result<ErDiagram> {
             line: 0,
             column: 0,
         })?;
+    
+    
     
     let result = er_parser()
         .parse(&tokens[..])
