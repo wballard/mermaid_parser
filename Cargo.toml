@@ -11,3 +11,8 @@ chumsky = "0.10.1"
 
 [dev-dependencies]
 rstest = "0.21"
+criterion = "0.5"
+
+[[bench]]
+name = "parser_benchmarks"
+harness = false
