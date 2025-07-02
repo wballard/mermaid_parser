@@ -16,6 +16,7 @@ pub mod misc;
 pub mod packet;
 pub mod pie;
 pub mod quadrant;
+pub mod radar;
 
 // Future parsers (placeholders)
 // pub mod timeline;
@@ -25,7 +26,6 @@ pub mod quadrant;
 // pub mod xychart;
 // pub mod requirement;
 // pub mod treemap;
-// pub mod radar;
 
 // Placeholder implementations for now
 use crate::common::ast::*;

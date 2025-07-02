@@ -999,7 +999,34 @@ pub struct TreemapDiagram {
 pub struct RadarDiagram {
     pub title: Option<String>,
     pub accessibility: AccessibilityInfo,
-    // TODO: Add radar chart specific fields
+    pub config: RadarConfig,
+    pub axes: Vec<String>,
+    pub datasets: Vec<Dataset>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct RadarConfig {
+    pub background_color: Option<String>,
+    pub grid_color: Option<String>,
+    pub scale_max: f64,
+    pub scale_min: f64,
+}
+
+impl Default for RadarConfig {
+    fn default() -> Self {
+        RadarConfig {
+            background_color: None,
+            grid_color: None,
+            scale_max: 100.0,
+            scale_min: 0.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Dataset {
+    pub name: String,
+    pub values: Vec<f64>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
