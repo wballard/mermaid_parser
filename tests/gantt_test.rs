@@ -6,22 +6,23 @@ use std::path::PathBuf;
 fn test_gantt_files(#[files("test/gantt/*.mermaid")] path: PathBuf) {
     let content = std::fs::read_to_string(&path)
         .unwrap_or_else(|_| panic!("Failed to read file: {:?}", path));
-    
+
     // Remove metadata comments
-    let content = content.lines()
+    let content = content
+        .lines()
         .filter(|line| !line.starts_with("//"))
         .collect::<Vec<_>>()
         .join("\n")
         .trim()
         .to_string();
-    
+
     // Skip empty files
     if content.is_empty() {
         return;
     }
-    
+
     let result = parse_diagram(&content);
-    
+
     // Some test files contain invalid content (like "ganttTestClick" or "gantt.png")
     // Skip these edge cases
     if let Err(mermaid_parser::ParseError::UnknownDiagramType(diagram_type)) = &result {
@@ -29,14 +30,14 @@ fn test_gantt_files(#[files("test/gantt/*.mermaid")] path: PathBuf) {
             return; // Skip edge case test files
         }
     }
-    
+
     // Also skip files with tokenization errors as these might be testing error conditions
     if let Err(mermaid_parser::ParseError::SyntaxError { .. }) = &result {
         return; // Skip files testing error conditions
     }
-    
+
     assert!(result.is_ok(), "Failed to parse {:?}: {:?}", path, result);
-    
+
     match result.unwrap() {
         mermaid_parser::DiagramType::Gantt(_diagram) => {
             // Just verify it parsed successfully
@@ -60,28 +61,28 @@ fn test_simple_gantt_diagram() {
 
     let result = parse_diagram(input);
     assert!(result.is_ok(), "Failed to parse: {:?}", result);
-    
+
     match result.unwrap() {
         mermaid_parser::DiagramType::Gantt(diagram) => {
             assert_eq!(diagram.title, Some("A Gantt Diagram".to_string()));
             assert_eq!(diagram.date_format, Some("YYYY-MM-DD".to_string()));
             assert_eq!(diagram.sections.len(), 2);
-            
+
             // Check first section
             assert_eq!(diagram.sections[0].name, "Section");
             assert_eq!(diagram.sections[0].tasks.len(), 2);
-            
+
             let task1 = &diagram.sections[0].tasks[0];
             assert_eq!(task1.name, "A task");
             assert_eq!(task1.id, Some("a1".to_string()));
             assert_eq!(task1.start_date, Some("2014-01-01".to_string()));
             assert_eq!(task1.duration, Some("30d".to_string()));
-            
+
             let task2 = &diagram.sections[0].tasks[1];
             assert_eq!(task2.name, "Another task");
             assert_eq!(task2.dependencies, vec!["a1"]);
             assert_eq!(task2.duration, Some("20d".to_string()));
-            
+
             // Check second section
             assert_eq!(diagram.sections[1].name, "Another");
             assert_eq!(diagram.sections[1].tasks.len(), 2);
@@ -105,10 +106,10 @@ fn test_gantt_configuration() {
     section Development
         Coding :2024-01-01, 30d
 "#;
-    
+
     let result = parse_diagram(input);
     assert!(result.is_ok(), "Failed to parse: {:?}", result);
-    
+
     match result.unwrap() {
         mermaid_parser::DiagramType::Gantt(diagram) => {
             assert_eq!(diagram.title, Some("Project Timeline".to_string()));
@@ -133,17 +134,17 @@ fn test_gantt_task_statuses() {
         Critical task    :crit, a3, 2024-03-01, 10d
         Milestone        :milestone, a4, 2024-04-01, 0d
 "#;
-    
+
     let result = parse_diagram(input);
     assert!(result.is_ok(), "Failed to parse: {:?}", result);
-    
+
     match result.unwrap() {
         mermaid_parser::DiagramType::Gantt(diagram) => {
             assert_eq!(diagram.sections.len(), 1);
             assert_eq!(diagram.sections[0].tasks.len(), 4);
-            
+
             use mermaid_parser::common::ast::TaskStatus;
-            
+
             assert_eq!(diagram.sections[0].tasks[0].status, TaskStatus::Active);
             assert_eq!(diagram.sections[0].tasks[1].status, TaskStatus::Done);
             assert_eq!(diagram.sections[0].tasks[2].status, TaskStatus::Critical);
@@ -161,10 +162,10 @@ fn test_gantt_dependencies() {
         Task 2           :a2, after a1, 20d
         Task 3           :a3, after a1 a2, 10d
 "#;
-    
+
     let result = parse_diagram(input);
     assert!(result.is_ok(), "Failed to parse: {:?}", result);
-    
+
     match result.unwrap() {
         mermaid_parser::DiagramType::Gantt(diagram) => {
             assert_eq!(diagram.sections[0].tasks[0].dependencies.len(), 0);
@@ -186,17 +187,17 @@ fn test_gantt_weekday_settings() {
     section Work
         Working days only :2024-01-01, 10d
 "#;
-    
+
     let result = parse_diagram(input);
     assert!(result.is_ok(), "Failed to parse: {:?}", result);
-    
+
     match result.unwrap() {
         mermaid_parser::DiagramType::Gantt(diagram) => {
             // Basic parsing should succeed
             assert_eq!(diagram.sections.len(), 1);
             assert_eq!(diagram.sections[0].name, "Work");
             assert_eq!(diagram.sections[0].tasks.len(), 1);
-            
+
             // Note: Weekday parsing is a more advanced feature that may require
             // more complex lexer/parser logic. For now, we just verify the
             // diagram parses without error.

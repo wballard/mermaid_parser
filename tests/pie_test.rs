@@ -4,19 +4,20 @@ use std::path::PathBuf;
 
 #[rstest]
 fn test_pie_files(#[files("test/pie/*.mermaid")] path: PathBuf) {
-    let content = std::fs::read_to_string(&path)
-        .expect(&format!("Failed to read file: {:?}", path));
-    
+    let content =
+        std::fs::read_to_string(&path).expect(&format!("Failed to read file: {:?}", path));
+
     // Remove metadata comments
-    let content = content.lines()
+    let content = content
+        .lines()
         .filter(|line| !line.starts_with("//"))
         .collect::<Vec<_>>()
         .join("\n");
-    
+
     let _diagram = pie::parse(&content).unwrap_or_else(|e| {
         panic!("Parser failed for {:?}: {:?}", path, e);
     });
-    
+
     // Pie charts can be empty placeholders - no additional validation needed
 }
 
@@ -26,9 +27,9 @@ fn test_simple_pie() {
     "Time spent looking for movie" : 90
     "Time spent watching it" : 10
 "#;
-    
+
     let diagram = pie::parse(input).unwrap();
-    
+
     assert_eq!(diagram.title, Some("NETFLIX".to_string()));
     assert_eq!(diagram.data.len(), 2);
     assert_eq!(diagram.data[0].label, "Time spent looking for movie");
@@ -43,9 +44,9 @@ fn test_pie_with_show_data() {
     "B" : 85.5
     "C" : 15
 "#;
-    
+
     let diagram = pie::parse(input).unwrap();
-    
+
     assert_eq!(diagram.show_data, true);
     assert_eq!(diagram.data.len(), 3);
     assert_eq!(diagram.data[1].value, 85.5); // Test decimal values
@@ -58,9 +59,9 @@ title My Chart Title
     "Category A" : 40
     "Category B" : 60
 "#;
-    
+
     let diagram = pie::parse(input).unwrap();
-    
+
     assert_eq!(diagram.title, Some("My Chart Title".to_string()));
     assert_eq!(diagram.data.len(), 2);
 }
@@ -73,22 +74,23 @@ accDescr: This chart shows distribution
     "A" : 50
     "B" : 50
 "#;
-    
+
     let diagram = pie::parse(input).unwrap();
-    
-    assert_eq!(diagram.accessibility.title, Some("Pie Chart Accessibility Title".to_string()));
-    assert_eq!(diagram.accessibility.description, Some("This chart shows distribution".to_string()));
+
+    assert_eq!(
+        diagram.accessibility.title,
+        Some("Pie Chart Accessibility Title".to_string())
+    );
+    assert_eq!(
+        diagram.accessibility.description,
+        Some("This chart shows distribution".to_string())
+    );
 }
 
 #[test]
 fn test_value_parsing() {
-    let values = vec![
-        ("42", 42.0),
-        ("3.14", 3.14),
-        ("100", 100.0),
-        ("0.5", 0.5),
-    ];
-    
+    let values = vec![("42", 42.0), ("3.14", 3.14), ("100", 100.0), ("0.5", 0.5)];
+
     for (input, expected) in values {
         let parsed: f64 = input.parse().unwrap();
         assert!((parsed - expected).abs() < 0.001);
@@ -102,9 +104,9 @@ fn test_basic_pie() {
     "Cats" : 85
     "Rats" : 15
 "#;
-    
+
     let diagram = pie::parse(input).unwrap();
-    
+
     assert_eq!(diagram.data.len(), 3);
     assert_eq!(diagram.data[0].label, "Dogs");
     assert_eq!(diagram.data[0].value, 386.0);
@@ -123,12 +125,12 @@ fn test_pie_with_integer_values() {
     "Second" : 200
     "Third" : 300
 "#;
-    
+
     let diagram = pie::parse(input).unwrap();
-    
+
     assert_eq!(diagram.title, Some("Test Chart".to_string()));
     assert_eq!(diagram.data.len(), 3);
-    
+
     for slice in &diagram.data {
         assert!(slice.value > 0.0);
         assert!(slice.value == slice.value.floor()); // All should be integers
@@ -142,12 +144,12 @@ fn test_pie_mixed_values() {
     "Float" : 3.14159
     "Zero" : 0
 "#;
-    
+
     let diagram = pie::parse(input).unwrap();
-    
+
     assert_eq!(diagram.show_data, true);
     assert_eq!(diagram.data.len(), 3);
-    
+
     assert_eq!(diagram.data[0].value, 42.0);
     assert!((diagram.data[1].value - 3.14159).abs() < 0.001);
     assert_eq!(diagram.data[2].value, 0.0);

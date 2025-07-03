@@ -137,4 +137,3 @@ mod tests {
         assert_ne!(error1, error3);
     }
 }
-

@@ -1,28 +1,29 @@
-use mermaid_parser::parse_diagram;
 use mermaid_parser::common::ast::{C4DiagramType, C4ElementType};
+use mermaid_parser::parse_diagram;
 use rstest::*;
 use std::path::PathBuf;
 
 #[rstest]
 fn test_c4_files(#[files("test/c4/*.mermaid")] path: PathBuf) {
-    let content = std::fs::read_to_string(&path)
-        .expect(&format!("Failed to read file: {:?}", path));
-    
+    let content =
+        std::fs::read_to_string(&path).expect(&format!("Failed to read file: {:?}", path));
+
     // Remove metadata comments
-    let content = content.lines()
+    let content = content
+        .lines()
         .filter(|line| !line.starts_with("//"))
         .collect::<Vec<_>>()
         .join("\n")
         .trim()
         .to_string();
-    
+
     // Skip empty files
     if content.is_empty() {
         return;
     }
-    
+
     let result = parse_diagram(&content);
-    
+
     // Many test files contain:
     // - Unsupported C4 syntax (boundaries, containers, etc.)
     // - Invalid syntax for error testing
@@ -54,7 +55,7 @@ fn test_simple_c4_context() {
 
     let result = parse_diagram(input);
     assert!(result.is_ok(), "Failed to parse: {:?}", result);
-    
+
     match result.unwrap() {
         mermaid_parser::DiagramType::C4(diagram) => {
             // The parser currently returns hardcoded values
@@ -62,15 +63,15 @@ fn test_simple_c4_context() {
             assert_eq!(diagram.title, Some("System Context diagram".to_string()));
             assert_eq!(diagram.elements.len(), 2);
             assert_eq!(diagram.relationships.len(), 1);
-            
+
             // The parser hardcodes these specific elements
             assert!(diagram.elements.contains_key("customer"));
             assert!(diagram.elements.contains_key("system"));
-            
+
             let customer = &diagram.elements["customer"];
             assert_eq!(customer.element_type, C4ElementType::Person);
             assert_eq!(customer.name, "Customer");
-            
+
             let system = &diagram.elements["system"];
             assert_eq!(system.element_type, C4ElementType::System);
             assert_eq!(system.name, "System");
@@ -82,7 +83,7 @@ fn test_simple_c4_context() {
 // The following tests are commented out because the parser doesn't support these features yet:
 // - Boundaries with curly braces
 // - External elements (Person_Ext, etc.)
-// - Container diagrams  
+// - Container diagrams
 // - Bidirectional relationships
 // - Directional relationships
 
@@ -97,10 +98,10 @@ fn test_c4_basic_elements() {
     System(sys, "System", "The system")
     Rel(user, sys, "Uses")
 "#;
-    
+
     let result = parse_diagram(input);
     assert!(result.is_ok(), "Failed to parse: {:?}", result);
-    
+
     match result.unwrap() {
         mermaid_parser::DiagramType::C4(diagram) => {
             // Parser returns hardcoded values
@@ -127,11 +128,11 @@ fn test_c4_parser_handles_various_inputs() {
         Rel(a, b, "uses")
         "#,
     ];
-    
+
     for input in inputs {
         let result = parse_diagram(input);
         assert!(result.is_ok(), "Failed to parse: {:?}", result);
-        
+
         match result.unwrap() {
             mermaid_parser::DiagramType::C4(diagram) => {
                 // Parser always returns the same hardcoded diagram

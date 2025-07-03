@@ -6,21 +6,21 @@ use std::path::PathBuf;
 fn test_kanban_files(#[files("test/kanban/*.mermaid")] path: PathBuf) {
     let content = std::fs::read_to_string(&path)
         .unwrap_or_else(|e| panic!("Failed to read file {:?}: {}", path, e));
-    
+
     // Remove metadata comments that might interfere with parsing
     let content = content
         .lines()
         .filter(|line| !line.trim().starts_with("//"))
         .collect::<Vec<_>>()
         .join("\n");
-    
+
     // Skip empty files
     if content.trim().is_empty() {
         return;
     }
-    
+
     let result = kanban::parse(&content);
-    
+
     match result {
         Ok(diagram) => {
             // Basic validation - kanban should have at least one section in most cases
@@ -53,17 +53,21 @@ fn test_simple_kanban() {
   Done
     item2[Task complete]
 "#;
-    
+
     let result = kanban::parse(input);
-    assert!(result.is_ok(), "Failed to parse simple kanban: {:?}", result);
-    
+    assert!(
+        result.is_ok(),
+        "Failed to parse simple kanban: {:?}",
+        result
+    );
+
     let diagram = result.unwrap();
     assert_eq!(diagram.sections.len(), 2);
     assert_eq!(diagram.sections[0].title, "Todo");
     assert_eq!(diagram.sections[0].items.len(), 1);
     assert_eq!(diagram.sections[0].items[0].text, "Buy milk");
     assert_eq!(diagram.sections[0].items[0].assigned, vec!["Alice"]);
-    
+
     assert_eq!(diagram.sections[1].title, "Done");
     assert_eq!(diagram.sections[1].items.len(), 1);
 }
@@ -75,10 +79,14 @@ fn test_multiple_assignments() {
     item1[Complex task]
     @assigned[Alice, Bob, Charlie]
 "#;
-    
+
     let result = kanban::parse(input);
-    assert!(result.is_ok(), "Failed to parse multiple assignments: {:?}", result);
-    
+    assert!(
+        result.is_ok(),
+        "Failed to parse multiple assignments: {:?}",
+        result
+    );
+
     let diagram = result.unwrap();
     let item = &diagram.sections[0].items[0];
     assert_eq!(item.assigned.len(), 3);
@@ -93,10 +101,14 @@ fn test_items_without_ids() {
     [Second task]
     @assigned[Team]
 "#;
-    
+
     let result = kanban::parse(input);
-    assert!(result.is_ok(), "Failed to parse items without IDs: {:?}", result);
-    
+    assert!(
+        result.is_ok(),
+        "Failed to parse items without IDs: {:?}",
+        result
+    );
+
     let diagram = result.unwrap();
     assert_eq!(diagram.sections[0].items.len(), 2);
     assert!(diagram.sections[0].items[0].id.is_none());
@@ -113,10 +125,14 @@ fn test_empty_sections() {
     item1[Working on it]
   Done
 "#;
-    
+
     let result = kanban::parse(input);
-    assert!(result.is_ok(), "Failed to parse empty sections: {:?}", result);
-    
+    assert!(
+        result.is_ok(),
+        "Failed to parse empty sections: {:?}",
+        result
+    );
+
     let diagram = result.unwrap();
     assert_eq!(diagram.sections.len(), 3);
     assert_eq!(diagram.sections[0].items.len(), 0); // Todo is empty
@@ -133,10 +149,14 @@ fn test_comments() {
     %% Another comment
     @assigned[Alice]
 "#;
-    
+
     let result = kanban::parse(input);
-    assert!(result.is_ok(), "Failed to parse with comments: {:?}", result);
-    
+    assert!(
+        result.is_ok(),
+        "Failed to parse with comments: {:?}",
+        result
+    );
+
     let diagram = result.unwrap();
     assert_eq!(diagram.sections.len(), 1);
     assert_eq!(diagram.sections[0].items.len(), 1);
@@ -145,10 +165,14 @@ fn test_comments() {
 #[test]
 fn test_minimal_kanban() {
     let input = "kanban";
-    
+
     let result = kanban::parse(input);
-    assert!(result.is_ok(), "Failed to parse minimal kanban: {:?}", result);
-    
+    assert!(
+        result.is_ok(),
+        "Failed to parse minimal kanban: {:?}",
+        result
+    );
+
     let diagram = result.unwrap();
     assert_eq!(diagram.sections.len(), 0);
 }
@@ -163,10 +187,14 @@ fn test_section_ordering() {
   Third Section
     item3[Task 3]
 "#;
-    
+
     let result = kanban::parse(input);
-    assert!(result.is_ok(), "Failed to parse section ordering: {:?}", result);
-    
+    assert!(
+        result.is_ok(),
+        "Failed to parse section ordering: {:?}",
+        result
+    );
+
     let diagram = result.unwrap();
     assert_eq!(diagram.sections.len(), 3);
     assert_eq!(diagram.sections[0].title, "First Section");
@@ -185,14 +213,18 @@ fn test_mixed_item_types() {
     item2[Another with ID]
     [Another without ID]
 "#;
-    
+
     let result = kanban::parse(input);
-    assert!(result.is_ok(), "Failed to parse mixed item types: {:?}", result);
-    
+    assert!(
+        result.is_ok(),
+        "Failed to parse mixed item types: {:?}",
+        result
+    );
+
     let diagram = result.unwrap();
     let section = &diagram.sections[0];
     assert_eq!(section.items.len(), 4);
-    
+
     // Check ID presence
     assert!(section.items[0].id.is_some());
     assert_eq!(section.items[0].id, Some("item1".to_string()));
@@ -200,7 +232,7 @@ fn test_mixed_item_types() {
     assert!(section.items[2].id.is_some());
     assert_eq!(section.items[2].id, Some("item2".to_string()));
     assert!(section.items[3].id.is_none());
-    
+
     // Check assignments
     assert_eq!(section.items[0].assigned, vec!["Alice"]);
     assert_eq!(section.items[1].assigned, vec!["Bob"]);
@@ -223,10 +255,14 @@ fn test_whitespace_handling() {
     item2[Done task]
 
 "#;
-    
+
     let result = kanban::parse(input);
-    assert!(result.is_ok(), "Failed to parse with whitespace: {:?}", result);
-    
+    assert!(
+        result.is_ok(),
+        "Failed to parse with whitespace: {:?}",
+        result
+    );
+
     let diagram = result.unwrap();
     assert_eq!(diagram.sections.len(), 3);
     assert_eq!(diagram.sections[0].title, "Todo");
@@ -241,10 +277,10 @@ fn test_section_id_generation() {
   In Progress!!!
   Done & Tested
 "#;
-    
+
     let result = kanban::parse(input);
     assert!(result.is_ok(), "Failed to parse section IDs: {:?}", result);
-    
+
     let diagram = result.unwrap();
     assert_eq!(diagram.sections.len(), 3);
     assert_eq!(diagram.sections[0].id, "todoitems");
@@ -259,10 +295,14 @@ fn test_assignments_only() {
     [Unassigned task]
     @assigned[Alice, Bob, Charlie, Dave]
 "#;
-    
+
     let result = kanban::parse(input);
-    assert!(result.is_ok(), "Failed to parse assignments only: {:?}", result);
-    
+    assert!(
+        result.is_ok(),
+        "Failed to parse assignments only: {:?}",
+        result
+    );
+
     let diagram = result.unwrap();
     let item = &diagram.sections[0].items[0];
     assert_eq!(item.assigned.len(), 4);

@@ -1,4 +1,4 @@
-use mermaid_parser::common::ast::{StateType, StateVersion, StateNotePosition};
+use mermaid_parser::common::ast::{StateNotePosition, StateType, StateVersion};
 use mermaid_parser::parsers::state;
 
 #[test]
@@ -48,7 +48,10 @@ fn test_state_with_display_name() {
     let diagram = result.unwrap();
 
     let s1 = &diagram.states["s1"];
-    assert_eq!(s1.display_name, Some("This is the display name".to_string()));
+    assert_eq!(
+        s1.display_name,
+        Some("This is the display name".to_string())
+    );
     assert_eq!(diagram.transitions.len(), 1);
 }
 
@@ -68,12 +71,16 @@ fn test_choice_state() {
     assert_eq!(choice.state_type, StateType::Choice);
 
     // Find transitions with guards
-    let crash_trans = diagram.transitions.iter()
+    let crash_trans = diagram
+        .transitions
+        .iter()
         .find(|t| t.from == "choice1" && t.to == "Crash")
         .unwrap();
     assert_eq!(crash_trans.guard, Some("speed > 100".to_string()));
 
-    let still_trans = diagram.transitions.iter()
+    let still_trans = diagram
+        .transitions
+        .iter()
         .find(|t| t.from == "choice1" && t.to == "Still")
         .unwrap();
     assert_eq!(still_trans.guard, Some("speed <= 100".to_string()));
@@ -90,20 +97,26 @@ fn test_transitions_with_events() {
     assert!(result.is_ok());
     let diagram = result.unwrap();
 
-    let start_trans = diagram.transitions.iter()
+    let start_trans = diagram
+        .transitions
+        .iter()
         .find(|t| t.from == "Idle" && t.to == "Running")
         .unwrap();
     assert_eq!(start_trans.event, Some("start".to_string()));
     assert_eq!(start_trans.guard, None);
     assert_eq!(start_trans.action, None);
 
-    let stop_trans = diagram.transitions.iter()
+    let stop_trans = diagram
+        .transitions
+        .iter()
         .find(|t| t.from == "Running" && t.to == "Idle")
         .unwrap();
     assert_eq!(stop_trans.event, Some("stop".to_string()));
     assert_eq!(stop_trans.action, Some("cleanup".to_string()));
 
-    let complex_trans = diagram.transitions.iter()
+    let complex_trans = diagram
+        .transitions
+        .iter()
         .find(|t| t.from == "State1" && t.to == "State2")
         .unwrap();
     assert_eq!(complex_trans.event, Some("event".to_string()));
@@ -149,26 +162,18 @@ fn test_notes() {
 
     assert_eq!(diagram.notes.len(), 4);
 
-    let note1 = diagram.notes.iter()
-        .find(|n| n.target == "State1")
-        .unwrap();
+    let note1 = diagram.notes.iter().find(|n| n.target == "State1").unwrap();
     assert_eq!(note1.position, StateNotePosition::RightOf);
     assert_eq!(note1.text, "This is a note");
 
-    let note2 = diagram.notes.iter()
-        .find(|n| n.target == "State2")
-        .unwrap();
+    let note2 = diagram.notes.iter().find(|n| n.target == "State2").unwrap();
     assert_eq!(note2.position, StateNotePosition::LeftOf);
     assert_eq!(note2.text, "Another note");
 
-    let note3 = diagram.notes.iter()
-        .find(|n| n.target == "State3")
-        .unwrap();
+    let note3 = diagram.notes.iter().find(|n| n.target == "State3").unwrap();
     assert_eq!(note3.position, StateNotePosition::Above);
 
-    let note4 = diagram.notes.iter()
-        .find(|n| n.target == "State4")
-        .unwrap();
+    let note4 = diagram.notes.iter().find(|n| n.target == "State4").unwrap();
     assert_eq!(note4.position, StateNotePosition::Below);
 }
 
@@ -237,24 +242,29 @@ fn test_complex_example() {
     assert!(result.is_ok());
     let diagram = result.unwrap();
 
-    assert_eq!(diagram.title, Some("Authentication State Machine".to_string()));
+    assert_eq!(
+        diagram.title,
+        Some("Authentication State Machine".to_string())
+    );
     assert_eq!(diagram.version, StateVersion::V2);
-    
+
     // Check composite state
     let auth_state = &diagram.states["Authenticating"];
     assert_eq!(auth_state.state_type, StateType::Composite);
     assert!(auth_state.substates.len() > 0);
-    
+
     // Check choice state
     let choice_state = &diagram.states["choice1"];
     assert_eq!(choice_state.state_type, StateType::Choice);
-    
+
     // Check transitions with guards
-    let admin_trans = diagram.transitions.iter()
+    let admin_trans = diagram
+        .transitions
+        .iter()
         .find(|t| t.from == "choice1" && t.to == "AdminPanel")
         .unwrap();
     assert_eq!(admin_trans.guard, Some("role = admin".to_string()));
-    
+
     // Check notes
     assert_eq!(diagram.notes.len(), 2);
 }

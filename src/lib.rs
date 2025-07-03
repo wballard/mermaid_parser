@@ -42,8 +42,8 @@ pub mod parsers;
 
 pub use common::ast::{CardinalityValue, DiagramType, KeyType};
 pub use common::metrics::{
-    BasicMetrics, ComplexityMetrics, DiagramMetrics, MetricsReport, QualityMetrics, Suggestion,
-    SuggestionCategory, SeverityLevel,
+    BasicMetrics, ComplexityMetrics, DiagramMetrics, MetricsReport, QualityMetrics, SeverityLevel,
+    Suggestion, SuggestionCategory,
 };
 pub use common::visitor::{
     AstVisitor, AstVisitorMut, ComplexityAnalyzer, NodeCounter, ReferenceValidator, TitleSetter,

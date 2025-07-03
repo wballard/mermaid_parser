@@ -2,12 +2,12 @@
 //!
 //! Parses hierarchical treemap diagrams with indentation-based structure.
 
-use crate::common::ast::{TreemapDiagram, TreemapNode, AccessibilityInfo};
+use crate::common::ast::{AccessibilityInfo, TreemapDiagram, TreemapNode};
 use crate::error::{ParseError, Result};
 
 pub fn parse(input: &str) -> Result<TreemapDiagram> {
     let lines: Vec<&str> = input.lines().collect();
-    
+
     if lines.is_empty() {
         return Err(ParseError::SyntaxError {
             message: "Empty input".to_string(),
@@ -17,7 +17,7 @@ pub fn parse(input: &str) -> Result<TreemapDiagram> {
             column: 0,
         });
     }
-    
+
     // Find the treemap keyword (treemap or treemap-beta)
     let mut start_line = 0;
     for (i, line) in lines.iter().enumerate() {
@@ -27,7 +27,7 @@ pub fn parse(input: &str) -> Result<TreemapDiagram> {
             break;
         }
     }
-    
+
     if start_line == 0 {
         return Err(ParseError::SyntaxError {
             message: "Missing 'treemap' keyword".to_string(),
@@ -37,32 +37,32 @@ pub fn parse(input: &str) -> Result<TreemapDiagram> {
             column: 0,
         });
     }
-    
+
     let mut title = None;
     let mut node_lines = Vec::new();
-    
+
     // Parse lines after treemap keyword
     for line in &lines[start_line..] {
         let trimmed = line.trim();
-        
+
         // Skip empty lines and comments
         if trimmed.is_empty() || trimmed.starts_with("%%") {
             continue;
         }
-        
+
         // Check for title
         if let Some(title_text) = trimmed.strip_prefix("title ") {
             title = Some(title_text.trim().to_string());
             continue;
         }
-        
+
         // Otherwise it's a node line
         node_lines.push(line.to_string());
     }
-    
+
     // Parse the hierarchical structure from node lines
     let root = parse_node_hierarchy(&node_lines);
-    
+
     Ok(TreemapDiagram {
         title,
         accessibility: AccessibilityInfo::default(),
@@ -78,11 +78,11 @@ fn parse_node_hierarchy(lines: &[String]) -> Option<TreemapNode> {
     if lines.is_empty() {
         return None;
     }
-    
+
     // Find the line with minimum indentation as root
     let mut min_indent = usize::MAX;
     let mut root_idx = None;
-    
+
     for (i, line) in lines.iter().enumerate() {
         let trimmed = line.trim();
         if !trimmed.is_empty() {
@@ -93,7 +93,7 @@ fn parse_node_hierarchy(lines: &[String]) -> Option<TreemapNode> {
             }
         }
     }
-    
+
     if let Some(idx) = root_idx {
         let root_line = &lines[idx];
         let (name, value) = parse_node_line(root_line);
@@ -102,11 +102,11 @@ fn parse_node_hierarchy(lines: &[String]) -> Option<TreemapNode> {
             value,
             children: Vec::new(),
         };
-        
+
         // Parse children starting from the line after root
         let remaining_lines = &lines[idx + 1..];
         root.children = parse_children(remaining_lines, min_indent);
-        
+
         Some(root)
     } else {
         None
@@ -116,24 +116,24 @@ fn parse_node_hierarchy(lines: &[String]) -> Option<TreemapNode> {
 fn parse_children(lines: &[String], base_indent: usize) -> Vec<TreemapNode> {
     let mut children = Vec::new();
     let mut i = 0;
-    
+
     while i < lines.len() {
         let line = &lines[i];
         let indent = count_leading_spaces(line);
         let trimmed = line.trim();
-        
+
         if trimmed.is_empty() {
             i += 1;
             continue;
         }
-        
+
         if indent <= base_indent {
             // End of this level
             break;
         }
-        
+
         let expected_child_indent = base_indent + 4; // Assuming 4-space indentation
-        
+
         if indent == expected_child_indent {
             let (name, value) = parse_node_line(line);
             let mut child = TreemapNode {
@@ -141,44 +141,44 @@ fn parse_children(lines: &[String], base_indent: usize) -> Vec<TreemapNode> {
                 value,
                 children: Vec::new(),
             };
-            
+
             // Look for grandchildren
             let mut j = i + 1;
             while j < lines.len() {
                 let next_line = &lines[j];
                 let next_indent = count_leading_spaces(next_line);
                 let next_trimmed = next_line.trim();
-                
+
                 if next_trimmed.is_empty() {
                     j += 1;
                     continue;
                 }
-                
+
                 if next_indent <= indent {
                     break;
                 }
-                
+
                 j += 1;
             }
-            
+
             // Parse grandchildren from lines[i+1..j]
             if j > i + 1 {
                 child.children = parse_children(&lines[i + 1..j], indent);
             }
-            
+
             children.push(child);
             i = j;
         } else {
             i += 1;
         }
     }
-    
+
     children
 }
 
 fn parse_node_line(line: &str) -> (String, Option<f64>) {
     let trimmed = line.trim();
-    
+
     if let Some(colon_pos) = trimmed.find(':') {
         let name_part = trimmed[..colon_pos].trim();
         let value_str = trimmed[colon_pos + 1..].trim();
@@ -218,15 +218,15 @@ mod tests {
         Marketing: 300000
         Development: 700000
 "#;
-        
+
         let result = parse(input);
         assert!(result.is_ok(), "Parse failed: {:?}", result);
-        
+
         let diagram = result.unwrap();
         assert_eq!(diagram.title, Some("Budget Allocation".to_string()));
         assert_eq!(diagram.root.name, "Total Budget");
         assert_eq!(diagram.root.children.len(), 3);
-        
+
         assert_eq!(diagram.root.children[0].name, "Operations");
         assert_eq!(diagram.root.children[0].value, Some(500000.0));
     }
@@ -238,10 +238,10 @@ mod tests {
         Child1: 100
         Child2: 200
 "#;
-        
+
         let result = parse(input);
         assert!(result.is_ok(), "Parse failed: {:?}", result);
-        
+
         let diagram = result.unwrap();
         assert_eq!(diagram.root.name, "Root");
         assert_eq!(diagram.root.children.len(), 2);
@@ -262,18 +262,18 @@ mod tests {
             Frontend: 5
             Backend: 8
 "#;
-        
+
         let result = parse(input);
         assert!(result.is_ok(), "Parse failed: {:?}", result);
-        
+
         let diagram = result.unwrap();
         assert_eq!(diagram.root.name, "Company");
         assert_eq!(diagram.root.children.len(), 2);
-        
+
         let sales = &diagram.root.children[0];
         assert_eq!(sales.name, "Sales");
         assert_eq!(sales.children.len(), 2);
-        
+
         let north = &sales.children[0];
         assert_eq!(north.name, "North Region");
         assert_eq!(north.children.len(), 2);
@@ -290,14 +290,14 @@ mod tests {
     "Item B1": 15
     "Item B2": 25
 "#;
-        
+
         let result = parse(input);
         assert!(result.is_ok(), "Parse failed: {:?}", result);
-        
+
         let diagram = result.unwrap();
         assert_eq!(diagram.root.name, "Category A");
         assert_eq!(diagram.root.children.len(), 2);
-        
+
         assert_eq!(diagram.root.children[0].name, "Item A1");
         assert_eq!(diagram.root.children[0].value, Some(10.0));
         assert_eq!(diagram.root.children[1].name, "Item A2");

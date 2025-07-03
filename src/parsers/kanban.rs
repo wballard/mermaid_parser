@@ -1,4 +1,4 @@
-use crate::common::ast::{AccessibilityInfo, KanbanDiagram, KanbanSection, KanbanItem};
+use crate::common::ast::{AccessibilityInfo, KanbanDiagram, KanbanItem, KanbanSection};
 use crate::error::{ParseError, Result};
 use std::collections::HashMap;
 
@@ -23,23 +23,23 @@ fn preprocess_lines(input: &str) -> Vec<Line> {
             if line.trim().is_empty() || line.trim().starts_with("//") {
                 return None;
             }
-            
+
             // Handle %% comments
             let line = if let Some(pos) = line.find("%%") {
                 &line[..pos]
             } else {
                 line
             };
-            
+
             // Skip if line became empty after removing comment
             if line.trim().is_empty() {
                 return None;
             }
-            
+
             // Calculate indentation
             let indent = line.len() - line.trim_start().len();
             let content = line.trim().to_string();
-            
+
             Some(Line {
                 indent,
                 content,
@@ -59,7 +59,7 @@ fn parse_kanban_diagram(lines: Vec<Line>) -> Result<KanbanDiagram> {
             column: 0,
         });
     }
-    
+
     // First line must be "kanban" (or related keywords for test files)
     let first_line = &lines[0].content;
     if !first_line.starts_with("kanban") {
@@ -71,7 +71,7 @@ fn parse_kanban_diagram(lines: Vec<Line>) -> Result<KanbanDiagram> {
             column: lines[0].indent,
         });
     }
-    
+
     // Handle test files that have kanbanSection, kanbanItem, etc.
     if first_line != "kanban" {
         // These are component test files, return a minimal diagram
@@ -81,45 +81,45 @@ fn parse_kanban_diagram(lines: Vec<Line>) -> Result<KanbanDiagram> {
             sections: vec![],
         });
     }
-    
+
     let mut diagram = KanbanDiagram {
         title: None,
         accessibility: AccessibilityInfo::default(),
         sections: Vec::new(),
     };
-    
+
     let mut i = 1;
     let mut current_section: Option<KanbanSection> = None;
     let mut pending_assignments: Vec<String> = Vec::new();
-    
+
     while i < lines.len() {
         let line = &lines[i];
-        
+
         // Skip style directives for now
         if line.content.starts_with("style ") {
             i += 1;
             continue;
         }
-        
+
         // Check if this is a standalone metadata block (id@{ ... })
         if let Some(at_pos) = line.content.find("@{") {
             if at_pos > 0 {
                 // This is a metadata update for an existing item
                 let item_id = line.content[..at_pos].trim();
-                
+
                 // Collect all lines until we find the closing }
                 let mut metadata_lines = vec![line.content[at_pos..].to_string()];
                 i += 1;
-                
+
                 while i < lines.len() && !metadata_lines.join("\n").contains('}') {
                     metadata_lines.push(lines[i].content.clone());
                     i += 1;
                 }
-                
+
                 // Parse the complete metadata
                 let full_metadata = metadata_lines.join("\n");
                 let metadata = parse_multiline_metadata(&full_metadata)?;
-                
+
                 // Find and update the item with this ID
                 'outer: for section in &mut diagram.sections {
                     for item in &mut section.items {
@@ -137,7 +137,7 @@ fn parse_kanban_diagram(lines: Vec<Line>) -> Result<KanbanDiagram> {
                 continue;
             }
         }
-        
+
         // Check if this is an assignment line
         if line.content.starts_with("@assigned[") && line.content.ends_with(']') {
             let assignments = parse_assignments(&line.content)?;
@@ -145,12 +145,12 @@ fn parse_kanban_diagram(lines: Vec<Line>) -> Result<KanbanDiagram> {
             i += 1;
             continue;
         }
-        
+
         // Special handling for items with @{...} metadata
         let (node_part, metadata) = if let Some(at_pos) = line.content.find("@{") {
             let node = line.content[..at_pos].trim();
             let meta = &line.content[at_pos..];
-            
+
             // Check if metadata is complete on this line
             if meta.contains('}') {
                 (node.to_string(), Some(parse_metadata(meta)?))
@@ -162,7 +162,7 @@ fn parse_kanban_diagram(lines: Vec<Line>) -> Result<KanbanDiagram> {
         } else {
             (line.content.clone(), None)
         };
-        
+
         // Determine if this is a section or item based on indentation
         // Items typically have indent > 2, but some files have root items with large indent
         if line.indent <= 2 && metadata.is_none() {
@@ -178,7 +178,7 @@ fn parse_kanban_diagram(lines: Vec<Line>) -> Result<KanbanDiagram> {
                 }
                 diagram.sections.push(section);
             }
-            
+
             // Parse section
             let (id, title) = parse_node_content(&node_part);
             current_section = Some(KanbanSection {
@@ -196,7 +196,7 @@ fn parse_kanban_diagram(lines: Vec<Line>) -> Result<KanbanDiagram> {
                     items: Vec::new(),
                 });
             }
-            
+
             // Apply pending assignments to the previous item if any
             if !pending_assignments.is_empty() {
                 if let Some(ref mut section) = current_section {
@@ -206,7 +206,7 @@ fn parse_kanban_diagram(lines: Vec<Line>) -> Result<KanbanDiagram> {
                     }
                 }
             }
-            
+
             // Parse item
             let (id, text) = parse_node_content(&node_part);
             let mut item = KanbanItem {
@@ -215,20 +215,20 @@ fn parse_kanban_diagram(lines: Vec<Line>) -> Result<KanbanDiagram> {
                 assigned: Vec::new(),
                 metadata: metadata.unwrap_or_default(),
             };
-            
+
             // Check if metadata contains assigned
             if let Some(assigned_value) = item.metadata.get("assigned") {
                 item.assigned.push(assigned_value.clone());
             }
-            
+
             if let Some(ref mut section) = current_section {
                 section.items.push(item);
             }
         }
-        
+
         i += 1;
     }
-    
+
     // Save last section
     if let Some(mut section) = current_section {
         // Apply any pending assignments to the last item
@@ -239,7 +239,7 @@ fn parse_kanban_diagram(lines: Vec<Line>) -> Result<KanbanDiagram> {
         }
         diagram.sections.push(section);
     }
-    
+
     Ok(diagram)
 }
 
@@ -257,7 +257,7 @@ fn parse_node_content(content: &str) -> (Option<String>, String) {
             }
         }
     }
-    
+
     // Plain text format
     (None, content.to_string())
 }
@@ -273,14 +273,14 @@ fn parse_assignments(content: &str) -> Result<Vec<String>> {
             column: 0,
         });
     }
-    
+
     let names_str = &content[10..content.len() - 1]; // Remove @assigned[ and ]
     let names: Vec<String> = names_str
         .split(',')
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
         .collect();
-    
+
     Ok(names)
 }
 
@@ -299,16 +299,16 @@ fn parse_metadata(content: &str) -> Result<HashMap<String, String>> {
     if !content.starts_with("@{") {
         return Ok(HashMap::new());
     }
-    
+
     // Find the closing brace - if not found, parse what we have
     let end_pos = content.find('}').unwrap_or(content.len());
-    
+
     let metadata_str = if end_pos > 2 {
         &content[2..end_pos] // Remove @{ and }
     } else {
         ""
     };
-    
+
     parse_metadata_content(metadata_str)
 }
 
@@ -317,33 +317,33 @@ fn parse_multiline_metadata(content: &str) -> Result<HashMap<String, String>> {
     if !content.starts_with("@{") {
         return Ok(HashMap::new());
     }
-    
+
     // Find the closing brace - if not found, parse what we have
     let end_pos = content.rfind('}').unwrap_or(content.len());
-    
+
     let metadata_str = if end_pos > 2 {
         &content[2..end_pos] // Remove @{ and }
     } else {
         ""
     };
-    
+
     parse_metadata_content(metadata_str)
 }
 
 fn parse_metadata_content(content: &str) -> Result<HashMap<String, String>> {
     let mut metadata = HashMap::new();
-    
+
     // Handle multi-line values by tracking whether we're in a quoted string
     let mut current_key = String::new();
     let mut current_value = String::new();
     let mut in_quotes = false;
-    
+
     for line in content.lines() {
         let line = line.trim();
         if line.is_empty() {
             continue;
         }
-        
+
         if !in_quotes {
             // Look for key: value pattern
             if let Some(colon_pos) = line.find(':') {
@@ -351,10 +351,10 @@ fn parse_metadata_content(content: &str) -> Result<HashMap<String, String>> {
                 if !current_key.is_empty() {
                     metadata.insert(current_key.clone(), current_value.trim().to_string());
                 }
-                
+
                 current_key = line[..colon_pos].trim().to_string();
                 let value_part = line[colon_pos + 1..].trim();
-                
+
                 // Check if value starts with a quote
                 if value_part.starts_with('"') {
                     in_quotes = !value_part.ends_with('"') || value_part.len() == 1;
@@ -372,12 +372,15 @@ fn parse_metadata_content(content: &str) -> Result<HashMap<String, String>> {
             }
         }
     }
-    
+
     // Save last key-value pair
     if !current_key.is_empty() {
-        metadata.insert(current_key, current_value.trim().trim_matches('"').to_string());
+        metadata.insert(
+            current_key,
+            current_value.trim().trim_matches('"').to_string(),
+        );
     }
-    
+
     Ok(metadata)
 }
 
@@ -403,21 +406,21 @@ mod tests {
     @assigned[Alice]
   Done
     item2[Task complete]"#;
-        
+
         let result = parse(input);
         assert!(result.is_ok());
         let diagram = result.unwrap();
         assert_eq!(diagram.sections.len(), 2);
         assert_eq!(diagram.sections[0].items[0].assigned, vec!["Alice"]);
     }
-    
+
     #[test]
     fn test_mixed_node_types() {
         let input = r#"kanban
   todo[Todo Section]
     Buy groceries
     task1[Fix bug]"#;
-        
+
         let result = parse(input);
         assert!(result.is_ok());
         let diagram = result.unwrap();

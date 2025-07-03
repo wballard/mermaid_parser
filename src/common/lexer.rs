@@ -26,4 +26,3 @@ Normal content"#;
         assert_eq!(result, expected);
     }
 }
-

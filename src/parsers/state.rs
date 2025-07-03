@@ -120,7 +120,12 @@ pub fn parse(input: &str) -> Result<StateDiagram> {
         }
 
         // Handle state followed by opening brace on next line
-        if !state_stack.is_empty() && trimmed != "{" && trimmed != "}" && !trimmed.contains("-->") && !trimmed.starts_with("note ") {
+        if !state_stack.is_empty()
+            && trimmed != "{"
+            && trimmed != "}"
+            && !trimmed.contains("-->")
+            && !trimmed.starts_with("note ")
+        {
             // This could be a state inside the composite state
             if let Some(next_line) = line_iter.peek() {
                 if next_line.1.trim() == "{" {
@@ -155,7 +160,7 @@ pub fn parse(input: &str) -> Result<StateDiagram> {
             if let Some(parent) = state_stack.last().cloned() {
                 let from_state = transition.from.clone();
                 let to_state = transition.to.clone();
-                
+
                 if !from_state.starts_with("[") {
                     if let Some(parent_state) = diagram.states.get_mut(&parent) {
                         if !parent_state.substates.contains(&from_state) {
@@ -191,7 +196,7 @@ pub fn parse(input: &str) -> Result<StateDiagram> {
         // Check if [*] is used in any transitions
         let used_as_start = diagram.transitions.iter().any(|t| t.from == "[*]");
         let used_as_end = diagram.transitions.iter().any(|t| t.to == "[*]");
-        
+
         if used_as_start || used_as_end {
             diagram.states.insert(
                 "[*]".to_string(),
@@ -217,7 +222,11 @@ pub fn parse(input: &str) -> Result<StateDiagram> {
 
 /// Parse a state declaration line
 fn parse_state_declaration(line: &str, states: &mut HashMap<String, State>) -> Option<State> {
-    let state_text = line.strip_prefix("state ").unwrap().trim().trim_end_matches(" {");
+    let state_text = line
+        .strip_prefix("state ")
+        .unwrap()
+        .trim()
+        .trim_end_matches(" {");
 
     // Handle state with display name: state "Display Name" as StateId
     if state_text.starts_with('"') {

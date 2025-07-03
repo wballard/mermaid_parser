@@ -1,7 +1,7 @@
 //! Miscellaneous diagram parser implementation
 
 use crate::common::ast::{
-    MiscDiagram, MiscContent, InfoDiagram, GitGraphAlt, MiscGitCommit, RawDiagram,
+    GitGraphAlt, InfoDiagram, MiscContent, MiscDiagram, MiscGitCommit, RawDiagram,
 };
 use crate::error::{ParseError, Result};
 use chumsky::prelude::*;
@@ -16,7 +16,7 @@ pub enum MiscToken {
     Branch,
     Checkout,
     Merge,
-    
+
     // Generic tokens
     Keyword(String),
     Identifier(String),
@@ -38,40 +38,36 @@ impl From<&MiscToken> for String {
     }
 }
 
-fn misc_lexer<'src>() -> impl Parser<'src, &'src str, Vec<MiscToken>, extra::Err<Simple<'src, char>>> {
+fn misc_lexer<'src>() -> impl Parser<'src, &'src str, Vec<MiscToken>, extra::Err<Simple<'src, char>>>
+{
     let whitespace = just(' ').or(just('\t')).repeated();
-    
+
     let comment = just('%')
         .then(just('%'))
         .then(none_of('\n').repeated())
         .map(|_| MiscToken::Comment("".to_string()));
-    
+
     // Quoted string
     let quoted_string = just('"')
-        .ignore_then(
-            none_of('"')
-                .repeated()
-                .collect::<String>()
-        )
+        .ignore_then(none_of('"').repeated().collect::<String>())
         .then_ignore(just('"'))
         .map(MiscToken::QuotedString);
-    
+
     // Identifier or keyword
-    let identifier = text::ident()
-        .map(|s: &str| {
-            // Check if it's a known keyword
-            match s {
-                "info" => MiscToken::Info,
-                "showInfo" => MiscToken::ShowInfo,
-                "gitGraph" => MiscToken::GitGraph,
-                "commit" => MiscToken::Commit,
-                "branch" => MiscToken::Branch,
-                "checkout" => MiscToken::Checkout,
-                "merge" => MiscToken::Merge,
-                _ => MiscToken::Identifier(s.to_string()),
-            }
-        });
-    
+    let identifier = text::ident().map(|s: &str| {
+        // Check if it's a known keyword
+        match s {
+            "info" => MiscToken::Info,
+            "showInfo" => MiscToken::ShowInfo,
+            "gitGraph" => MiscToken::GitGraph,
+            "commit" => MiscToken::Commit,
+            "branch" => MiscToken::Branch,
+            "checkout" => MiscToken::Checkout,
+            "merge" => MiscToken::Merge,
+            _ => MiscToken::Identifier(s.to_string()),
+        }
+    });
+
     let colon = just(':').to(MiscToken::Colon);
     let semicolon = just(';').to(MiscToken::Semicolon);
     let left_paren = just('(').to(MiscToken::LeftParen);
@@ -79,7 +75,7 @@ fn misc_lexer<'src>() -> impl Parser<'src, &'src str, Vec<MiscToken>, extra::Err
     let left_brace = just('{').to(MiscToken::LeftBrace);
     let right_brace = just('}').to(MiscToken::RightBrace);
     let newline = just('\n').to(MiscToken::NewLine);
-    
+
     let token = choice((
         comment,
         quoted_string,
@@ -91,7 +87,7 @@ fn misc_lexer<'src>() -> impl Parser<'src, &'src str, Vec<MiscToken>, extra::Err
         right_brace,
         identifier,
     ));
-    
+
     whitespace
         .ignore_then(token)
         .or(newline)
@@ -100,42 +96,40 @@ fn misc_lexer<'src>() -> impl Parser<'src, &'src str, Vec<MiscToken>, extra::Err
         .then_ignore(end())
 }
 
-fn misc_parser<'src>() -> impl Parser<'src, &'src [MiscToken], MiscDiagram, extra::Err<Simple<'src, MiscToken>>> {
-    any()
-        .repeated()
-        .collect::<Vec<_>>()
-        .map(|tokens| {
-            if tokens.is_empty() {
-                return MiscDiagram {
-                    diagram_type: "empty".to_string(),
-                    content: MiscContent::Raw(RawDiagram { lines: vec![] }),
-                };
-            }
-            
-            // Identify diagram type from first non-comment/newline token
-            let mut first_token = None;
-            for token in &tokens {
-                match token {
-                    MiscToken::Comment(_) | MiscToken::NewLine => continue,
-                    _ => {
-                        first_token = Some(token);
-                        break;
-                    }
+fn misc_parser<'src>(
+) -> impl Parser<'src, &'src [MiscToken], MiscDiagram, extra::Err<Simple<'src, MiscToken>>> {
+    any().repeated().collect::<Vec<_>>().map(|tokens| {
+        if tokens.is_empty() {
+            return MiscDiagram {
+                diagram_type: "empty".to_string(),
+                content: MiscContent::Raw(RawDiagram { lines: vec![] }),
+            };
+        }
+
+        // Identify diagram type from first non-comment/newline token
+        let mut first_token = None;
+        for token in &tokens {
+            match token {
+                MiscToken::Comment(_) | MiscToken::NewLine => continue,
+                _ => {
+                    first_token = Some(token);
+                    break;
                 }
             }
-            
-            match first_token {
-                Some(MiscToken::Info) => parse_info_diagram(&tokens),
-                Some(MiscToken::GitGraph) => parse_gitgraph_alt(&tokens),
-                _ => parse_raw_diagram(&tokens),
-            }
-        })
+        }
+
+        match first_token {
+            Some(MiscToken::Info) => parse_info_diagram(&tokens),
+            Some(MiscToken::GitGraph) => parse_gitgraph_alt(&tokens),
+            _ => parse_raw_diagram(&tokens),
+        }
+    })
 }
 
 fn parse_info_diagram(tokens: &[MiscToken]) -> MiscDiagram {
     let mut command = String::new();
     let mut found_info = false;
-    
+
     for token in tokens {
         if found_info {
             match token {
@@ -154,7 +148,7 @@ fn parse_info_diagram(tokens: &[MiscToken]) -> MiscDiagram {
             found_info = true;
         }
     }
-    
+
     MiscDiagram {
         diagram_type: "info".to_string(),
         content: MiscContent::Info(InfoDiagram { command }),
@@ -164,7 +158,7 @@ fn parse_info_diagram(tokens: &[MiscToken]) -> MiscDiagram {
 fn parse_gitgraph_alt(tokens: &[MiscToken]) -> MiscDiagram {
     let mut commits = Vec::new();
     let mut i = 0;
-    
+
     // Skip "gitGraph" and optional colon
     while i < tokens.len() {
         match &tokens[i] {
@@ -179,24 +173,26 @@ fn parse_gitgraph_alt(tokens: &[MiscToken]) -> MiscDiagram {
             _ => i += 1,
         }
     }
-    
+
     while i < tokens.len() {
         match &tokens[i] {
             MiscToken::Commit => {
                 let mut params = Vec::new();
                 i += 1;
-                
+
                 // Collect parameters until newline
                 while i < tokens.len() && !matches!(&tokens[i], MiscToken::NewLine) {
                     match &tokens[i] {
-                        MiscToken::Identifier(id) | MiscToken::QuotedString(id) | MiscToken::Keyword(id) => {
+                        MiscToken::Identifier(id)
+                        | MiscToken::QuotedString(id)
+                        | MiscToken::Keyword(id) => {
                             params.push(id.clone());
                         }
                         _ => {}
                     }
                     i += 1;
                 }
-                
+
                 commits.push(MiscGitCommit {
                     action: "commit".to_string(),
                     params,
@@ -205,7 +201,7 @@ fn parse_gitgraph_alt(tokens: &[MiscToken]) -> MiscDiagram {
             MiscToken::Branch => {
                 let mut params = Vec::new();
                 i += 1;
-                
+
                 while i < tokens.len() && !matches!(&tokens[i], MiscToken::NewLine) {
                     match &tokens[i] {
                         MiscToken::Identifier(id) | MiscToken::Keyword(id) => {
@@ -215,7 +211,7 @@ fn parse_gitgraph_alt(tokens: &[MiscToken]) -> MiscDiagram {
                     }
                     i += 1;
                 }
-                
+
                 commits.push(MiscGitCommit {
                     action: "branch".to_string(),
                     params,
@@ -224,7 +220,7 @@ fn parse_gitgraph_alt(tokens: &[MiscToken]) -> MiscDiagram {
             MiscToken::Checkout => {
                 let mut params = Vec::new();
                 i += 1;
-                
+
                 while i < tokens.len() && !matches!(&tokens[i], MiscToken::NewLine) {
                     match &tokens[i] {
                         MiscToken::Identifier(id) | MiscToken::Keyword(id) => {
@@ -234,7 +230,7 @@ fn parse_gitgraph_alt(tokens: &[MiscToken]) -> MiscDiagram {
                     }
                     i += 1;
                 }
-                
+
                 commits.push(MiscGitCommit {
                     action: "checkout".to_string(),
                     params,
@@ -243,7 +239,7 @@ fn parse_gitgraph_alt(tokens: &[MiscToken]) -> MiscDiagram {
             MiscToken::Merge => {
                 let mut params = Vec::new();
                 i += 1;
-                
+
                 while i < tokens.len() && !matches!(&tokens[i], MiscToken::NewLine) {
                     match &tokens[i] {
                         MiscToken::Identifier(id) | MiscToken::Keyword(id) => {
@@ -253,7 +249,7 @@ fn parse_gitgraph_alt(tokens: &[MiscToken]) -> MiscDiagram {
                     }
                     i += 1;
                 }
-                
+
                 commits.push(MiscGitCommit {
                     action: "merge".to_string(),
                     params,
@@ -264,7 +260,7 @@ fn parse_gitgraph_alt(tokens: &[MiscToken]) -> MiscDiagram {
             }
         }
     }
-    
+
     MiscDiagram {
         diagram_type: "gitGraph".to_string(),
         content: MiscContent::GitGraph(GitGraphAlt { commits }),
@@ -274,7 +270,7 @@ fn parse_gitgraph_alt(tokens: &[MiscToken]) -> MiscDiagram {
 fn parse_raw_diagram(tokens: &[MiscToken]) -> MiscDiagram {
     let mut lines = Vec::new();
     let mut current_line = Vec::new();
-    
+
     for token in tokens {
         match token {
             MiscToken::NewLine => {
@@ -291,11 +287,11 @@ fn parse_raw_diagram(tokens: &[MiscToken]) -> MiscDiagram {
             }
         }
     }
-    
+
     if !current_line.is_empty() {
         lines.push(current_line.join(" "));
     }
-    
+
     let diagram_type = if !lines.is_empty() {
         // Extract the first keyword/identifier as diagram type
         let first_line_tokens: Vec<&str> = lines[0].split_whitespace().collect();
@@ -312,7 +308,7 @@ fn parse_raw_diagram(tokens: &[MiscToken]) -> MiscDiagram {
     } else {
         "unknown".to_string()
     };
-    
+
     MiscDiagram {
         diagram_type,
         content: MiscContent::Raw(RawDiagram { lines }),
@@ -322,7 +318,7 @@ fn parse_raw_diagram(tokens: &[MiscToken]) -> MiscDiagram {
 pub fn parse(input: &str) -> Result<MiscDiagram> {
     // Strip metadata comments before parsing
     let clean_input = crate::common::lexer::strip_metadata_comments(input);
-    
+
     let tokens = misc_lexer()
         .parse(&clean_input)
         .into_result()
@@ -333,7 +329,7 @@ pub fn parse(input: &str) -> Result<MiscDiagram> {
             line: 0,
             column: 0,
         })?;
-    
+
     let result = misc_parser()
         .parse(&tokens[..])
         .into_result()
@@ -344,7 +340,7 @@ pub fn parse(input: &str) -> Result<MiscDiagram> {
             line: 0,
             column: 0,
         })?;
-    
+
     Ok(result)
 }
 

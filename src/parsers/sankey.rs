@@ -342,4 +342,3 @@ Electricity grid,Heating and cooling - homes,113.726
         assert_eq!(diagram.nodes.len(), 0);
     }
 }
-

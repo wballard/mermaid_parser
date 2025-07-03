@@ -4,8 +4,8 @@ use std::path::PathBuf;
 
 #[rstest]
 fn test_class_files(#[files("test/class/*.mermaid")] path: PathBuf) {
-    let content =
-        std::fs::read_to_string(&path).unwrap_or_else(|_| panic!("Failed to read file: {:?}", path));
+    let content = std::fs::read_to_string(&path)
+        .unwrap_or_else(|_| panic!("Failed to read file: {:?}", path));
 
     // Remove metadata comments
     let content = content
@@ -19,8 +19,7 @@ fn test_class_files(#[files("test/class/*.mermaid")] path: PathBuf) {
     // Skip empty files or files with only test identifiers
     if content.is_empty()
         || content.lines().any(|line| {
-            line.trim().starts_with("classDiagram-")
-                && !line.trim().starts_with("classDiagram")
+            line.trim().starts_with("classDiagram-") && !line.trim().starts_with("classDiagram")
         })
     {
         return;
@@ -29,7 +28,7 @@ fn test_class_files(#[files("test/class/*.mermaid")] path: PathBuf) {
     let result = parse_diagram(&content);
 
     // Many test files contain:
-    // - Partial syntax snippets 
+    // - Partial syntax snippets
     // - Invalid syntax for error testing
     // - Non-class diagrams
     // We only care that valid class diagrams parse correctly

@@ -1,7 +1,7 @@
 //! Flowchart diagram parser implementation
 
 use crate::common::ast::{
-    FlowchartDiagram, FlowDirection, AccessibilityInfo, FlowNode, FlowEdge, NodeShape, EdgeType,
+    AccessibilityInfo, EdgeType, FlowDirection, FlowEdge, FlowNode, FlowchartDiagram, NodeShape,
 };
 use crate::error::Result;
 use chumsky::prelude::*;
@@ -14,37 +14,41 @@ pub enum FlowToken {
     Flowchart,
     Subgraph,
     End,
-    
+
     // Directions
-    TB, TD, BT, RL, LR,
-    
+    TB,
+    TD,
+    BT,
+    RL,
+    LR,
+
     // Node brackets
-    LeftSquare,         // [
-    RightSquare,        // ]
-    LeftParen,          // (
-    RightParen,         // )
-    LeftBrace,          // {
-    RightBrace,         // }
-    LeftAngle,          // <
-    RightAngle,         // >
-    DoubleLeftSquare,   // [[
-    DoubleRightSquare,  // ]]
-    DoubleLeftParen,    // ((
-    DoubleRightParen,   // ))
-    TripleLeftParen,    // (((
-    TripleRightParen,   // )))
-    DoubleLeftBrace,    // {{
-    DoubleRightBrace,   // }}
-    
+    LeftSquare,        // [
+    RightSquare,       // ]
+    LeftParen,         // (
+    RightParen,        // )
+    LeftBrace,         // {
+    RightBrace,        // }
+    LeftAngle,         // <
+    RightAngle,        // >
+    DoubleLeftSquare,  // [[
+    DoubleRightSquare, // ]]
+    DoubleLeftParen,   // ((
+    DoubleRightParen,  // ))
+    TripleLeftParen,   // (((
+    TripleRightParen,  // )))
+    DoubleLeftBrace,   // {{
+    DoubleRightBrace,  // }}
+
     // Edge components
-    Dash,               // -
-    DashDash,           // --
-    Arrow,              // > or -->
-    
+    Dash,     // -
+    DashDash, // --
+    Arrow,    // > or -->
+
     // Values
     NodeId(String),
     Text(String),
-    
+
     Comment(String),
     NewLine,
     Eof,
@@ -56,19 +60,18 @@ impl From<&FlowToken> for String {
     }
 }
 
-fn flowchart_lexer<'src>() -> impl Parser<'src, &'src str, Vec<FlowToken>, extra::Err<Simple<'src, char>>> {
+fn flowchart_lexer<'src>(
+) -> impl Parser<'src, &'src str, Vec<FlowToken>, extra::Err<Simple<'src, char>>> {
     let whitespace = just(' ').or(just('\t')).repeated();
-    
+
     let comment = just("%%")
         .then(none_of('\n').repeated())
         .map(|_| FlowToken::Comment("".to_string()));
-    
-    let flowchart_keyword = just("flowchart")
-        .map(|_| FlowToken::Flowchart);
-    
-    let graph_keyword = just("graph")
-        .map(|_| FlowToken::Graph);
-        
+
+    let flowchart_keyword = just("flowchart").map(|_| FlowToken::Flowchart);
+
+    let graph_keyword = just("graph").map(|_| FlowToken::Graph);
+
     // Directions
     let directions = choice((
         just("TB").to(FlowToken::TB),
@@ -77,7 +80,7 @@ fn flowchart_lexer<'src>() -> impl Parser<'src, &'src str, Vec<FlowToken>, extra
         just("RL").to(FlowToken::RL),
         just("LR").to(FlowToken::LR),
     ));
-    
+
     // Node shape brackets (order matters for overlapping patterns)
     let node_brackets = choice((
         just("(((").to(FlowToken::TripleLeftParen),
@@ -97,7 +100,7 @@ fn flowchart_lexer<'src>() -> impl Parser<'src, &'src str, Vec<FlowToken>, extra
         just('<').to(FlowToken::LeftAngle),
         just('>').to(FlowToken::RightAngle),
     ));
-    
+
     // Edge patterns (order matters for overlapping patterns)
     let edge_patterns = choice((
         just("-->").to(FlowToken::Arrow),
@@ -105,20 +108,19 @@ fn flowchart_lexer<'src>() -> impl Parser<'src, &'src str, Vec<FlowToken>, extra
         just('-').to(FlowToken::Dash),
         just('>').to(FlowToken::RightAngle),
     ));
-    
+
     // Text for node labels - will be handled differently
     let text_chars = none_of("]})\n>")
         .repeated()
         .at_least(1)
         .collect::<String>()
         .map(|s: String| FlowToken::Text(s.trim().to_string()));
-    
+
     // Simple identifier
-    let identifier = text::ident()
-        .map(|s: &str| FlowToken::NodeId(s.to_string()));
-    
+    let identifier = text::ident().map(|s: &str| FlowToken::NodeId(s.to_string()));
+
     let newline = just('\n').to(FlowToken::NewLine);
-    
+
     // Combine all tokens (order matters for parsing)
     let token = choice((
         comment,
@@ -130,7 +132,7 @@ fn flowchart_lexer<'src>() -> impl Parser<'src, &'src str, Vec<FlowToken>, extra
         identifier,
         text_chars, // Keep this last to avoid conflicts
     ));
-    
+
     // Handle whitespace and newlines
     whitespace
         .ignore_then(token)
@@ -156,22 +158,28 @@ fn parse_simple_node_and_edges(tokens: &[FlowToken]) -> (HashMap<String, FlowNod
     let mut nodes = HashMap::new();
     let mut edges = Vec::new();
     let mut i = 0;
-    
+
     while i < tokens.len() {
         match &tokens[i] {
             FlowToken::NodeId(node_id) => {
                 // Check if this is a node definition: A[text...] or A{text...}, etc.
                 if i + 2 < tokens.len() {
                     if let Some(left_bracket) = tokens.get(i + 1) {
-                        if matches!(left_bracket, FlowToken::LeftSquare | FlowToken::LeftParen | FlowToken::LeftBrace | 
-                                  FlowToken::DoubleLeftSquare | FlowToken::DoubleLeftParen | FlowToken::TripleLeftParen |
-                                  FlowToken::DoubleLeftBrace) {
-                            
+                        if matches!(
+                            left_bracket,
+                            FlowToken::LeftSquare
+                                | FlowToken::LeftParen
+                                | FlowToken::LeftBrace
+                                | FlowToken::DoubleLeftSquare
+                                | FlowToken::DoubleLeftParen
+                                | FlowToken::TripleLeftParen
+                                | FlowToken::DoubleLeftBrace
+                        ) {
                             // Collect text tokens and node ids until we find the closing bracket
                             let mut text_parts = Vec::new();
                             let mut j = i + 2;
                             let mut found_close = false;
-                            
+
                             while j < tokens.len() {
                                 match &tokens[j] {
                                     FlowToken::NodeId(text) => {
@@ -182,16 +190,25 @@ fn parse_simple_node_and_edges(tokens: &[FlowToken]) -> (HashMap<String, FlowNod
                                         text_parts.push(text.clone());
                                         j += 1;
                                     }
-                                    bracket if matches!(bracket, FlowToken::RightSquare | FlowToken::RightParen | FlowToken::RightBrace |
-                                                        FlowToken::DoubleRightSquare | FlowToken::DoubleRightParen | FlowToken::TripleRightParen |
-                                                        FlowToken::DoubleRightBrace) => {
+                                    bracket
+                                        if matches!(
+                                            bracket,
+                                            FlowToken::RightSquare
+                                                | FlowToken::RightParen
+                                                | FlowToken::RightBrace
+                                                | FlowToken::DoubleRightSquare
+                                                | FlowToken::DoubleRightParen
+                                                | FlowToken::TripleRightParen
+                                                | FlowToken::DoubleRightBrace
+                                        ) =>
+                                    {
                                         let shape = parse_node_shape(left_bracket, bracket);
-                                        let node_text = if text_parts.is_empty() { 
-                                            None 
-                                        } else { 
-                                            Some(text_parts.join(" ")) 
+                                        let node_text = if text_parts.is_empty() {
+                                            None
+                                        } else {
+                                            Some(text_parts.join(" "))
                                         };
-                                        
+
                                         let node = FlowNode {
                                             id: node_id.clone(),
                                             text: node_text,
@@ -207,19 +224,19 @@ fn parse_simple_node_and_edges(tokens: &[FlowToken]) -> (HashMap<String, FlowNod
                                     _ => break,
                                 }
                             }
-                            
+
                             if found_close {
                                 continue;
                             }
                         }
                     }
                 }
-                
+
                 // Check if this is an edge: A --> B
                 if i + 2 < tokens.len() {
-                    if let (Some(FlowToken::Arrow), Some(FlowToken::NodeId(target_id))) = 
-                        (tokens.get(i + 1), tokens.get(i + 2)) {
-                        
+                    if let (Some(FlowToken::Arrow), Some(FlowToken::NodeId(target_id))) =
+                        (tokens.get(i + 1), tokens.get(i + 2))
+                    {
                         let edge = FlowEdge {
                             from: node_id.clone(),
                             to: target_id.clone(),
@@ -232,27 +249,26 @@ fn parse_simple_node_and_edges(tokens: &[FlowToken]) -> (HashMap<String, FlowNod
                         continue;
                     }
                 }
-                
+
                 i += 1;
             }
             _ => i += 1,
         }
     }
-    
+
     (nodes, edges)
 }
 
 pub fn parse(input: &str) -> Result<FlowchartDiagram> {
     // First tokenize the input
-    let tokens = flowchart_lexer()
-        .parse(input)
-        .into_result()
-        .map_err(|e| crate::error::ParseError::LexError {
+    let tokens = flowchart_lexer().parse(input).into_result().map_err(|e| {
+        crate::error::ParseError::LexError {
             message: format!("Lexer error: {:?}", e),
             line: 1,
             column: 1,
-        })?;
-    
+        }
+    })?;
+
     // Parse the header to get direction
     let direction = if tokens.len() >= 2 {
         match (&tokens[0], &tokens[1]) {
@@ -266,11 +282,11 @@ pub fn parse(input: &str) -> Result<FlowchartDiagram> {
     } else {
         FlowDirection::TD
     };
-    
+
     // Skip header tokens and parse nodes and edges from the rest
     let remaining_tokens = if tokens.len() > 2 { &tokens[2..] } else { &[] };
     let (nodes, edges) = parse_simple_node_and_edges(remaining_tokens);
-    
+
     Ok(FlowchartDiagram {
         title: None,
         accessibility: AccessibilityInfo::default(),
@@ -291,13 +307,11 @@ mod tests {
     #[test]
     fn test_simple_flowchart_lexer() {
         let input = "flowchart TD";
-        let tokens = flowchart_lexer()
-            .parse(input)
-            .into_result();
-        
+        let tokens = flowchart_lexer().parse(input).into_result();
+
         assert!(tokens.is_ok(), "Failed to tokenize: {:?}", tokens);
         let tokens = tokens.unwrap();
-        
+
         assert_eq!(tokens.len(), 2);
         assert_eq!(tokens[0], FlowToken::Flowchart);
         assert_eq!(tokens[1], FlowToken::TD);
@@ -311,7 +325,7 @@ mod tests {
 
         let result = parse(input);
         assert!(result.is_ok(), "Failed to parse: {:?}", result);
-        
+
         let diagram = result.unwrap();
         assert_eq!(diagram.direction, FlowDirection::TD);
     }
@@ -330,9 +344,13 @@ mod tests {
         for (input, expected_direction) in test_cases {
             let result = parse(input);
             assert!(result.is_ok(), "Failed to parse: {}", input);
-            
+
             let diagram = result.unwrap();
-            assert_eq!(diagram.direction, expected_direction, "Wrong direction for: {}", input);
+            assert_eq!(
+                diagram.direction, expected_direction,
+                "Wrong direction for: {}",
+                input
+            );
         }
     }
 
@@ -341,11 +359,11 @@ mod tests {
         let input = "flowchart TD\nA[Start Node]";
         let result = parse(input);
         assert!(result.is_ok(), "Failed to parse: {:?}", result);
-        
+
         let diagram = result.unwrap();
         assert_eq!(diagram.direction, FlowDirection::TD);
         assert_eq!(diagram.nodes.len(), 1);
-        
+
         let node = diagram.nodes.get("A").expect("Node A should exist");
         assert_eq!(node.id, "A");
         assert_eq!(node.text, Some("Start Node".to_string()));
@@ -357,10 +375,10 @@ mod tests {
         let input = "flowchart TD\nA --> B";
         let result = parse(input);
         assert!(result.is_ok(), "Failed to parse: {:?}", result);
-        
+
         let diagram = result.unwrap();
         assert_eq!(diagram.edges.len(), 1);
-        
+
         let edge = &diagram.edges[0];
         assert_eq!(edge.from, "A");
         assert_eq!(edge.to, "B");

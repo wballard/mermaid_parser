@@ -1,64 +1,63 @@
 //! Class diagram parser implementation
 
-use crate::common::ast::{
-    ClassDiagram, Class, AccessibilityInfo,
-};
+use crate::common::ast::{AccessibilityInfo, Class, ClassDiagram};
 use crate::error::{ParseError, Result};
 use chumsky::prelude::*;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ClassToken {
-    ClassDiagram,                   // "classDiagram"
-    Class,                          // "class"
-    ClassName(String),              // Class identifier
-    LeftBrace,                      // {
-    RightBrace,                     // }
-    LeftAngle,                      // <
-    RightAngle,                     // >
-    Pipe,                           // |
-    Star,                           // *
-    Circle,                         // o
-    Dash,                           // -
-    DashDash,                       // --
-    DotDot,                         // ..
-    LeftParen,                      // (
-    RightParen,                     // )
-    Colon,                          // :
-    Comma,                          // ,
-    Plus,                           // +
-    Minus,                          // -
-    Hash,                           // #
-    Tilde,                          // ~
-    Dollar,                         // $
-    QuotedString(String),           // "text"
-    StereotypeStart,                // <<
-    StereotypeEnd,                  // >>
-    StereotypeName(String),         // interface, abstract, etc.
-    TypeName(String),               // int, String, etc.
-    Identifier(String),             // General identifier
-    Cardinality(String),            // 1, *, 0..1, etc.
-    Inheritance,                    // <|--
-    Composition,                    // *--
-    Aggregation,                    // o--
-    Association,                    // <--
-    Dependency,                     // <..
-    Realization,                    // <|..
-    Comment(String),                // %% comment
+    ClassDiagram,           // "classDiagram"
+    Class,                  // "class"
+    ClassName(String),      // Class identifier
+    LeftBrace,              // {
+    RightBrace,             // }
+    LeftAngle,              // <
+    RightAngle,             // >
+    Pipe,                   // |
+    Star,                   // *
+    Circle,                 // o
+    Dash,                   // -
+    DashDash,               // --
+    DotDot,                 // ..
+    LeftParen,              // (
+    RightParen,             // )
+    Colon,                  // :
+    Comma,                  // ,
+    Plus,                   // +
+    Minus,                  // -
+    Hash,                   // #
+    Tilde,                  // ~
+    Dollar,                 // $
+    QuotedString(String),   // "text"
+    StereotypeStart,        // <<
+    StereotypeEnd,          // >>
+    StereotypeName(String), // interface, abstract, etc.
+    TypeName(String),       // int, String, etc.
+    Identifier(String),     // General identifier
+    Cardinality(String),    // 1, *, 0..1, etc.
+    Inheritance,            // <|--
+    Composition,            // *--
+    Aggregation,            // o--
+    Association,            // <--
+    Dependency,             // <..
+    Realization,            // <|..
+    Comment(String),        // %% comment
     NewLine,
     Eof,
 }
 
-fn class_lexer<'src>() -> impl Parser<'src, &'src str, Vec<ClassToken>, extra::Err<Simple<'src, char>>> {
+fn class_lexer<'src>(
+) -> impl Parser<'src, &'src str, Vec<ClassToken>, extra::Err<Simple<'src, char>>> {
     let comment = choice((
         just("%%").then(none_of('\n').repeated()),
         just("//").then(none_of('\n').repeated()),
     ))
     .map(|_| ClassToken::Comment("".to_string()));
-    
+
     let class_diagram = just("classDiagram").map(|_| ClassToken::ClassDiagram);
     let class_keyword = just("class").map(|_| ClassToken::Class);
-    
+
     // Relationship symbols (order matters for overlapping patterns - longer first)
     let relationships = choice((
         just("<|--").to(ClassToken::Inheritance),
@@ -73,18 +72,15 @@ fn class_lexer<'src>() -> impl Parser<'src, &'src str, Vec<ClassToken>, extra::E
 
     // Stereotypes (must come before individual < and > tokens)
     let stereotype = just("<<")
-        .ignore_then(
-            none_of('>').repeated().collect::<String>()
-        )
+        .ignore_then(none_of('>').repeated().collect::<String>())
         .then_ignore(just(">>"))
         .map(|name: String| ClassToken::StereotypeName(name.trim().to_string()));
-    
+
     // Simple identifier (must come after keywords)
-    let identifier = text::ident()
-        .map(|s: &str| ClassToken::Identifier(s.to_string()));
-    
+    let identifier = text::ident().map(|s: &str| ClassToken::Identifier(s.to_string()));
+
     let newline = just('\n').map(|_| ClassToken::NewLine);
-    
+
     let token = choice((
         comment,
         class_diagram,
@@ -106,13 +102,16 @@ fn class_lexer<'src>() -> impl Parser<'src, &'src str, Vec<ClassToken>, extra::E
         just('o').to(ClassToken::Circle),
         just('<').to(ClassToken::LeftAngle),
         just('>').to(ClassToken::RightAngle),
-        just('"').ignore_then(none_of('"').repeated().collect::<String>()).then_ignore(just('"')).map(ClassToken::QuotedString),
+        just('"')
+            .ignore_then(none_of('"').repeated().collect::<String>())
+            .then_ignore(just('"'))
+            .map(ClassToken::QuotedString),
         identifier,
     ));
-    
+
     // Handle whitespace separately from tokens
     let whitespace = just(' ').or(just('\t')).repeated();
-    
+
     whitespace
         .ignore_then(token)
         .or(newline)
@@ -120,62 +119,52 @@ fn class_lexer<'src>() -> impl Parser<'src, &'src str, Vec<ClassToken>, extra::E
         .collect::<Vec<_>>()
 }
 
-fn class_parser<'src>() -> impl Parser<'src, &'src [ClassToken], ClassDiagram, extra::Err<Simple<'src, ClassToken>>> {
+fn class_parser<'src>(
+) -> impl Parser<'src, &'src [ClassToken], ClassDiagram, extra::Err<Simple<'src, ClassToken>>> {
     // Parse classDiagram header
-    let header = just(ClassToken::ClassDiagram)
-        .then_ignore(
-            any().filter(|t| matches!(t, ClassToken::NewLine))
-                .repeated()
-        );
-    
+    let header = just(ClassToken::ClassDiagram).then_ignore(
+        any()
+            .filter(|t| matches!(t, ClassToken::NewLine))
+            .repeated(),
+    );
+
     // Parse a simple class definition: "class ClassName"
     let simple_class = just(ClassToken::Class)
-        .ignore_then(
-            any().try_map(|t, span| {
-                match t {
-                    ClassToken::Identifier(name) => Ok(name),
-                    _ => Err(Simple::new(Some(t.into()), span))
-                }
-            })
-        )
-        .map(|name: String| {
-            Class {
-                name: name.clone(),
-                stereotype: None,
-                members: Vec::new(),
-                annotations: Vec::new(),
-                css_class: None,
-            }
+        .ignore_then(any().try_map(|t, span| match t {
+            ClassToken::Identifier(name) => Ok(name),
+            _ => Err(Simple::new(Some(t.into()), span)),
+        }))
+        .map(|name: String| Class {
+            name: name.clone(),
+            stereotype: None,
+            members: Vec::new(),
+            annotations: Vec::new(),
+            css_class: None,
         });
-    
+
     // Skip newlines and other tokens for now
     let skip_token = any().filter(|t| !matches!(t, ClassToken::Class));
-    
+
     // Parse diagram content
-    let content = choice((
-        simple_class.map(Some),
-        skip_token.map(|_| None),
-    ))
+    let content = choice((simple_class.map(Some), skip_token.map(|_| None)))
         .repeated()
         .collect::<Vec<_>>();
-    
-    header
-        .ignore_then(content)
-        .map(|classes_opt| {
-            let mut classes = HashMap::new();
-            
-            for class in classes_opt.into_iter().flatten() {
-                classes.insert(class.name.clone(), class);
-            }
-            
-            ClassDiagram {
-                title: None,
-                accessibility: AccessibilityInfo::default(),
-                classes,
-                relationships: Vec::new(),
-                notes: Vec::new(),
-            }
-        })
+
+    header.ignore_then(content).map(|classes_opt| {
+        let mut classes = HashMap::new();
+
+        for class in classes_opt.into_iter().flatten() {
+            classes.insert(class.name.clone(), class);
+        }
+
+        ClassDiagram {
+            title: None,
+            accessibility: AccessibilityInfo::default(),
+            classes,
+            relationships: Vec::new(),
+            notes: Vec::new(),
+        }
+    })
 }
 
 pub fn parse(input: &str) -> Result<ClassDiagram> {
@@ -210,13 +199,11 @@ mod tests {
     #[test]
     fn test_lexer_class_diagram_keyword() {
         let input = "classDiagram";
-        let tokens = class_lexer()
-            .parse(input)
-            .into_result();
-        
+        let tokens = class_lexer().parse(input).into_result();
+
         assert!(tokens.is_ok(), "Failed to tokenize: {:?}", tokens);
         let tokens = tokens.unwrap();
-        
+
         assert_eq!(tokens.len(), 1);
         assert_eq!(tokens[0], ClassToken::ClassDiagram);
     }
@@ -224,15 +211,17 @@ mod tests {
     #[test]
     fn test_lexer_class_keyword() {
         let input = "classDiagram\nclass Animal";
-        let tokens = class_lexer()
-            .parse(input)
-            .into_result();
-        
+        let tokens = class_lexer().parse(input).into_result();
+
         assert!(tokens.is_ok(), "Failed to tokenize: {:?}", tokens);
         let tokens = tokens.unwrap();
-        
+
         // Should have: classDiagram, newline, class, identifier
-        assert!(tokens.len() >= 4, "Expected at least 4 tokens, got: {:?}", tokens);
+        assert!(
+            tokens.len() >= 4,
+            "Expected at least 4 tokens, got: {:?}",
+            tokens
+        );
         assert_eq!(tokens[0], ClassToken::ClassDiagram);
         assert_eq!(tokens[1], ClassToken::NewLine);
         assert_eq!(tokens[2], ClassToken::Class);
@@ -242,13 +231,11 @@ mod tests {
     #[test]
     fn test_lexer_visibility_and_braces() {
         let input = "class Animal {\n+int age\n-String name\n}";
-        let tokens = class_lexer()
-            .parse(input)
-            .into_result();
-        
+        let tokens = class_lexer().parse(input).into_result();
+
         assert!(tokens.is_ok(), "Failed to tokenize: {:?}", tokens);
         let tokens = tokens.unwrap();
-        
+
         // Should have: class, Animal, {, newline, +, int, age, newline, -, String, name, newline, }
         let expected_tokens = vec![
             ClassToken::Class,
@@ -265,8 +252,13 @@ mod tests {
             ClassToken::NewLine,
             ClassToken::RightBrace,
         ];
-        
-        assert_eq!(tokens.len(), expected_tokens.len(), "Token count mismatch. Got: {:?}", tokens);
+
+        assert_eq!(
+            tokens.len(),
+            expected_tokens.len(),
+            "Token count mismatch. Got: {:?}",
+            tokens
+        );
         for (i, (expected, actual)) in expected_tokens.iter().zip(tokens.iter()).enumerate() {
             assert_eq!(expected, actual, "Token mismatch at index {}", i);
         }
@@ -275,17 +267,21 @@ mod tests {
     #[test]
     fn test_lexer_stereotypes() {
         let input = "class Animal {\n<<interface>>\n}";
-        let tokens = class_lexer()
-            .parse(input)
-            .into_result();
-        
+        let tokens = class_lexer().parse(input).into_result();
+
         assert!(tokens.is_ok(), "Failed to tokenize: {:?}", tokens);
         let tokens = tokens.unwrap();
-        
+
         // Find the stereotype token
-        let stereotype_token = tokens.iter().find(|token| matches!(token, ClassToken::StereotypeName(_)));
-        assert!(stereotype_token.is_some(), "Should find stereotype token in: {:?}", tokens);
-        
+        let stereotype_token = tokens
+            .iter()
+            .find(|token| matches!(token, ClassToken::StereotypeName(_)));
+        assert!(
+            stereotype_token.is_some(),
+            "Should find stereotype token in: {:?}",
+            tokens
+        );
+
         if let Some(ClassToken::StereotypeName(name)) = stereotype_token {
             assert_eq!(name, "interface");
         }
@@ -294,21 +290,24 @@ mod tests {
     #[test]
     fn test_lexer_relationships() {
         let input = "Animal <|-- Dog";
-        let tokens = class_lexer()
-            .parse(input)
-            .into_result();
-        
+        let tokens = class_lexer().parse(input).into_result();
+
         assert!(tokens.is_ok(), "Failed to tokenize: {:?}", tokens);
         let tokens = tokens.unwrap();
-        
+
         // Should have: Animal, <|--, Dog
         let expected_tokens = vec![
             ClassToken::Identifier("Animal".to_string()),
             ClassToken::Inheritance,
             ClassToken::Identifier("Dog".to_string()),
         ];
-        
-        assert_eq!(tokens.len(), expected_tokens.len(), "Token count mismatch. Got: {:?}", tokens);
+
+        assert_eq!(
+            tokens.len(),
+            expected_tokens.len(),
+            "Token count mismatch. Got: {:?}",
+            tokens
+        );
         for (i, (expected, actual)) in expected_tokens.iter().zip(tokens.iter()).enumerate() {
             assert_eq!(expected, actual, "Token mismatch at index {}", i);
         }
@@ -317,13 +316,16 @@ mod tests {
     #[test]
     fn test_parser_basic_class() {
         let input = "classDiagram\nclass Animal";
-        
+
         let result = parse(input);
         assert!(result.is_ok(), "Failed to parse: {:?}", result);
-        
+
         let diagram = result.unwrap();
-        assert!(diagram.classes.contains_key("Animal"), "Should contain Animal class");
-        
+        assert!(
+            diagram.classes.contains_key("Animal"),
+            "Should contain Animal class"
+        );
+
         let animal = &diagram.classes["Animal"];
         assert_eq!(animal.name, "Animal");
         assert!(animal.members.is_empty());
@@ -352,12 +354,15 @@ mod tests {
     class Animal
     Vehicle <|-- Car
 "#;
-        
+
         let result = parse(input);
         assert!(result.is_ok(), "Failed to parse real file: {:?}", result);
-        
+
         let diagram = result.unwrap();
-        assert!(diagram.classes.contains_key("Animal"), "Should contain Animal class");
+        assert!(
+            diagram.classes.contains_key("Animal"),
+            "Should contain Animal class"
+        );
         // Note: relationships not implemented yet, so just check classes
     }
 }

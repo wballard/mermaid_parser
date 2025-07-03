@@ -17,16 +17,17 @@ pub enum TimelineToken {
 }
 
 pub fn parse(input: &str) -> Result<TimelineDiagram> {
-    let tokens = timeline_lexer()
-        .parse(input)
-        .into_result()
-        .map_err(|e| ParseError::SyntaxError {
-            message: "Failed to tokenize timeline diagram".to_string(),
-            expected: vec![],
-            found: format!("{:?}", e),
-            line: 0,
-            column: 0,
-        })?;
+    let tokens =
+        timeline_lexer()
+            .parse(input)
+            .into_result()
+            .map_err(|e| ParseError::SyntaxError {
+                message: "Failed to tokenize timeline diagram".to_string(),
+                expected: vec![],
+                found: format!("{:?}", e),
+                line: 0,
+                column: 0,
+            })?;
 
     let result = timeline_parser()
         .parse(&tokens[..])
@@ -44,68 +45,44 @@ pub fn parse(input: &str) -> Result<TimelineDiagram> {
 fn timeline_lexer<'src>(
 ) -> impl Parser<'src, &'src str, Vec<TimelineToken>, extra::Err<Simple<'src, char>>> {
     let whitespace = one_of(" \t").repeated();
-    
+
     // Comment lines starting with %% or # and extending to end of line
     let comment = choice((just("%%"), just("#")))
         .then(none_of('\n').repeated())
         .then(just('\n').or_not())
         .ignored();
-    
-    let timeline_keyword = just("timeline")
-        .map(|_| TimelineToken::Timeline);
-    
+
+    let timeline_keyword = just("timeline").map(|_| TimelineToken::Timeline);
+
     let title = just("title")
         .padded_by(whitespace)
-        .ignore_then(
-            none_of('\n')
-                .repeated()
-                .at_least(1)
-                .collect::<String>()
-        )
+        .ignore_then(none_of('\n').repeated().at_least(1).collect::<String>())
         .map(|text| TimelineToken::Title(text.trim().to_string()));
-    
+
     let section = just("section")
         .padded_by(whitespace)
-        .ignore_then(
-            none_of('\n')
-                .repeated()
-                .at_least(1)
-                .collect::<String>()
-        )
+        .ignore_then(none_of('\n').repeated().at_least(1).collect::<String>())
         .map(|text| TimelineToken::Section(text.trim().to_string()));
-    
+
     let acc_title_line = just("accTitle")
         .then(whitespace)
         .then(just(':'))
         .then(whitespace)
-        .ignore_then(
-            none_of('\n')
-                .repeated()
-                .collect::<String>()
-        )
+        .ignore_then(none_of('\n').repeated().collect::<String>())
         .map(|text| TimelineToken::AccTitleValue(text.trim().to_string()));
-    
+
     let acc_descr_line = just("accDescr")
         .then(whitespace)
         .then(just(':'))
         .then(whitespace)
-        .ignore_then(
-            none_of('\n')
-                .repeated()
-                .collect::<String>()
-        )
+        .ignore_then(none_of('\n').repeated().collect::<String>())
         .map(|text| TimelineToken::AccDescrValue(text.trim().to_string()));
-    
+
     let event = just(':')
         .then(whitespace.at_least(1))
-        .ignore_then(
-            none_of('\n')
-                .repeated()
-                .at_least(1)
-                .collect::<String>()
-        )
+        .ignore_then(none_of('\n').repeated().at_least(1).collect::<String>())
         .map(|text| TimelineToken::Event(text.trim().to_string()));
-    
+
     // Period: any line that doesn't start with keywords or special characters
     let period = none_of('\n')
         .repeated()
@@ -113,7 +90,7 @@ fn timeline_lexer<'src>(
         .collect::<String>()
         .try_map(|text: String, span| {
             let trimmed = text.trim();
-            if trimmed.is_empty() 
+            if trimmed.is_empty()
                 || trimmed.starts_with("timeline")
                 || trimmed.starts_with("title")
                 || trimmed.starts_with("section")
@@ -128,9 +105,9 @@ fn timeline_lexer<'src>(
                 Ok(TimelineToken::Period(trimmed.to_string()))
             }
         });
-    
+
     let newline = choice((just("\n"), just("\r\n"))).map(|_| TimelineToken::NewLine);
-    
+
     let token = choice((
         timeline_keyword,
         title,
@@ -141,10 +118,10 @@ fn timeline_lexer<'src>(
         period,
         newline,
     ));
-    
+
     // Skip any leading whitespace/newlines before the first token
     let leading_ws = choice((one_of(" \t\n\r").ignored(), comment)).repeated();
-    
+
     leading_ws.ignore_then(
         choice((comment.map(|_| None), token.map(Some)))
             .padded_by(whitespace)
@@ -160,7 +137,6 @@ fn timeline_parser<'tokens, 'src: 'tokens>() -> impl Parser<
     TimelineDiagram,
     extra::Err<Simple<'tokens, TimelineToken>>,
 > + Clone {
-    
     let content_line = choice((
         select! { TimelineToken::Title(text) => Some(("title", text)) },
         select! { TimelineToken::AccTitleValue(text) => Some(("acc_title", text)) },
@@ -170,7 +146,7 @@ fn timeline_parser<'tokens, 'src: 'tokens>() -> impl Parser<
         select! { TimelineToken::Event(text) => Some(("event", text)) },
         just(&TimelineToken::NewLine).to(None),
     ));
-    
+
     just(&TimelineToken::Timeline)
         .then_ignore(just(&TimelineToken::NewLine).or_not())
         .ignore_then(content_line.repeated().collect::<Vec<_>>())
@@ -180,9 +156,9 @@ fn timeline_parser<'tokens, 'src: 'tokens>() -> impl Parser<
                 accessibility: AccessibilityInfo::default(),
                 sections: Vec::new(),
             };
-            
+
             let mut current_section: Option<TimelineSection> = None;
-            
+
             for line in lines.into_iter().flatten() {
                 match line {
                     ("title", text) => diagram.title = Some(text),
@@ -197,26 +173,26 @@ fn timeline_parser<'tokens, 'src: 'tokens>() -> impl Parser<
                             name: text,
                             items: Vec::new(),
                         });
-                    },
+                    }
                     ("period", text) => {
                         if let Some(ref mut section) = current_section {
                             section.items.push(TimelineItem::Period(text));
                         }
-                    },
+                    }
                     ("event", text) => {
                         if let Some(ref mut section) = current_section {
                             section.items.push(TimelineItem::Event(text));
                         }
-                    },
+                    }
                     _ => {}
                 }
             }
-            
+
             // Push final section if exists
             if let Some(section) = current_section {
                 diagram.sections.push(section);
             }
-            
+
             diagram
         })
 }
@@ -238,21 +214,21 @@ mod tests {
         Dinner
         : Sleep
 "#;
-        
+
         let result = parse(input);
         assert!(result.is_ok(), "Failed to parse with error: {:?}", result);
-        
+
         let diagram = result.unwrap();
         assert_eq!(diagram.title, Some("My Day".to_string()));
         assert_eq!(diagram.sections.len(), 2);
         assert_eq!(diagram.sections[0].name, "Morning");
         assert_eq!(diagram.sections[0].items.len(), 2);
-        
+
         match &diagram.sections[0].items[0] {
             TimelineItem::Period(text) => assert_eq!(text, "Wake up"),
             _ => panic!("Expected period"),
         }
-        
+
         match &diagram.sections[0].items[1] {
             TimelineItem::Event(text) => assert_eq!(text, "Brush teeth"),
             _ => panic!("Expected event"),
@@ -266,22 +242,28 @@ mod tests {
     accDescr: This timeline shows my daily routine
     title My Day
 "#;
-        
+
         let result = parse(input);
         assert!(result.is_ok(), "Failed to parse with error: {:?}", result);
-        
+
         let diagram = result.unwrap();
-        assert_eq!(diagram.accessibility.title, Some("Timeline Accessibility Title".to_string()));
-        assert_eq!(diagram.accessibility.description, Some("This timeline shows my daily routine".to_string()));
+        assert_eq!(
+            diagram.accessibility.title,
+            Some("Timeline Accessibility Title".to_string())
+        );
+        assert_eq!(
+            diagram.accessibility.description,
+            Some("This timeline shows my daily routine".to_string())
+        );
     }
 
     #[test]
     fn test_timeline_only_header() {
         let input = "timeline\n";
-        
+
         let result = parse(input);
         assert!(result.is_ok(), "Failed to parse with error: {:?}", result);
-        
+
         let diagram = result.unwrap();
         assert_eq!(diagram.title, None);
         assert_eq!(diagram.sections.len(), 0);

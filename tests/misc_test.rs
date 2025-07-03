@@ -5,10 +5,10 @@ use std::path::PathBuf;
 #[test]
 fn test_info_diagram() {
     let input = r#"info showInfo"#;
-    
+
     let result = parse_diagram(input);
     assert!(result.is_ok(), "Failed to parse info diagram: {:?}", result);
-    
+
     match result.unwrap() {
         DiagramType::Misc(diagram) => {
             assert_eq!(diagram.diagram_type, "info");
@@ -28,10 +28,14 @@ fn test_gitgraph_alt() {
     checkout main
     merge develop
 "#;
-    
+
     let result = parse_diagram(input);
-    assert!(result.is_ok(), "Failed to parse gitGraph diagram: {:?}", result);
-    
+    assert!(
+        result.is_ok(),
+        "Failed to parse gitGraph diagram: {:?}",
+        result
+    );
+
     match result.unwrap() {
         DiagramType::Misc(diagram) => {
             assert_eq!(diagram.diagram_type, "gitGraph");
@@ -46,10 +50,14 @@ fn test_unknown_diagram() {
     some content
     more content
 "#;
-    
+
     let result = parse_diagram(input);
-    assert!(result.is_ok(), "Failed to parse unknown diagram: {:?}", result);
-    
+    assert!(
+        result.is_ok(),
+        "Failed to parse unknown diagram: {:?}",
+        result
+    );
+
     match result.unwrap() {
         DiagramType::Misc(diagram) => {
             assert_eq!(diagram.diagram_type, "unknownType");
@@ -61,7 +69,7 @@ fn test_unknown_diagram() {
 #[test]
 fn test_empty_diagram() {
     let input = "";
-    
+
     let result = parse_diagram(input);
     // Empty input should fail to detect diagram type
     assert!(result.is_err());
@@ -75,7 +83,7 @@ fn test_edge_cases() {
         "diagram\n  with strange\n    indentation",
         "mixed:syntax{and}formats",
     ];
-    
+
     for input in cases {
         let result = parse_diagram(input);
         // These should be parsed as misc diagrams
@@ -92,11 +100,11 @@ fn test_edge_cases() {
 
 #[rstest]
 fn test_misc_files(#[files("test/misc/*.mermaid")] path: PathBuf) {
-    let content = std::fs::read_to_string(&path)
-        .expect(&format!("Failed to read file: {:?}", path));
-    
+    let content =
+        std::fs::read_to_string(&path).expect(&format!("Failed to read file: {:?}", path));
+
     let result = parse_diagram(&content);
-    
+
     // For misc diagrams, we're more forgiving - they might not all parse correctly
     if let Ok(diagram) = result {
         match diagram {

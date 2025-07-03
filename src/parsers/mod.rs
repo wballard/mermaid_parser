@@ -19,12 +19,12 @@ pub mod radar;
 pub mod sankey;
 pub mod state;
 
-pub mod timeline;
 pub mod requirement;
+pub mod timeline;
 pub mod treemap;
 pub mod xy;
 
-// Future parsers (placeholders)  
+// Future parsers (placeholders)
 // pub mod journey;
 // pub mod sequence;
 // pub mod xychart;

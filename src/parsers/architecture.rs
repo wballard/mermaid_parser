@@ -1,8 +1,8 @@
 //! Architecture diagram parser implementation
 
 use crate::common::ast::{
-    ArchDirection, ArchEdge, ArchEdgeType, ArchitectureDiagram, EdgeEndpoint, Group, Junction,
-    Port, Service, AccessibilityInfo,
+    AccessibilityInfo, ArchDirection, ArchEdge, ArchEdgeType, ArchitectureDiagram, EdgeEndpoint,
+    Group, Junction, Port, Service,
 };
 use crate::error::{ParseError, Result};
 use chumsky::prelude::*;
@@ -10,32 +10,32 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ArchToken {
-    ArchitectureBeta,        // "architecture-beta"
-    Group,                   // "group"
-    Service,                 // "service"
-    Junction,                // "junction"
-    In,                      // "in"
-    LeftParen,               // (
-    RightParen,              // )
-    LeftSquare,              // [
-    RightSquare,             // ]
-    LeftBrace,               // {
-    RightBrace,              // }
-    Backslash,               // \
-    Colon,                   // :
-    Dash,                    // -
-    DashDash,                // --
-    Dot,                     // .
-    DotDot,                  // ..
-    Arrow,                   // ->
-    BiArrow,                 // <->
-    PortL,                   // L
-    PortR,                   // R
-    PortT,                   // T
-    PortB,                   // B
-    Identifier(String),      // IDs and names
-    Icon(String),            // Icon names
-    Title(String),           // Quoted titles
+    ArchitectureBeta,   // "architecture-beta"
+    Group,              // "group"
+    Service,            // "service"
+    Junction,           // "junction"
+    In,                 // "in"
+    LeftParen,          // (
+    RightParen,         // )
+    LeftSquare,         // [
+    RightSquare,        // ]
+    LeftBrace,          // {
+    RightBrace,         // }
+    Backslash,          // \
+    Colon,              // :
+    Dash,               // -
+    DashDash,           // --
+    Dot,                // .
+    DotDot,             // ..
+    Arrow,              // ->
+    BiArrow,            // <->
+    PortL,              // L
+    PortR,              // R
+    PortT,              // T
+    PortB,              // B
+    Identifier(String), // IDs and names
+    Icon(String),       // Icon names
+    Title(String),      // Quoted titles
     Comment(String),
     NewLine,
     Eof,
@@ -52,7 +52,6 @@ pub fn parse(input: &str) -> Result<ArchitectureDiagram> {
             line: 0,
             column: 0,
         })?;
-    
 
     let result = architecture_parser()
         .parse(&tokens[..])
@@ -67,13 +66,14 @@ pub fn parse(input: &str) -> Result<ArchitectureDiagram> {
     result
 }
 
-fn architecture_lexer<'src>() -> impl Parser<'src, &'src str, Vec<ArchToken>, extra::Err<Simple<'src, char>>> {
+fn architecture_lexer<'src>(
+) -> impl Parser<'src, &'src str, Vec<ArchToken>, extra::Err<Simple<'src, char>>> {
     let comment = choice((
         just("%%").then(none_of('\n').repeated()),
         just("//").then(none_of('\n').repeated()),
     ))
     .map(|_| ArchToken::Comment("".to_string()));
-    
+
     // Keywords - using just() instead of keyword() for hyphenated keywords
     let keywords = choice((
         just("architecture-beta").map(|_| ArchToken::ArchitectureBeta),
@@ -83,10 +83,12 @@ fn architecture_lexer<'src>() -> impl Parser<'src, &'src str, Vec<ArchToken>, ex
         text::keyword("junction").map(|_| ArchToken::Junction),
         text::keyword("in").map(|_| ArchToken::In),
     ));
-    
+
     // Port specifiers - single uppercase letters when not followed by alphanumeric characters
     let ports = one_of("LRTB")
-        .then_ignore(none_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_").rewind())
+        .then_ignore(
+            none_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_").rewind(),
+        )
         .map(|c| match c {
             'L' => ArchToken::PortL,
             'R' => ArchToken::PortR,
@@ -94,53 +96,44 @@ fn architecture_lexer<'src>() -> impl Parser<'src, &'src str, Vec<ArchToken>, ex
             'B' => ArchToken::PortB,
             _ => unreachable!(),
         });
-    
+
     // Edge types
     let edges = choice((
-        just("<-->").map(|_| ArchToken::BiArrow),  // Also accept <-->
+        just("<-->").map(|_| ArchToken::BiArrow), // Also accept <-->
         just("<->").map(|_| ArchToken::BiArrow),
-        just("-->").map(|_| ArchToken::Arrow),    // Also accept -->
+        just("-->").map(|_| ArchToken::Arrow), // Also accept -->
         just("->").map(|_| ArchToken::Arrow),
         just("--").map(|_| ArchToken::DashDash),
         just("..").map(|_| ArchToken::DotDot),
     ));
-    
+
     // Icon in parentheses
     let icon = just('(')
-        .ignore_then(
-            none_of(')')
-                .repeated()
-                .at_least(1)
-                .collect::<String>()
-        )
+        .ignore_then(none_of(')').repeated().at_least(1).collect::<String>())
         .then_ignore(just(')'))
         .map(ArchToken::Icon);
-    
+
     // Title in square brackets
     let title = just('[')
-        .ignore_then(
-            none_of(']')
-                .repeated()
-                .collect::<String>()
-        )
+        .ignore_then(none_of(']').repeated().collect::<String>())
         .then_ignore(just(']'))
         .map(ArchToken::Title);
-    
+
     // Custom identifier that allows starting with numbers
     let identifier = choice((
-        // Regular identifier  
+        // Regular identifier
         text::ident().map(|s: &str| s.to_string()),
         // Numeric identifier (digits optionally followed by letters/digits/underscore)
         one_of("0123456789")
             .then(
                 one_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_")
                     .repeated()
-                    .collect::<String>()
+                    .collect::<String>(),
             )
-            .map(|(first, rest)| format!("{}{}", first, rest))
+            .map(|(first, rest)| format!("{}{}", first, rest)),
     ))
     .map(|s: String| ArchToken::Identifier(s));
-    
+
     let colon = just(':').map(|_| ArchToken::Colon);
     let left_brace = just('{').map(|_| ArchToken::LeftBrace);
     let right_brace = just('}').map(|_| ArchToken::RightBrace);
@@ -151,14 +144,14 @@ fn architecture_lexer<'src>() -> impl Parser<'src, &'src str, Vec<ArchToken>, ex
     let dash = just('-').map(|_| ArchToken::Dash);
     let backslash = just('\\').map(|_| ArchToken::Backslash);
     let newline = text::newline().map(|_| ArchToken::NewLine);
-    
+
     // Combine all tokens - order matters: more specific parsers first
     let token = choice((
         comment,
         keywords,
-        edges,          // Must come before dash (for -- and ->)
-        icon,           // Must come before left_paren/right_paren
-        title,          // Must come before left_square/right_square
+        edges, // Must come before dash (for -- and ->)
+        icon,  // Must come before left_paren/right_paren
+        title, // Must come before left_square/right_square
         ports,
         left_brace,
         right_brace,
@@ -166,18 +159,15 @@ fn architecture_lexer<'src>() -> impl Parser<'src, &'src str, Vec<ArchToken>, ex
         right_paren,
         left_square,
         right_square,
-        dash,           // Single dash after edge types
+        dash, // Single dash after edge types
         backslash,
         colon,
         identifier,
     ))
     .padded();
-    
+
     // Parse many tokens
-    token
-        .or(newline)
-        .repeated()
-        .collect::<Vec<_>>()
+    token.or(newline).repeated().collect::<Vec<_>>()
 }
 
 fn architecture_parser<'tokens, 'src: 'tokens>() -> impl Parser<
@@ -197,89 +187,85 @@ fn architecture_parser<'tokens, 'src: 'tokens>() -> impl Parser<
         select! {
             ArchToken::NewLine => ()
         }
-        .repeated()
+        .repeated(),
     )
-    .then(
-        any()
-            .repeated()
-            .collect::<Vec<_>>()
-    )
+    .then(any().repeated().collect::<Vec<_>>())
     .map(|(_, tokens)| {
-            let mut services = HashMap::new();
-            let mut groups = HashMap::new();
-            let mut junctions = HashMap::new();
-            let mut edges = Vec::new();
-            let mut i = 0;
-            
-            while i < tokens.len() {
-                match &tokens[i] {
-                    ArchToken::Comment(_) | ArchToken::NewLine => {
-                        i += 1;
-                    }
-                    ArchToken::Group => {
-                        if let Some((group, consumed)) = parse_group(&tokens[i..]) {
-                            groups.insert(group.id.clone(), group);
-                            i += consumed;
-                        } else {
-                            i += 1;
-                        }
-                    }
-                    ArchToken::Service => {
-                        if let Some((service, consumed)) = parse_service(&tokens[i..]) {
-                            services.insert(service.id.clone(), service);
-                            i += consumed;
-                        } else {
-                            i += 1;
-                        }
-                    }
-                    ArchToken::Junction => {
-                        if let Some((junction, consumed)) = parse_junction(&tokens[i..]) {
-                            junctions.insert(junction.id.clone(), junction);
-                            i += consumed;
-                        } else {
-                            i += 1;
-                        }
-                    }
-                    ArchToken::Identifier(id) => {
-                        // Try to parse edge
-                        if let Some((edge, consumed)) = parse_edge(&tokens[i..], id) {
-                            edges.push(edge);
-                            i += consumed;
-                        } else {
-                            i += 1;
-                        }
-                    }
-                    _ => {
+        let mut services = HashMap::new();
+        let mut groups = HashMap::new();
+        let mut junctions = HashMap::new();
+        let mut edges = Vec::new();
+        let mut i = 0;
+
+        while i < tokens.len() {
+            match &tokens[i] {
+                ArchToken::Comment(_) | ArchToken::NewLine => {
+                    i += 1;
+                }
+                ArchToken::Group => {
+                    if let Some((group, consumed)) = parse_group(&tokens[i..]) {
+                        groups.insert(group.id.clone(), group);
+                        i += consumed;
+                    } else {
                         i += 1;
                     }
                 }
+                ArchToken::Service => {
+                    if let Some((service, consumed)) = parse_service(&tokens[i..]) {
+                        services.insert(service.id.clone(), service);
+                        i += consumed;
+                    } else {
+                        i += 1;
+                    }
+                }
+                ArchToken::Junction => {
+                    if let Some((junction, consumed)) = parse_junction(&tokens[i..]) {
+                        junctions.insert(junction.id.clone(), junction);
+                        i += consumed;
+                    } else {
+                        i += 1;
+                    }
+                }
+                ArchToken::Identifier(id) => {
+                    // Try to parse edge
+                    if let Some((edge, consumed)) = parse_edge(&tokens[i..], id) {
+                        edges.push(edge);
+                        i += consumed;
+                    } else {
+                        i += 1;
+                    }
+                }
+                _ => {
+                    i += 1;
+                }
             }
-            
-            ArchitectureDiagram {
-                title: None,
-                accessibility: AccessibilityInfo::default(),
-                direction: ArchDirection::TB, // Default
-                services,
-                groups,
-                junctions,
-                edges,
-            }
-        })
+        }
+
+        ArchitectureDiagram {
+            title: None,
+            accessibility: AccessibilityInfo::default(),
+            direction: ArchDirection::TB, // Default
+            services,
+            groups,
+            junctions,
+            edges,
+        }
+    })
 }
 
 fn parse_group(tokens: &[ArchToken]) -> Option<(Group, usize)> {
     if tokens.len() < 4 {
         return None;
     }
-    
+
     let mut i = 1; // Skip "group"
-    
+
     let id = match &tokens[i] {
         ArchToken::Identifier(id) => id.clone(),
         _ => return None,
     };
     i += 1;
-    
+
     let icon = match &tokens[i] {
         ArchToken::Icon(icon) => {
             i += 1;
@@ -287,7 +273,7 @@ fn parse_group(tokens: &[ArchToken]) -> Option<(Group, usize)> {
         }
         _ => None,
     };
-    
+
     let title = match &tokens[i] {
         ArchToken::Title(title) => {
             i += 1;
@@ -295,7 +281,7 @@ fn parse_group(tokens: &[ArchToken]) -> Option<(Group, usize)> {
         }
         _ => id.clone(),
     };
-    
+
     // Check for nested group
     let in_group = if i + 1 < tokens.len() && matches!(&tokens[i], ArchToken::In) {
         i += 1;
@@ -309,7 +295,7 @@ fn parse_group(tokens: &[ArchToken]) -> Option<(Group, usize)> {
     } else {
         None
     };
-    
+
     Some((
         Group {
             id,
@@ -325,15 +311,15 @@ fn parse_service(tokens: &[ArchToken]) -> Option<(Service, usize)> {
     if tokens.len() < 4 {
         return None;
     }
-    
+
     let mut i = 1; // Skip "service"
-    
+
     let id = match &tokens[i] {
         ArchToken::Identifier(id) => id.clone(),
         _ => return None,
     };
     i += 1;
-    
+
     let icon = match &tokens[i] {
         ArchToken::Icon(icon) => {
             i += 1;
@@ -341,7 +327,7 @@ fn parse_service(tokens: &[ArchToken]) -> Option<(Service, usize)> {
         }
         _ => None,
     };
-    
+
     let title = match &tokens[i] {
         ArchToken::Title(title) => {
             i += 1;
@@ -349,7 +335,7 @@ fn parse_service(tokens: &[ArchToken]) -> Option<(Service, usize)> {
         }
         _ => id.clone(),
     };
-    
+
     // Check for group membership
     let in_group = if i + 1 < tokens.len() && matches!(&tokens[i], ArchToken::In) {
         i += 1;
@@ -363,7 +349,7 @@ fn parse_service(tokens: &[ArchToken]) -> Option<(Service, usize)> {
     } else {
         None
     };
-    
+
     Some((
         Service {
             id,
@@ -379,15 +365,15 @@ fn parse_junction(tokens: &[ArchToken]) -> Option<(Junction, usize)> {
     if tokens.len() < 2 {
         return None;
     }
-    
+
     let mut i = 1; // Skip "junction"
-    
+
     let id = match &tokens[i] {
         ArchToken::Identifier(id) => id.clone(),
         _ => return None,
     };
     i += 1;
-    
+
     // Check for group membership
     let in_group = if i + 1 < tokens.len() && matches!(&tokens[i], ArchToken::In) {
         i += 1;
@@ -401,27 +387,21 @@ fn parse_junction(tokens: &[ArchToken]) -> Option<(Junction, usize)> {
     } else {
         None
     };
-    
-    Some((
-        Junction {
-            id,
-            in_group,
-        },
-        i,
-    ))
+
+    Some((Junction { id, in_group }, i))
 }
 
 fn parse_edge(tokens: &[ArchToken], from_id: &str) -> Option<(ArchEdge, usize)> {
     if tokens.len() < 3 {
         return None;
     }
-    
+
     let mut i = 1; // Skip from_id which is at position 0
-    
+
     // Check for two possible formats:
     // 1. source:port -- port:target (with colons)
     // 2. source port--port target (without colons)
-    
+
     let from_port = if matches!(&tokens[i], ArchToken::Colon) {
         // Format 1: source:port
         i += 1;
@@ -443,31 +423,32 @@ fn parse_edge(tokens: &[ArchToken], from_id: &str) -> Option<(ArchEdge, usize)> 
                 Some(Port::Bottom)
             }
             // Handle case where port is tokenized as identifier
-            ArchToken::Identifier(s) if s.len() == 1 => {
-                match s.as_str() {
-                    "L" => {
-                        i += 1;
-                        Some(Port::Left)
-                    }
-                    "R" => {
-                        i += 1;
-                        Some(Port::Right)
-                    }
-                    "T" => {
-                        i += 1;
-                        Some(Port::Top)
-                    }
-                    "B" => {
-                        i += 1;
-                        Some(Port::Bottom)
-                    }
-                    _ => None,
+            ArchToken::Identifier(s) if s.len() == 1 => match s.as_str() {
+                "L" => {
+                    i += 1;
+                    Some(Port::Left)
                 }
-            }
+                "R" => {
+                    i += 1;
+                    Some(Port::Right)
+                }
+                "T" => {
+                    i += 1;
+                    Some(Port::Top)
+                }
+                "B" => {
+                    i += 1;
+                    Some(Port::Bottom)
+                }
+                _ => None,
+            },
             _ => None,
         }
-    } else if matches!(&tokens[i], ArchToken::PortL | ArchToken::PortR | ArchToken::PortT | ArchToken::PortB) 
-        || matches!(&tokens[i], ArchToken::Identifier(s) if s.len() == 1 && matches!(s.as_str(), "L" | "R" | "T" | "B")) {
+    } else if matches!(
+        &tokens[i],
+        ArchToken::PortL | ArchToken::PortR | ArchToken::PortT | ArchToken::PortB
+    ) || matches!(&tokens[i], ArchToken::Identifier(s) if s.len() == 1 && matches!(s.as_str(), "L" | "R" | "T" | "B"))
+    {
         // Format 2: source port (space separated)
         let port = match &tokens[i] {
             ArchToken::PortL => Port::Left,
@@ -488,7 +469,7 @@ fn parse_edge(tokens: &[ArchToken], from_id: &str) -> Option<(ArchEdge, usize)> 
     } else {
         None
     };
-    
+
     // Parse edge type
     let edge_type = match &tokens[i] {
         ArchToken::DashDash => {
@@ -509,10 +490,13 @@ fn parse_edge(tokens: &[ArchToken], from_id: &str) -> Option<(ArchEdge, usize)> 
         }
         _ => return None,
     };
-    
+
     // Parse to port and target
-    let (to_port, to_id) = if matches!(&tokens[i], ArchToken::PortL | ArchToken::PortR | ArchToken::PortT | ArchToken::PortB) 
-        || matches!(&tokens[i], ArchToken::Identifier(s) if s.len() == 1 && matches!(s.as_str(), "L" | "R" | "T" | "B")) {
+    let (to_port, to_id) = if matches!(
+        &tokens[i],
+        ArchToken::PortL | ArchToken::PortR | ArchToken::PortT | ArchToken::PortB
+    ) || matches!(&tokens[i], ArchToken::Identifier(s) if s.len() == 1 && matches!(s.as_str(), "L" | "R" | "T" | "B"))
+    {
         let port = match &tokens[i] {
             ArchToken::PortL => Port::Left,
             ArchToken::PortR => Port::Right,
@@ -528,7 +512,7 @@ fn parse_edge(tokens: &[ArchToken], from_id: &str) -> Option<(ArchEdge, usize)> 
             _ => unreachable!(),
         };
         i += 1;
-        
+
         // Check for colon format
         if i < tokens.len() && matches!(&tokens[i], ArchToken::Colon) {
             i += 1;
@@ -560,7 +544,7 @@ fn parse_edge(tokens: &[ArchToken], from_id: &str) -> Option<(ArchEdge, usize)> 
             _ => return None,
         }
     };
-    
+
     // Check for optional label after colon
     let label = if i < tokens.len() && matches!(&tokens[i], ArchToken::Colon) {
         i += 1;
@@ -592,7 +576,7 @@ fn parse_edge(tokens: &[ArchToken], from_id: &str) -> Option<(ArchEdge, usize)> 
     } else {
         None
     };
-    
+
     Some((
         ArchEdge {
             from: EdgeEndpoint {
@@ -770,7 +754,11 @@ mod tests {
             .expect("Failed to read test file");
 
         let result = parse(&input);
-        assert!(result.is_ok(), "Failed to parse real-world example: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "Failed to parse real-world example: {:?}",
+            result
+        );
 
         let diagram = result.unwrap();
         assert_eq!(diagram.groups.len(), 1); // api group

@@ -329,16 +329,15 @@ pub struct ClassRelationship {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ClassRelationshipType {
-    Inheritance,        // <|--
-    Composition,        // *--
-    Aggregation,        // o--
-    Association,        // <--
-    Link,              // --
-    DashedLink,        // ..
-    Dependency,        // <..
-    Realization,       // <|..
+    Inheritance, // <|--
+    Composition, // *--
+    Aggregation, // o--
+    Association, // <--
+    Link,        // --
+    DashedLink,  // ..
+    Dependency,  // <..
+    Realization, // <|..
 }
-
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct StateDiagram {
@@ -361,7 +360,7 @@ pub struct State {
     pub id: String,
     pub display_name: Option<String>,
     pub state_type: StateType,
-    pub substates: Vec<String>,        // IDs of child states
+    pub substates: Vec<String>,               // IDs of child states
     pub concurrent_regions: Vec<Vec<String>>, // For parallel states
 }
 
@@ -369,11 +368,11 @@ pub struct State {
 pub enum StateType {
     Simple,
     Composite,
-    Start,      // [*] as source
-    End,        // [*] as target
-    Choice,     // <<choice>>
-    Fork,       // <<fork>>
-    Join,       // <<join>>
+    Start,  // [*] as source
+    End,    // [*] as target
+    Choice, // <<choice>>
+    Fork,   // <<fork>>
+    Join,   // <<join>>
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -433,20 +432,20 @@ pub struct FlowNode {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum NodeShape {
-    Rectangle,           // [text]
-    RoundedRectangle,   // (text)
-    Stadium,            // ([text])
-    Subroutine,         // [[text]]
-    Cylinder,           // [(text)]
-    Circle,             // ((text))
-    Asymmetric,         // >text]
-    Rhombus,            // {text}
-    Hexagon,            // {{text}}
-    Parallelogram,      // [/text/]
-    ParallelogramAlt,   // [\text\]
-    Trapezoid,          // [/text\]
-    TrapezoidAlt,       // [\text/]
-    DoubleCircle,       // (((text)))
+    Rectangle,        // [text]
+    RoundedRectangle, // (text)
+    Stadium,          // ([text])
+    Subroutine,       // [[text]]
+    Cylinder,         // [(text)]
+    Circle,           // ((text))
+    Asymmetric,       // >text]
+    Rhombus,          // {text}
+    Hexagon,          // {{text}}
+    Parallelogram,    // [/text/]
+    ParallelogramAlt, // [\text\]
+    Trapezoid,        // [/text\]
+    TrapezoidAlt,     // [\text/]
+    DoubleCircle,     // (((text)))
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -460,23 +459,23 @@ pub struct FlowEdge {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum EdgeType {
-    Arrow,              // -->
-    DottedArrow,        // -.->
-    ThickArrow,         // ==>
-    OpenLink,           // ---
-    DottedLink,         // -.-
-    ThickLink,          // ===
-    Invisible,          // ~~~
-    CircleEdge,         // --o
-    CrossEdge,          // --x
-    MultiDirectional,   // <-->
+    Arrow,            // -->
+    DottedArrow,      // -.->
+    ThickArrow,       // ==>
+    OpenLink,         // ---
+    DottedLink,       // -.-
+    ThickLink,        // ===
+    Invisible,        // ~~~
+    CircleEdge,       // --o
+    CrossEdge,        // --x
+    MultiDirectional, // <-->
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Subgraph {
     pub id: String,
     pub title: Option<String>,
-    pub nodes: Vec<String>,     // Node IDs
+    pub nodes: Vec<String>, // Node IDs
     pub edges: Vec<FlowEdge>,
     pub subgraphs: Vec<Subgraph>, // Nested subgraphs
     pub direction: Option<FlowDirection>,
@@ -509,8 +508,8 @@ pub struct ClickEvent {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ClickAction {
-    Href(String, Option<String>), // URL, target
-    Callback(String),             // Function name
+    Href(String, Option<String>),         // URL, target
+    Callback(String),                     // Function name
     Both(String, String, Option<String>), // Callback, URL, target
 }
 
@@ -559,9 +558,16 @@ pub enum TaskStatus {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum TaskInteraction {
-    Click { task_id: String },
-    Href { url: String },
-    Call { function: String, args: Option<String> },
+    Click {
+        task_id: String,
+    },
+    Href {
+        url: String,
+    },
+    Call {
+        function: String,
+        args: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -572,7 +578,13 @@ pub struct WeekdaySettings {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Weekday {
-    Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday,
+    Monday,
+    Tuesday,
+    Wednesday,
+    Thursday,
+    Friday,
+    Saturday,
+    Sunday,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -672,9 +684,9 @@ pub struct Attribute {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum KeyType {
-    PK,  // Primary Key
-    FK,  // Foreign Key
-    UK,  // Unique Key
+    PK, // Primary Key
+    FK, // Foreign Key
+    UK, // Unique Key
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -751,8 +763,8 @@ pub struct C4Boundary {
     pub boundary_type: C4BoundaryType,
     pub label: String,
     pub tags: Vec<String>,
-    pub elements: Vec<String>,  // Element IDs
-    pub boundaries: Vec<C4Boundary>,  // Nested boundaries
+    pub elements: Vec<String>,       // Element IDs
+    pub boundaries: Vec<C4Boundary>, // Nested boundaries
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -803,13 +815,13 @@ pub struct MindmapNode {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum MindmapNodeShape {
-    Default,        // No brackets
-    Square,         // [text]
-    Rounded,        // (text)
-    Circle,         // ((text))
-    Cloud,          // (-text-)
-    Bang,           // ))text((
-    Hexagon,        // {{text}}
+    Default, // No brackets
+    Square,  // [text]
+    Rounded, // (text)
+    Circle,  // ((text))
+    Cloud,   // (-text-)
+    Bang,    // ))text((
+    Hexagon, // {{text}}
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -863,7 +875,7 @@ pub struct XyChartDiagram {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ChartOrientation {
-    Vertical,   // Default
+    Vertical, // Default
     Horizontal,
 }
 
@@ -1048,10 +1060,10 @@ pub enum Port {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ArchEdgeType {
-    Solid,      // --
-    Dotted,     // ..
-    Arrow,      // ->
-    BiArrow,    // <->
+    Solid,   // --
+    Dotted,  // ..
+    Arrow,   // ->
+    BiArrow, // <->
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -1219,4 +1231,3 @@ pub struct MiscGitCommit {
 pub struct RawDiagram {
     pub lines: Vec<String>,
 }
-

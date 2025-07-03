@@ -4,27 +4,37 @@ use std::path::PathBuf;
 
 #[rstest]
 fn test_radar_files(#[files("test/radar/*.mermaid")] path: PathBuf) {
-    let content = std::fs::read_to_string(&path)
-        .expect(&format!("Failed to read file: {:?}", path));
-    
+    let content =
+        std::fs::read_to_string(&path).expect(&format!("Failed to read file: {:?}", path));
+
     // Remove metadata comments
-    let content = content.lines()
+    let content = content
+        .lines()
         .filter(|line| !line.starts_with("//"))
         .collect::<Vec<_>>()
         .join("\n");
-    
+
     let diagram = radar::parse(&content).unwrap_or_else(|e| {
         panic!("Parser failed for {:?}: {:?}", path, e);
     });
-    
+
     // Validate structure only for non-empty diagrams
     if !diagram.datasets.is_empty() {
-        assert!(!diagram.axes.is_empty(), "Non-empty diagram should have at least one axis in {:?}", path);
-        
+        assert!(
+            !diagram.axes.is_empty(),
+            "Non-empty diagram should have at least one axis in {:?}",
+            path
+        );
+
         // Ensure all datasets have values for all axes
         for dataset in &diagram.datasets {
-            assert_eq!(dataset.values.len(), diagram.axes.len(), 
-                      "Dataset '{}' should have values for all axes in {:?}", dataset.name, path);
+            assert_eq!(
+                dataset.values.len(),
+                diagram.axes.len(),
+                "Dataset '{}' should have values for all axes in {:?}",
+                dataset.name,
+                path
+            );
         }
     }
 }
@@ -39,13 +49,13 @@ fn test_simple_radar() {
     "Database" : 70
     "DevOps" : 60
 "#;
-    
+
     let diagram = radar::parse(input).unwrap();
-    
+
     assert_eq!(diagram.title, Some("Skills".to_string()));
     assert_eq!(diagram.axes.len(), 4);
     assert_eq!(diagram.datasets.len(), 1);
-    
+
     let dataset = &diagram.datasets[0];
     assert_eq!(dataset.name, "Developer");
     assert_eq!(dataset.values, vec![80.0, 90.0, 70.0, 60.0]);
@@ -63,13 +73,13 @@ fn test_multiple_datasets() {
     "B" : 85
     "C" : 90
 "#;
-    
+
     let diagram = radar::parse(input).unwrap();
-    
+
     assert_eq!(diagram.datasets.len(), 2);
     assert_eq!(diagram.datasets[0].name, "Current");
     assert_eq!(diagram.datasets[1].name, "Target");
-    
+
     // All datasets should have same number of values as axes
     for dataset in &diagram.datasets {
         assert_eq!(dataset.values.len(), diagram.axes.len());
@@ -83,9 +93,9 @@ radar
     ds Data
     "X" : 50
 "#;
-    
+
     let diagram = radar::parse(input).unwrap();
-    
+
     assert_eq!(diagram.config.background_color, Some("#f4f4f4".to_string()));
     assert_eq!(diagram.config.grid_color, Some("#333".to_string()));
 }
@@ -101,15 +111,15 @@ fn test_axes_consistency() {
     "Speed" : 85
     "Agility" : 70
 "#;
-    
+
     let diagram = radar::parse(input).unwrap();
-    
+
     // Should have all unique axes
     assert_eq!(diagram.axes.len(), 3);
     assert!(diagram.axes.contains(&"Speed".to_string()));
     assert!(diagram.axes.contains(&"Power".to_string()));
     assert!(diagram.axes.contains(&"Agility".to_string()));
-    
+
     // All datasets should have values for all axes
     assert_eq!(diagram.datasets[0].values.len(), 3);
     assert_eq!(diagram.datasets[1].values.len(), 3);
@@ -123,9 +133,9 @@ fn test_decimal_values() {
     "Task 2" : 92.75
     "Task 3" : 78.25
 "#;
-    
+
     let diagram = radar::parse(input).unwrap();
-    
+
     let values = &diagram.datasets[0].values;
     assert_eq!(values[0], 85.5);
     assert_eq!(values[1], 92.75);
@@ -139,9 +149,9 @@ fn test_radar_without_title() {
     "A" : 50
     "B" : 75
 "#;
-    
+
     let diagram = radar::parse(input).unwrap();
-    
+
     assert_eq!(diagram.title, None);
     assert_eq!(diagram.axes.len(), 2);
     assert_eq!(diagram.datasets.len(), 1);
@@ -165,28 +175,32 @@ radar
     "Problem Solving" : 85
     "Creativity" : 65
 "#;
-    
+
     let diagram = radar::parse(input).unwrap();
-    
+
     assert_eq!(diagram.title, Some("Skills Assessment".to_string()));
     assert_eq!(diagram.axes.len(), 5);
     assert_eq!(diagram.datasets.len(), 2);
-    
+
     // Check configuration
     assert_eq!(diagram.config.background_color, Some("#f4f4f4".to_string()));
     assert_eq!(diagram.config.grid_color, Some("#333".to_string()));
-    
+
     // Check datasets
     let ideal = &diagram.datasets[0];
     assert_eq!(ideal.name, "Ideal");
     assert_eq!(ideal.values.len(), 5);
-    
+
     let current = &diagram.datasets[1];
     assert_eq!(current.name, "Current");
     assert_eq!(current.values.len(), 5);
-    
+
     // Check specific values
-    let comm_idx = diagram.axes.iter().position(|a| a == "Communication").unwrap();
+    let comm_idx = diagram
+        .axes
+        .iter()
+        .position(|a| a == "Communication")
+        .unwrap();
     assert_eq!(ideal.values[comm_idx], 90.0);
     assert_eq!(current.values[comm_idx], 70.0);
 }
@@ -198,9 +212,9 @@ fn test_dataset_with_spaces() {
     "Metric A" : 80
     "Metric B" : 90
 "#;
-    
+
     let diagram = radar::parse(input).unwrap();
-    
+
     assert_eq!(diagram.datasets.len(), 1);
     // Note: This test may need adjustment based on how the lexer handles quoted dataset names
     // The current implementation might not handle quoted dataset names correctly
@@ -217,9 +231,9 @@ radar
     %% Final comment
     "B" : 75
 "#;
-    
+
     let diagram = radar::parse(input).unwrap();
-    
+
     assert_eq!(diagram.title, Some("Test Chart".to_string()));
     assert_eq!(diagram.axes.len(), 2);
     assert_eq!(diagram.datasets.len(), 1);
@@ -228,9 +242,9 @@ radar
 #[test]
 fn test_empty_radar_should_fail() {
     let input = "radar";
-    
+
     let result = radar::parse(input);
-    
+
     // Should still parse but will have empty datasets and axes
     // This behavior may need to be adjusted based on requirements
     assert!(result.is_ok());
