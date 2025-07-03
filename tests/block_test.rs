@@ -1,0 +1,134 @@
+use mermaid_parser::parse_diagram;
+use mermaid_parser::common::ast::BlockArrowType;
+use rstest::*;
+use std::path::PathBuf;
+
+#[rstest]
+fn test_block_files(#[files("test/block/*.mermaid")] path: PathBuf) {
+    let content = std::fs::read_to_string(&path)
+        .expect(&format!("Failed to read file: {:?}", path));
+    
+    // Remove metadata comments
+    let content = content.lines()
+        .filter(|line| !line.starts_with("//"))
+        .collect::<Vec<_>>()
+        .join("\n")
+        .trim()
+        .to_string();
+    
+    // Skip empty files
+    if content.is_empty() {
+        return;
+    }
+    
+    let result = parse_diagram(&content);
+    
+    assert!(result.is_ok(), "Failed to parse {:?}: {:?}", path, result);
+    
+    match result.unwrap() {
+        mermaid_parser::DiagramType::Block(_diagram) => {
+            // Just verify it parsed successfully - some test files might be empty
+        }
+        _ => panic!("Expected Block diagram from {:?}", path),
+    }
+}
+
+#[test]
+fn test_simple_block_diagram() {
+    let input = r#"block-beta
+columns 1
+  db(("DB"))
+  A
+  B["A wide one in the middle"]
+  C
+  A --> C
+  B --> C
+"#;
+
+    let result = parse_diagram(input);
+    assert!(result.is_ok(), "Failed to parse: {:?}", result);
+    
+    match result.unwrap() {
+        mermaid_parser::DiagramType::Block(diagram) => {
+            // Check that we have the expected number of blocks
+            assert!(!diagram.blocks.is_empty());
+            assert!(!diagram.connections.is_empty());
+            
+            // Check that we have a columns setting
+            assert_eq!(diagram.columns, Some(1));
+        }
+        _ => panic!("Expected Block diagram"),
+    }
+}
+
+#[test]
+fn test_block_connections() {
+    let input = r#"block-beta
+  A --> B
+  B --> C
+  A --> C
+"#;
+    
+    let result = parse_diagram(input);
+    assert!(result.is_ok(), "Failed to parse: {:?}", result);
+    
+    match result.unwrap() {
+        mermaid_parser::DiagramType::Block(diagram) => {
+            assert_eq!(diagram.connections.len(), 3);
+            
+            // Check first connection
+            let conn = &diagram.connections[0];
+            assert_eq!(conn.from, "A");
+            assert_eq!(conn.to, "B");
+            assert_eq!(conn.arrow_type, BlockArrowType::Normal);
+        }
+        _ => panic!("Expected Block diagram"),
+    }
+}
+
+#[test]
+fn test_block_shapes() {
+    let input = r#"block-beta
+  A["Rectangle"]
+  B(["Stadium"])
+  C(("Circle"))
+  D{{"Rhombus"}}
+"#;
+    
+    let result = parse_diagram(input);
+    assert!(result.is_ok(), "Failed to parse: {:?}", result);
+    
+    match result.unwrap() {
+        mermaid_parser::DiagramType::Block(diagram) => {
+            assert_eq!(diagram.blocks.len(), 4);
+            
+            // Verify we can parse different block shapes
+            // Note: The exact shape validation would depend on the parser implementation
+        }
+        _ => panic!("Expected Block diagram"),
+    }
+}
+
+#[test]
+fn test_block_composite() {
+    let input = r#"block-beta
+  block:ID
+    A
+    B
+    C
+  end
+  ID --> D
+"#;
+    
+    let result = parse_diagram(input);
+    assert!(result.is_ok(), "Failed to parse: {:?}", result);
+    
+    match result.unwrap() {
+        mermaid_parser::DiagramType::Block(diagram) => {
+            // Should have composite blocks and simple blocks
+            assert!(!diagram.blocks.is_empty());
+            assert!(!diagram.connections.is_empty());
+        }
+        _ => panic!("Expected Block diagram"),
+    }
+}
