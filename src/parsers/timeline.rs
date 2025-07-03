@@ -312,7 +312,7 @@ mod tests {
                     }
                     assert!(result.is_ok(), "Failed to parse file: {:?}", path);
 
-                    let diagram = result.unwrap();
+                    let _diagram = result.unwrap();
                     // Basic validation - empty timelines are valid
                     // Just ensure it parsed into a valid structure
                 }
