@@ -50,6 +50,7 @@ pub enum FlowToken {
     Text(String),
 
     Comment(String),
+    Semicolon,
     NewLine,
     Eof,
 }
@@ -109,8 +110,14 @@ fn flowchart_lexer<'src>(
         just('>').to(FlowToken::RightAngle),
     ));
 
+    // Edge labels: |text|
+    let edge_label = just('|')
+        .then(none_of('|').repeated().collect::<String>())
+        .then(just('|'))
+        .map(|((_, text), _)| FlowToken::Text(format!("|{}|", text)));
+
     // Text for node labels - will be handled differently
-    let text_chars = none_of("]})\n>")
+    let text_chars = none_of("]})\n>|")
         .repeated()
         .at_least(1)
         .collect::<String>()
@@ -119,7 +126,8 @@ fn flowchart_lexer<'src>(
     // Simple identifier
     let identifier = text::ident().map(|s: &str| FlowToken::NodeId(s.to_string()));
 
-    let newline = just('\n').to(FlowToken::NewLine);
+    // Semicolon
+    let semicolon = just(';').to(FlowToken::Semicolon);
 
     // Combine all tokens (order matters for parsing)
     let token = choice((
@@ -129,16 +137,20 @@ fn flowchart_lexer<'src>(
         directions,
         edge_patterns,
         node_brackets,
+        edge_label,
+        semicolon,
         identifier,
         text_chars, // Keep this last to avoid conflicts
     ));
 
     // Handle whitespace and newlines
-    whitespace
-        .ignore_then(token)
-        .or(newline)
-        .repeated()
-        .collect::<Vec<_>>()
+    choice((
+        whitespace.ignore_then(token),
+        just('\n').to(FlowToken::NewLine),
+        whitespace.ignore_then(just('\n')).to(FlowToken::NewLine), // Handle trailing whitespace before newline
+    ))
+    .repeated()
+    .collect::<Vec<_>>()
 }
 
 fn parse_node_shape(left_bracket: &FlowToken, right_bracket: &FlowToken) -> NodeShape {
@@ -163,7 +175,7 @@ fn parse_simple_node_and_edges(tokens: &[FlowToken]) -> (HashMap<String, FlowNod
         match &tokens[i] {
             FlowToken::NodeId(node_id) => {
                 // Check if this is a node definition: A[text...] or A{text...}, etc.
-                if i + 2 < tokens.len() {
+                if i + 1 < tokens.len() {
                     if let Some(left_bracket) = tokens.get(i + 1) {
                         if matches!(
                             left_bracket,
@@ -226,27 +238,141 @@ fn parse_simple_node_and_edges(tokens: &[FlowToken]) -> (HashMap<String, FlowNod
                             }
 
                             if found_close {
-                                continue;
+                                // After parsing a node, check if there's an edge following it
+                                if i < tokens.len() && matches!(tokens[i], FlowToken::Arrow) {
+                                    // Continue to edge parsing below
+                                } else {
+                                    continue;
+                                }
                             }
                         }
                     }
                 }
 
-                // Check if this is an edge: A --> B
-                if i + 2 < tokens.len() {
-                    if let (Some(FlowToken::Arrow), Some(FlowToken::NodeId(target_id))) =
-                        (tokens.get(i + 1), tokens.get(i + 2))
-                    {
-                        let edge = FlowEdge {
-                            from: node_id.clone(),
-                            to: target_id.clone(),
-                            edge_type: EdgeType::Arrow,
-                            label: None,
-                            min_length: None,
-                        };
-                        edges.push(edge);
-                        i += 3; // Skip the edge definition
-                        continue;
+                // Check for edge patterns: A --> B or A -->|label| B or A[Start] --> B{Decision}
+
+                // If we just parsed a node definition, check from current position
+                // Otherwise, look for an arrow after the current node id
+                let arrow_pos = if i < tokens.len() && matches!(tokens[i], FlowToken::Arrow) {
+                    i
+                } else if i + 1 < tokens.len() && matches!(tokens[i + 1], FlowToken::Arrow) {
+                    i + 1
+                } else {
+                    // No arrow found, skip this node
+                    i += 1;
+                    continue;
+                };
+
+                // Extract source node ID
+                let source_id = node_id.clone();
+
+                // Look for target after arrow
+                let mut target_pos = arrow_pos + 1;
+                let mut edge_label = None;
+
+                // Check for edge label: -->|label|
+                if target_pos < tokens.len() {
+                    match &tokens[target_pos] {
+                        FlowToken::Text(label_text)
+                            if label_text.starts_with('|') && label_text.ends_with('|') =>
+                        {
+                            // Extract label text between |pipes|
+                            let label = label_text
+                                .trim_start_matches('|')
+                                .trim_end_matches('|')
+                                .to_string();
+                            edge_label = Some(label);
+                            target_pos += 1;
+                        }
+                        _ => {}
+                    }
+                }
+
+                // Find target node
+                if target_pos < tokens.len() {
+                    match &tokens[target_pos] {
+                        FlowToken::NodeId(target_id) => {
+                            // Create edge
+                            let edge = FlowEdge {
+                                from: source_id,
+                                to: target_id.clone(),
+                                edge_type: EdgeType::Arrow,
+                                label: edge_label,
+                                min_length: None,
+                            };
+                            edges.push(edge);
+
+                            // Check if target has node definition after it
+                            if target_pos + 1 < tokens.len() {
+                                if let Some(left_bracket) = tokens.get(target_pos + 1) {
+                                    if matches!(
+                                        left_bracket,
+                                        FlowToken::LeftSquare
+                                            | FlowToken::LeftParen
+                                            | FlowToken::LeftBrace
+                                            | FlowToken::DoubleLeftSquare
+                                            | FlowToken::DoubleLeftParen
+                                            | FlowToken::TripleLeftParen
+                                            | FlowToken::DoubleLeftBrace
+                                    ) {
+                                        // Parse target node definition
+                                        let mut text_parts = Vec::new();
+                                        let mut j = target_pos + 2;
+
+                                        while j < tokens.len() {
+                                            match &tokens[j] {
+                                                FlowToken::NodeId(text) => {
+                                                    text_parts.push(text.clone());
+                                                    j += 1;
+                                                }
+                                                FlowToken::Text(text) => {
+                                                    text_parts.push(text.clone());
+                                                    j += 1;
+                                                }
+                                                bracket
+                                                    if matches!(
+                                                        bracket,
+                                                        FlowToken::RightSquare
+                                                            | FlowToken::RightParen
+                                                            | FlowToken::RightBrace
+                                                            | FlowToken::DoubleRightSquare
+                                                            | FlowToken::DoubleRightParen
+                                                            | FlowToken::TripleRightParen
+                                                            | FlowToken::DoubleRightBrace
+                                                    ) =>
+                                                {
+                                                    let shape =
+                                                        parse_node_shape(left_bracket, bracket);
+                                                    let node_text = if text_parts.is_empty() {
+                                                        None
+                                                    } else {
+                                                        Some(text_parts.join(" "))
+                                                    };
+
+                                                    let node = FlowNode {
+                                                        id: target_id.clone(),
+                                                        text: node_text,
+                                                        shape,
+                                                        classes: Vec::new(),
+                                                        icon: None,
+                                                    };
+                                                    nodes.insert(target_id.clone(), node);
+                                                    i = j + 1;
+                                                    break;
+                                                }
+                                                _ => break,
+                                            }
+                                        }
+                                        continue;
+                                    }
+                                }
+                            }
+
+                            // Skip to after the target
+                            i = target_pos + 1;
+                            continue;
+                        }
+                        _ => {}
                     }
                 }
 
@@ -270,21 +396,28 @@ pub fn parse(input: &str) -> Result<FlowchartDiagram> {
     })?;
 
     // Parse the header to get direction
-    let direction = if tokens.len() >= 2 {
+    let (direction, skip_count) = if tokens.len() >= 2 {
         match (&tokens[0], &tokens[1]) {
-            (FlowToken::Flowchart | FlowToken::Graph, FlowToken::TB) => FlowDirection::TB,
-            (FlowToken::Flowchart | FlowToken::Graph, FlowToken::TD) => FlowDirection::TD,
-            (FlowToken::Flowchart | FlowToken::Graph, FlowToken::BT) => FlowDirection::BT,
-            (FlowToken::Flowchart | FlowToken::Graph, FlowToken::RL) => FlowDirection::RL,
-            (FlowToken::Flowchart | FlowToken::Graph, FlowToken::LR) => FlowDirection::LR,
-            _ => FlowDirection::TD, // Default
+            (FlowToken::Flowchart | FlowToken::Graph, FlowToken::TB) => (FlowDirection::TB, 2),
+            (FlowToken::Flowchart | FlowToken::Graph, FlowToken::TD) => (FlowDirection::TD, 2),
+            (FlowToken::Flowchart | FlowToken::Graph, FlowToken::BT) => (FlowDirection::BT, 2),
+            (FlowToken::Flowchart | FlowToken::Graph, FlowToken::RL) => (FlowDirection::RL, 2),
+            (FlowToken::Flowchart | FlowToken::Graph, FlowToken::LR) => (FlowDirection::LR, 2),
+            (FlowToken::Flowchart | FlowToken::Graph, _) => (FlowDirection::TD, 1), // No direction specified, skip only header
+            _ => (FlowDirection::TD, 0), // Default, no tokens to skip
         }
+    } else if tokens.len() >= 1 && matches!(tokens[0], FlowToken::Flowchart | FlowToken::Graph) {
+        (FlowDirection::TD, 1) // Just flowchart/graph keyword, no direction
     } else {
-        FlowDirection::TD
+        (FlowDirection::TD, 0)
     };
 
     // Skip header tokens and parse nodes and edges from the rest
-    let remaining_tokens = if tokens.len() > 2 { &tokens[2..] } else { &[] };
+    let remaining_tokens = if tokens.len() > skip_count {
+        &tokens[skip_count..]
+    } else {
+        &[]
+    };
     let (nodes, edges) = parse_simple_node_and_edges(remaining_tokens);
 
     Ok(FlowchartDiagram {

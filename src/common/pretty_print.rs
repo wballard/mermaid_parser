@@ -21,7 +21,7 @@ impl Default for PrintOptions {
         Self {
             indent_width: 4,
             max_line_length: 80,
-            align_arrows: true,
+            align_arrows: false,
             sort_nodes: false,
             compact_mode: false,
         }
@@ -148,19 +148,66 @@ impl MermaidPrinter for FlowchartDiagram {
             printer.write_line(&format!("accDescr: {}", desc));
         }
 
-        // Write nodes
+        if options.sort_nodes {
+            // Write sorted nodes first when sort_nodes is enabled
+            let mut sorted_node_ids: Vec<_> = self.nodes.keys().collect();
+            sorted_node_ids.sort();
+
+            for node_id in sorted_node_ids {
+                if let Some(node) = self.nodes.get(node_id) {
+                    write_flow_node(&mut printer, node_id, node);
+                }
+            }
+
+            // Write edges without inline definitions
+            if options.align_arrows {
+                write_aligned_flow_edges(&mut printer, &self.edges);
+            } else {
+                for edge in &self.edges {
+                    write_flow_edge(&mut printer, edge);
+                }
+            }
+        } else {
+            // Write edges with inline node definitions (modern Mermaid style)
+            let mut defined_nodes: std::collections::HashSet<String> =
+                std::collections::HashSet::new();
+
+            if options.align_arrows {
+                write_aligned_flow_edges_with_smart_nodes(
+                    &mut printer,
+                    &self.edges,
+                    &self.nodes,
+                    &mut defined_nodes,
+                );
+            } else {
+                for edge in &self.edges {
+                    write_flow_edge_with_smart_nodes(
+                        &mut printer,
+                        edge,
+                        &self.nodes,
+                        &mut defined_nodes,
+                    );
+                }
+            }
+        }
+
+        // Write any standalone nodes (not part of edges)
+        let mut referenced_nodes: std::collections::HashSet<String> =
+            std::collections::HashSet::new();
+        for edge in &self.edges {
+            referenced_nodes.insert(edge.from.clone());
+            referenced_nodes.insert(edge.to.clone());
+        }
+
         for (id, node) in &self.nodes {
-            write_flow_node(&mut printer, id, node);
+            if !referenced_nodes.contains(id) {
+                write_flow_node(&mut printer, id, node);
+            }
         }
 
         // Write subgraphs
         for subgraph in &self.subgraphs {
             write_subgraph(&mut printer, subgraph);
-        }
-
-        // Write edges
-        for edge in &self.edges {
-            write_flow_edge(&mut printer, edge);
         }
 
         // Write styles
@@ -266,6 +313,226 @@ fn write_subgraph(printer: &mut PrettyPrinter, subgraph: &Subgraph) {
     printer.write_line("end");
 }
 
+fn write_flow_edge_with_smart_nodes(
+    printer: &mut PrettyPrinter,
+    edge: &FlowEdge,
+    nodes: &std::collections::HashMap<String, FlowNode>,
+    defined_nodes: &mut std::collections::HashSet<String>,
+) {
+    let arrow = match &edge.edge_type {
+        EdgeType::Arrow => "-->",
+        EdgeType::DottedArrow => "-.->",
+        EdgeType::ThickArrow => "==>",
+        EdgeType::OpenLink => "---",
+        EdgeType::DottedLink => "-.-",
+        EdgeType::ThickLink => "===",
+        EdgeType::Invisible => "~~~",
+        EdgeType::CircleEdge => "--o",
+        EdgeType::CrossEdge => "--x",
+        EdgeType::MultiDirectional => "<-->",
+    };
+
+    // Format source node - use definition if not defined yet, otherwise just ID
+    let source_str = if !defined_nodes.contains(&edge.from) {
+        if let Some(source_node) = nodes.get(&edge.from) {
+            defined_nodes.insert(edge.from.clone());
+            format_node_with_definition(&edge.from, source_node)
+        } else {
+            edge.from.clone()
+        }
+    } else {
+        edge.from.clone()
+    };
+
+    // Format target node - use definition if not defined yet, otherwise just ID
+    let target_str = if !defined_nodes.contains(&edge.to) {
+        if let Some(target_node) = nodes.get(&edge.to) {
+            defined_nodes.insert(edge.to.clone());
+            format_node_with_definition(&edge.to, target_node)
+        } else {
+            edge.to.clone()
+        }
+    } else {
+        edge.to.clone()
+    };
+
+    let edge_str = if let Some(label) = &edge.label {
+        format!("{} {}|{}| {}", source_str, arrow, label, target_str)
+    } else {
+        format!("{} {} {}", source_str, arrow, target_str)
+    };
+
+    printer.write_line(&edge_str);
+}
+
+fn write_flow_edge_with_nodes(
+    printer: &mut PrettyPrinter,
+    edge: &FlowEdge,
+    nodes: &std::collections::HashMap<String, FlowNode>,
+) {
+    let arrow = match &edge.edge_type {
+        EdgeType::Arrow => "-->",
+        EdgeType::DottedArrow => "-.->",
+        EdgeType::ThickArrow => "==>",
+        EdgeType::OpenLink => "---",
+        EdgeType::DottedLink => "-.-",
+        EdgeType::ThickLink => "===",
+        EdgeType::Invisible => "~~~",
+        EdgeType::CircleEdge => "--o",
+        EdgeType::CrossEdge => "--x",
+        EdgeType::MultiDirectional => "<-->",
+    };
+
+    // Format source node with definition
+    let source_str = if let Some(source_node) = nodes.get(&edge.from) {
+        format_node_with_definition(&edge.from, source_node)
+    } else {
+        edge.from.clone()
+    };
+
+    // Format target node with definition
+    let target_str = if let Some(target_node) = nodes.get(&edge.to) {
+        format_node_with_definition(&edge.to, target_node)
+    } else {
+        edge.to.clone()
+    };
+
+    let edge_str = if let Some(label) = &edge.label {
+        format!("{} {}|{}| {}", source_str, arrow, label, target_str)
+    } else {
+        format!("{} {} {}", source_str, arrow, target_str)
+    };
+
+    printer.write_line(&edge_str);
+}
+
+fn format_node_with_definition(id: &str, node: &FlowNode) -> String {
+    let text = node.text.as_deref().unwrap_or("");
+    match &node.shape {
+        NodeShape::Rectangle => format!("{}[{}]", id, text),
+        NodeShape::RoundedRectangle => format!("{}({})", id, text),
+        NodeShape::Stadium => format!("{}([{}])", id, text),
+        NodeShape::Subroutine => format!("{}[[{}]]", id, text),
+        NodeShape::Cylinder => format!("{}[({})]", id, text),
+        NodeShape::Circle => format!("{}(({})))", id, text),
+        NodeShape::Asymmetric => format!("{}>{}]", id, text),
+        NodeShape::Rhombus => format!("{}{{{}}}", id, text),
+        NodeShape::Hexagon => format!("{}{{{{{}}}}}", id, text),
+        NodeShape::Parallelogram => format!("{}[/{}\\]", id, text),
+        NodeShape::ParallelogramAlt => format!("{}[\\{}/]", id, text),
+        NodeShape::Trapezoid => format!("{}[/{}/]", id, text),
+        NodeShape::TrapezoidAlt => format!("{}[\\{}\\]", id, text),
+        NodeShape::DoubleCircle => format!("{}((({})))", id, text),
+    }
+}
+
+fn write_aligned_flow_edges_with_smart_nodes(
+    printer: &mut PrettyPrinter,
+    edges: &[FlowEdge],
+    nodes: &std::collections::HashMap<String, FlowNode>,
+    defined_nodes: &mut std::collections::HashSet<String>,
+) {
+    // First pass: calculate what the source strings will be for alignment
+    let mut source_strings = Vec::new();
+    let mut temp_defined = defined_nodes.clone();
+
+    for edge in edges {
+        let source_str = if !temp_defined.contains(&edge.from) {
+            if let Some(source_node) = nodes.get(&edge.from) {
+                temp_defined.insert(edge.from.clone());
+                format_node_with_definition(&edge.from, source_node)
+            } else {
+                edge.from.clone()
+            }
+        } else {
+            edge.from.clone()
+        };
+        source_strings.push(source_str);
+    }
+
+    // Calculate max source length for alignment
+    let max_source_len = source_strings.iter().map(|s| s.len()).max().unwrap_or(0);
+
+    // Second pass: write the aligned edges
+    for (i, edge) in edges.iter().enumerate() {
+        let arrow = match &edge.edge_type {
+            EdgeType::Arrow => "-->",
+            EdgeType::DottedArrow => "-.->",
+            EdgeType::ThickArrow => "==>",
+            EdgeType::OpenLink => "---",
+            EdgeType::DottedLink => "-.-",
+            EdgeType::ThickLink => "===",
+            EdgeType::Invisible => "~~~",
+            EdgeType::CircleEdge => "--o",
+            EdgeType::CrossEdge => "--x",
+            EdgeType::MultiDirectional => "<-->",
+        };
+
+        // Use the pre-calculated source string
+        let source_str = &source_strings[i];
+
+        // Update defined_nodes for real this time
+        if !defined_nodes.contains(&edge.from) && nodes.contains_key(&edge.from) {
+            defined_nodes.insert(edge.from.clone());
+        }
+
+        // Format target node
+        let target_str = if !defined_nodes.contains(&edge.to) {
+            if let Some(target_node) = nodes.get(&edge.to) {
+                defined_nodes.insert(edge.to.clone());
+                format_node_with_definition(&edge.to, target_node)
+            } else {
+                edge.to.clone()
+            }
+        } else {
+            edge.to.clone()
+        };
+
+        let padding = " ".repeat(max_source_len - source_str.len());
+
+        let edge_str = if let Some(label) = &edge.label {
+            format!(
+                "{}{} {}|{}| {}",
+                source_str, padding, arrow, label, target_str
+            )
+        } else {
+            format!("{}{} {} {}", source_str, padding, arrow, target_str)
+        };
+
+        printer.write_line(&edge_str);
+    }
+}
+
+fn write_aligned_flow_edges(printer: &mut PrettyPrinter, edges: &[FlowEdge]) {
+    // Calculate the maximum length of source nodes to align arrows
+    let max_source_len = edges.iter().map(|edge| edge.from.len()).max().unwrap_or(0);
+
+    for edge in edges {
+        let arrow = match &edge.edge_type {
+            EdgeType::Arrow => "-->",
+            EdgeType::DottedArrow => "-.->",
+            EdgeType::ThickArrow => "==>",
+            EdgeType::OpenLink => "---",
+            EdgeType::DottedLink => "-.-",
+            EdgeType::ThickLink => "===",
+            EdgeType::Invisible => "~~~",
+            EdgeType::CircleEdge => "--o",
+            EdgeType::CrossEdge => "--x",
+            EdgeType::MultiDirectional => "<-->",
+        };
+
+        let padding = " ".repeat(max_source_len - edge.from.len());
+
+        let edge_str = if let Some(label) = &edge.label {
+            format!("{}{} {} |{}| {}", edge.from, padding, arrow, label, edge.to)
+        } else {
+            format!("{}{} {} {}", edge.from, padding, arrow, edge.to)
+        };
+
+        printer.write_line(&edge_str);
+    }
+}
+
 fn write_flow_edge(printer: &mut PrettyPrinter, edge: &FlowEdge) {
     let arrow = match &edge.edge_type {
         EdgeType::Arrow => "-->",
@@ -281,7 +548,7 @@ fn write_flow_edge(printer: &mut PrettyPrinter, edge: &FlowEdge) {
     };
 
     let edge_str = if let Some(label) = &edge.label {
-        format!("{} {}|{}| {}", edge.from, arrow, label, edge.to)
+        format!("{} {} |{}| {}", edge.from, arrow, label, edge.to)
     } else {
         format!("{} {} {}", edge.from, arrow, edge.to)
     };
