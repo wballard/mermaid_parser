@@ -1,7 +1,7 @@
 //! Sankey diagram parser implementation
 
 use crate::common::ast::{SankeyDiagram, SankeyLink, SankeyNode};
-use crate::error::{ParseError, Result};
+use crate::error::{format_error_snippet, Location, ParseError, Result};
 use chumsky::prelude::*;
 use std::collections::HashSet;
 
@@ -15,29 +15,87 @@ pub enum SankeyToken {
 }
 
 pub fn parse(input: &str) -> Result<SankeyDiagram> {
-    let tokens =
-        sankey_lexer()
-            .parse(input)
-            .into_result()
-            .map_err(|e| ParseError::SyntaxError {
-                message: "Failed to tokenize sankey diagram".to_string(),
-                expected: vec![],
-                found: format!("{:?}", e),
-                line: 0,
-                column: 0,
-            })?;
+    let tokens = sankey_lexer()
+        .parse(input)
+        .into_result()
+        .map_err(|errors| {
+            if let Some(error) = errors.first() {
+                let span = error.span();
+                let (line, column) = get_line_column(input, span.start);
+                
+                // Create enhanced error with context
+                ParseError::EnhancedSyntaxError {
+                    message: "Failed to tokenize sankey diagram".to_string(),
+                    location: Location { line, column },
+                    snippet: Box::new(format_error_snippet(input, line, column, column + 1)),
+                    suggestions: Box::new(vec![
+                        "Ensure the diagram starts with 'sankey-beta' or 'sankey'".to_string(),
+                        "Check that node names and values are properly formatted".to_string(),
+                    ]),
+                    expected: Box::new(vec!["valid sankey syntax".to_string()]),
+                    found: error.found().map(|c| c.to_string()).unwrap_or_else(|| "end of input".to_string()),
+                }
+            } else {
+                ParseError::SyntaxError {
+                    message: "Failed to tokenize sankey diagram".to_string(),
+                    expected: vec![],
+                    found: "unknown error".to_string(),
+                    line: 0,
+                    column: 0,
+                }
+            }
+        })?;
 
     let result = sankey_parser()
         .parse(&tokens[..])
         .into_result()
-        .map_err(|e| ParseError::SyntaxError {
-            message: "Failed to parse sankey diagram".to_string(),
-            expected: vec![],
-            found: format!("{:?}", e),
-            line: 0,
-            column: 0,
+        .map_err(|errors| {
+            if let Some(_error) = errors.first() {
+                // For token-level parsing, we provide more general error info since
+                // we don't have direct character position in the original input
+                ParseError::EnhancedSyntaxError {
+                    message: "Invalid sankey diagram structure".to_string(),
+                    location: Location { line: 1, column: 1 },
+                    snippet: Box::new(format_error_snippet(input, 1, 1, 2)),
+                    suggestions: Box::new(vec![
+                        "Check that links follow the format: source,target,value".to_string(),
+                        "Ensure node names are valid identifiers".to_string(),
+                        "Values should be positive numbers".to_string(),
+                    ]),
+                    expected: Box::new(vec!["header or link definition".to_string()]),
+                    found: "invalid structure".to_string(),
+                }
+            } else {
+                ParseError::SyntaxError {
+                    message: "Failed to parse sankey diagram".to_string(),
+                    expected: vec![],
+                    found: "unknown error".to_string(),
+                    line: 0,
+                    column: 0,
+                }
+            }
         });
     result
+}
+
+/// Convert byte position in input to line and column numbers (1-indexed)
+fn get_line_column(input: &str, position: usize) -> (usize, usize) {
+    let mut line = 1;
+    let mut column = 1;
+    
+    for (i, ch) in input.char_indices() {
+        if i >= position {
+            break;
+        }
+        if ch == '\n' {
+            line += 1;
+            column = 1;
+        } else {
+            column += 1;
+        }
+    }
+    
+    (line, column)
 }
 
 fn sankey_lexer<'src>(
@@ -340,5 +398,26 @@ Electricity grid,Heating and cooling - homes,113.726
         let diagram = result.unwrap();
         assert_eq!(diagram.links.len(), 0);
         assert_eq!(diagram.nodes.len(), 0);
+    }
+
+    #[test]
+    fn test_enhanced_error_messages() {
+        // Test invalid syntax to trigger enhanced error reporting
+        let input = "sankey-beta\nA => B,10";
+
+        let result = parse(input);
+        assert!(result.is_err(), "Expected parsing to fail for invalid syntax");
+
+        let error = result.unwrap_err();
+        let error_msg = error.to_string();
+        
+        // Verify the error message contains enhanced information
+        println!("Enhanced error message:\n{}", error_msg);
+        
+        // Should contain position information
+        assert!(error_msg.contains("line") && error_msg.contains("column"));
+        
+        // Should contain helpful suggestions
+        assert!(error_msg.contains("help:") || error_msg.contains("note:"));
     }
 }

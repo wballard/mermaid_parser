@@ -2,6 +2,13 @@
 
 use std::fmt;
 
+/// Location information for parse errors
+#[derive(Debug, Clone, PartialEq)]
+pub struct Location {
+    pub line: usize,
+    pub column: usize,
+}
+
 /// Result type alias for parser operations
 pub type Result<T> = std::result::Result<T, ParseError>;
 
@@ -31,6 +38,16 @@ pub enum ParseError {
         found: String,
         line: usize,
         column: usize,
+    },
+
+    /// Enhanced syntax parsing error with context and suggestions
+    EnhancedSyntaxError {
+        message: String,
+        location: Location,
+        snippet: Box<String>,
+        suggestions: Box<Vec<String>>,
+        expected: Box<Vec<String>>,
+        found: String,
     },
 
     /// Semantic error (valid syntax but invalid meaning)
@@ -80,6 +97,30 @@ impl fmt::Display for ParseError {
                     found
                 )
             }
+            ParseError::EnhancedSyntaxError {
+                message,
+                location,
+                snippet,
+                suggestions,
+                expected,
+                found,
+            } => {
+                write!(f, "Syntax error at line {}, column {}: {}\n", location.line, location.column, message)?;
+                write!(f, "{}\n", snippet)?;
+                if !expected.is_empty() {
+                    write!(f, "Expected one of: [{}], but found: '{}'\n", expected.join(", "), found)?;
+                }
+                if !suggestions.is_empty() {
+                    for suggestion in suggestions.iter() {
+                        if suggestion.contains("http") || suggestion.starts_with("See ") {
+                            write!(f, " = help: {}\n", suggestion)?;
+                        } else {
+                            write!(f, " = note: {}\n", suggestion)?;
+                        }
+                    }
+                }
+                Ok(())
+            }
             ParseError::SemanticError { message, context } => {
                 write!(f, "Semantic error in {}: {}", context, message)
             }
@@ -96,6 +137,39 @@ impl From<std::io::Error> for ParseError {
     fn from(error: std::io::Error) -> Self {
         ParseError::IoError(error.to_string())
     }
+}
+
+/// Generate a formatted error snippet showing the error location with context
+pub fn format_error_snippet(input: &str, line: usize, column: usize, end_column: usize) -> String {
+    let lines: Vec<&str> = input.lines().collect();
+    let mut result = String::new();
+    
+    // Ensure line is 1-indexed and convert to 0-indexed for array access
+    let zero_indexed_line = if line > 0 { line - 1 } else { 0 };
+    
+    if zero_indexed_line < lines.len() {
+        let problem_line = lines[zero_indexed_line];
+        
+        // Show the line with line number
+        result.push_str(&format!("{} | {}\n", line, problem_line));
+        
+        // Add pointer line showing the error location
+        let padding = format!("{} | ", line).len();
+        let mut pointer_line = " ".repeat(padding);
+        
+        // Add spaces to align with the error column (1-indexed to 0-indexed)
+        let start_pos = if column > 0 { column - 1 } else { 0 };
+        pointer_line.push_str(&" ".repeat(start_pos));
+        
+        // Add carets to highlight the error span
+        let span_length = if end_column > column { end_column - column } else { 1 };
+        pointer_line.push_str(&"^".repeat(span_length));
+        pointer_line.push_str(" expected");
+        
+        result.push_str(&pointer_line);
+    }
+    
+    result
 }
 
 // Note: Chumsky error conversion will be implemented later
@@ -135,5 +209,46 @@ mod tests {
 
         let error3 = ParseError::UnknownDiagramType("test".to_string());
         assert_ne!(error1, error3);
+    }
+
+    #[test]
+    fn test_enhanced_syntax_error_with_context() {
+        let _input = "flowchart TD\n    A => B\n    B --> C";
+        let error = ParseError::SyntaxError {
+            message: "Expected arrow '->' or '-->' after node".to_string(),
+            expected: vec!["-->".to_string(), "->".to_string()],
+            found: "=>".to_string(),
+            line: 2,
+            column: 7,
+        };
+        
+        let error_msg = error.to_string();
+        assert!(error_msg.contains("line 2, column 7"));
+        assert!(error_msg.contains("-->"));
+        assert!(error_msg.contains("=>"));
+    }
+
+    #[test]
+    fn test_enhanced_error_with_suggestions() {
+        // This test expects a new error variant with suggestions
+        // Will fail until we implement ParseError::EnhancedSyntaxError
+        let input = "flowchart TD\n    A => B";
+        let error = ParseError::EnhancedSyntaxError {
+            message: "Expected arrow '->' or '-->' after node".to_string(),
+            location: Location { line: 2, column: 7 },
+            snippet: Box::new(format_error_snippet(input, 2, 7, 9)),
+            suggestions: Box::new(vec![
+                "Did you mean '-->'?".to_string(),
+                "See https://mermaid.js.org/syntax/flowchart.html#links-between-nodes".to_string(),
+            ]),
+            expected: Box::new(vec!["-->".to_string(), "->".to_string()]),
+            found: "=>".to_string(),
+        };
+        
+        let error_msg = error.to_string();
+        assert!(error_msg.contains("2 |     A => B"));
+        assert!(error_msg.contains("^^ expected"));
+        assert!(error_msg.contains("Did you mean"));
+        assert!(error_msg.contains("help:"));
     }
 }
