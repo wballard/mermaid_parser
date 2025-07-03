@@ -1,10 +1,20 @@
 [package]
 name = "mermaid-parser"
 version = "0.1.0"
+authors = ["William Ballard <wballard@mailbox.org>"]
 edition = "2021"
-description = "A Rust parser for Mermaid diagrams"
-license = "MIT"
-repository = "https://github.com/your-username/mermaid-parser"
+license = "MIT OR Apache-2.0"
+description = "A fast, reliable parser for Mermaid diagram syntax with comprehensive diagram type support"
+repository = "https://github.com/wballard/mermaid-parser"
+homepage = "https://github.com/wballard/mermaid-parser"
+documentation = "https://docs.rs/mermaid-parser"
+readme = "README.md"
+keywords = ["mermaid", "parser", "diagram", "visualization", "graph"]
+categories = ["parser-implementations", "visualization", "text-processing"]
+rust-version = "1.70.0"
+
+[badges]
+maintenance = { status = "actively-developed" }
 
 [dependencies]
 chumsky = "0.10.1"
