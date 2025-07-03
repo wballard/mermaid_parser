@@ -40,8 +40,14 @@ pub mod common;
 pub mod error;
 pub mod parsers;
 
-pub use common::ast::{DiagramType, KeyType, CardinalityValue};
-pub use common::visitor::{AstVisitor, AstVisitorMut, NodeCounter, ComplexityAnalyzer, ReferenceValidator, TitleSetter};
+pub use common::ast::{CardinalityValue, DiagramType, KeyType};
+pub use common::metrics::{
+    BasicMetrics, ComplexityMetrics, DiagramMetrics, MetricsReport, QualityMetrics, Suggestion,
+    SuggestionCategory, SeverityLevel,
+};
+pub use common::visitor::{
+    AstVisitor, AstVisitorMut, ComplexityAnalyzer, NodeCounter, ReferenceValidator, TitleSetter,
+};
 pub use error::{ParseError, Result};
 
 /// Parse a Mermaid diagram from text input
@@ -204,4 +210,3 @@ mod tests {
         assert_eq!(detect_diagram_type("unknown_diagram_type"), Ok("misc"));
     }
 }
-
