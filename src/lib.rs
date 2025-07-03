@@ -45,6 +45,7 @@ pub use common::metrics::{
     BasicMetrics, ComplexityMetrics, DiagramMetrics, MetricsReport, QualityMetrics, SeverityLevel,
     Suggestion, SuggestionCategory,
 };
+pub use common::pretty_print::{MermaidPrinter, PrintOptions};
 pub use common::visitor::{
     AstVisitor, AstVisitorMut, ComplexityAnalyzer, NodeCounter, ReferenceValidator, TitleSetter,
 };

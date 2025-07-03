@@ -31,7 +31,7 @@ harness = false
 # Strict linting configuration
 # Note: The codebase needs gradual cleanup to comply with all rules
 # Start with basic rules and gradually enable stricter ones
-all = "warn"
+all = { level = "warn", priority = -1 }
 # pedantic = "warn"  # TODO: Enable after codebase cleanup
 # nursery = "warn"   # TODO: Enable after codebase cleanup
 # cargo = "warn"     # TODO: Enable after codebase cleanup
