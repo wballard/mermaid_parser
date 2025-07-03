@@ -22,7 +22,7 @@ pub fn parse(input: &str) -> Result<SankeyDiagram> {
             if let Some(error) = errors.first() {
                 let span = error.span();
                 let (line, column) = get_line_column(input, span.start);
-                
+
                 // Create enhanced error with context
                 ParseError::EnhancedSyntaxError {
                     message: "Failed to tokenize sankey diagram".to_string(),
@@ -33,7 +33,10 @@ pub fn parse(input: &str) -> Result<SankeyDiagram> {
                         "Check that node names and values are properly formatted".to_string(),
                     ]),
                     expected: Box::new(vec!["valid sankey syntax".to_string()]),
-                    found: error.found().map(|c| c.to_string()).unwrap_or_else(|| "end of input".to_string()),
+                    found: error
+                        .found()
+                        .map(|c| c.to_string())
+                        .unwrap_or_else(|| "end of input".to_string()),
                 }
             } else {
                 ParseError::SyntaxError {
@@ -82,7 +85,7 @@ pub fn parse(input: &str) -> Result<SankeyDiagram> {
 fn get_line_column(input: &str, position: usize) -> (usize, usize) {
     let mut line = 1;
     let mut column = 1;
-    
+
     for (i, ch) in input.char_indices() {
         if i >= position {
             break;
@@ -94,7 +97,7 @@ fn get_line_column(input: &str, position: usize) -> (usize, usize) {
             column += 1;
         }
     }
-    
+
     (line, column)
 }
 
@@ -406,17 +409,20 @@ Electricity grid,Heating and cooling - homes,113.726
         let input = "sankey-beta\nA => B,10";
 
         let result = parse(input);
-        assert!(result.is_err(), "Expected parsing to fail for invalid syntax");
+        assert!(
+            result.is_err(),
+            "Expected parsing to fail for invalid syntax"
+        );
 
         let error = result.unwrap_err();
         let error_msg = error.to_string();
-        
+
         // Verify the error message contains enhanced information
         println!("Enhanced error message:\n{}", error_msg);
-        
+
         // Should contain position information
         assert!(error_msg.contains("line") && error_msg.contains("column"));
-        
+
         // Should contain helpful suggestions
         assert!(error_msg.contains("help:") || error_msg.contains("note:"));
     }

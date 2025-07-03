@@ -26,3 +26,19 @@ criterion = "0.5"
 [[bench]]
 name = "parser_benchmarks"
 harness = false
+
+[lints.clippy]
+# Strict linting configuration
+# Note: The codebase needs gradual cleanup to comply with all rules
+# Start with basic rules and gradually enable stricter ones
+all = "warn"
+# pedantic = "warn"  # TODO: Enable after codebase cleanup
+# nursery = "warn"   # TODO: Enable after codebase cleanup
+# cargo = "warn"     # TODO: Enable after codebase cleanup
+
+# Allows
+missing_docs_in_private_items = "allow"
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+expect_used = "allow"
+unwrap_used = "allow"  # in tests only

@@ -105,10 +105,19 @@ impl fmt::Display for ParseError {
                 expected,
                 found,
             } => {
-                write!(f, "Syntax error at line {}, column {}: {}\n", location.line, location.column, message)?;
+                write!(
+                    f,
+                    "Syntax error at line {}, column {}: {}\n",
+                    location.line, location.column, message
+                )?;
                 write!(f, "{}\n", snippet)?;
                 if !expected.is_empty() {
-                    write!(f, "Expected one of: [{}], but found: '{}'\n", expected.join(", "), found)?;
+                    write!(
+                        f,
+                        "Expected one of: [{}], but found: '{}'\n",
+                        expected.join(", "),
+                        found
+                    )?;
                 }
                 if !suggestions.is_empty() {
                     for suggestion in suggestions.iter() {
@@ -143,32 +152,36 @@ impl From<std::io::Error> for ParseError {
 pub fn format_error_snippet(input: &str, line: usize, column: usize, end_column: usize) -> String {
     let lines: Vec<&str> = input.lines().collect();
     let mut result = String::new();
-    
+
     // Ensure line is 1-indexed and convert to 0-indexed for array access
     let zero_indexed_line = if line > 0 { line - 1 } else { 0 };
-    
+
     if zero_indexed_line < lines.len() {
         let problem_line = lines[zero_indexed_line];
-        
+
         // Show the line with line number
         result.push_str(&format!("{} | {}\n", line, problem_line));
-        
+
         // Add pointer line showing the error location
         let padding = format!("{} | ", line).len();
         let mut pointer_line = " ".repeat(padding);
-        
+
         // Add spaces to align with the error column (1-indexed to 0-indexed)
         let start_pos = if column > 0 { column - 1 } else { 0 };
         pointer_line.push_str(&" ".repeat(start_pos));
-        
+
         // Add carets to highlight the error span
-        let span_length = if end_column > column { end_column - column } else { 1 };
+        let span_length = if end_column > column {
+            end_column - column
+        } else {
+            1
+        };
         pointer_line.push_str(&"^".repeat(span_length));
         pointer_line.push_str(" expected");
-        
+
         result.push_str(&pointer_line);
     }
-    
+
     result
 }
 
@@ -221,7 +234,7 @@ mod tests {
             line: 2,
             column: 7,
         };
-        
+
         let error_msg = error.to_string();
         assert!(error_msg.contains("line 2, column 7"));
         assert!(error_msg.contains("-->"));
@@ -244,7 +257,7 @@ mod tests {
             expected: Box::new(vec!["-->".to_string(), "->".to_string()]),
             found: "=>".to_string(),
         };
-        
+
         let error_msg = error.to_string();
         assert!(error_msg.contains("2 |     A => B"));
         assert!(error_msg.contains("^^ expected"));
