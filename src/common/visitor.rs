@@ -522,7 +522,8 @@ impl ReferenceValidator {
 
     fn validate_references(&mut self) {
         for undefined in self.undefined_references() {
-            self.errors.push(format!("Undefined reference: {}", undefined));
+            self.errors
+                .push(format!("Undefined reference: {}", undefined));
         }
     }
 }
@@ -907,12 +908,20 @@ mod tests {
     fn test_node_counter_with_sankey() {
         let diagram = SankeyDiagram {
             nodes: vec![
-                SankeyNode { id: "A".to_string(), name: "Node A".to_string() },
-                SankeyNode { id: "B".to_string(), name: "Node B".to_string() },
+                SankeyNode {
+                    id: "A".to_string(),
+                    name: "Node A".to_string(),
+                },
+                SankeyNode {
+                    id: "B".to_string(),
+                    name: "Node B".to_string(),
+                },
             ],
-            links: vec![
-                SankeyLink { source: "A".to_string(), target: "B".to_string(), value: 10.0 },
-            ],
+            links: vec![SankeyLink {
+                source: "A".to_string(),
+                target: "B".to_string(),
+                value: 10.0,
+            }],
         };
 
         let mut counter = NodeCounter::new();
@@ -927,9 +936,10 @@ mod tests {
     #[test]
     fn test_diagram_accept_method() {
         let diagram = DiagramType::Sankey(SankeyDiagram {
-            nodes: vec![
-                SankeyNode { id: "A".to_string(), name: "Node A".to_string() },
-            ],
+            nodes: vec![SankeyNode {
+                id: "A".to_string(),
+                name: "Node A".to_string(),
+            }],
             links: vec![],
         });
 
@@ -981,35 +991,39 @@ mod tests {
         use std::collections::HashMap;
 
         let mut nodes = HashMap::new();
-        nodes.insert("A".to_string(), FlowNode {
-            id: "A".to_string(),
-            text: Some("Node A".to_string()),
-            shape: crate::common::ast::NodeShape::Rectangle,
-            classes: vec![],
-            icon: None,
-        });
-        nodes.insert("B".to_string(), FlowNode {
-            id: "B".to_string(),
-            text: Some("Node B".to_string()),
-            shape: crate::common::ast::NodeShape::Rectangle,
-            classes: vec![],
-            icon: None,
-        });
+        nodes.insert(
+            "A".to_string(),
+            FlowNode {
+                id: "A".to_string(),
+                text: Some("Node A".to_string()),
+                shape: crate::common::ast::NodeShape::Rectangle,
+                classes: vec![],
+                icon: None,
+            },
+        );
+        nodes.insert(
+            "B".to_string(),
+            FlowNode {
+                id: "B".to_string(),
+                text: Some("Node B".to_string()),
+                shape: crate::common::ast::NodeShape::Rectangle,
+                classes: vec![],
+                icon: None,
+            },
+        );
 
         let diagram = FlowchartDiagram {
             title: None,
             accessibility: AccessibilityInfo::default(),
             direction: crate::common::ast::FlowDirection::TD,
             nodes,
-            edges: vec![
-                FlowEdge {
-                    from: "A".to_string(),
-                    to: "B".to_string(),
-                    edge_type: crate::common::ast::EdgeType::Arrow,
-                    label: None,
-                    min_length: None,
-                },
-            ],
+            edges: vec![FlowEdge {
+                from: "A".to_string(),
+                to: "B".to_string(),
+                edge_type: crate::common::ast::EdgeType::Arrow,
+                label: None,
+                min_length: None,
+            }],
             subgraphs: vec![],
             styles: vec![],
             class_defs: std::collections::HashMap::new(),
@@ -1028,28 +1042,29 @@ mod tests {
         use std::collections::HashMap;
 
         let mut nodes = HashMap::new();
-        nodes.insert("A".to_string(), FlowNode {
-            id: "A".to_string(),
-            text: Some("Node A".to_string()),
-            shape: crate::common::ast::NodeShape::Rectangle,
-            classes: vec![],
-            icon: None,
-        });
+        nodes.insert(
+            "A".to_string(),
+            FlowNode {
+                id: "A".to_string(),
+                text: Some("Node A".to_string()),
+                shape: crate::common::ast::NodeShape::Rectangle,
+                classes: vec![],
+                icon: None,
+            },
+        );
 
         let diagram = FlowchartDiagram {
             title: None,
             accessibility: AccessibilityInfo::default(),
             direction: crate::common::ast::FlowDirection::TD,
             nodes,
-            edges: vec![
-                FlowEdge {
-                    from: "A".to_string(),
-                    to: "UNDEFINED".to_string(), // This should trigger an error
-                    edge_type: crate::common::ast::EdgeType::Arrow,
-                    label: None,
-                    min_length: None,
-                },
-            ],
+            edges: vec![FlowEdge {
+                from: "A".to_string(),
+                to: "UNDEFINED".to_string(), // This should trigger an error
+                edge_type: crate::common::ast::EdgeType::Arrow,
+                label: None,
+                min_length: None,
+            }],
             subgraphs: vec![],
             styles: vec![],
             class_defs: std::collections::HashMap::new(),
@@ -1068,13 +1083,30 @@ mod tests {
     fn test_multiple_visitors_on_same_diagram() {
         let diagram = DiagramType::Sankey(SankeyDiagram {
             nodes: vec![
-                SankeyNode { id: "A".to_string(), name: "Node A".to_string() },
-                SankeyNode { id: "B".to_string(), name: "Node B".to_string() },
-                SankeyNode { id: "C".to_string(), name: "Node C".to_string() },
+                SankeyNode {
+                    id: "A".to_string(),
+                    name: "Node A".to_string(),
+                },
+                SankeyNode {
+                    id: "B".to_string(),
+                    name: "Node B".to_string(),
+                },
+                SankeyNode {
+                    id: "C".to_string(),
+                    name: "Node C".to_string(),
+                },
             ],
             links: vec![
-                SankeyLink { source: "A".to_string(), target: "B".to_string(), value: 10.0 },
-                SankeyLink { source: "B".to_string(), target: "C".to_string(), value: 5.0 },
+                SankeyLink {
+                    source: "A".to_string(),
+                    target: "B".to_string(),
+                    value: 10.0,
+                },
+                SankeyLink {
+                    source: "B".to_string(),
+                    target: "C".to_string(),
+                    value: 5.0,
+                },
             ],
         });
 
@@ -1134,7 +1166,7 @@ mod tests {
         });
 
         let mut title_setter = TitleSetter::new("Universal Title".to_string());
-        
+
         flowchart.accept_mut(&mut title_setter);
         sequence.accept_mut(&mut title_setter);
 
@@ -1149,5 +1181,63 @@ mod tests {
         } else {
             panic!("Expected sequence diagram");
         }
+    }
+
+    #[test]
+    fn test_complexity_analyzer_all_methods() {
+        let mut analyzer = ComplexityAnalyzer::new();
+
+        // Test initial state
+        assert_eq!(analyzer.max_depth(), 0);
+        assert_eq!(analyzer.average_branching_factor(), 0.0);
+        assert_eq!(analyzer.cyclomatic_complexity(), 1);
+
+        // Test internal counting methods
+        analyzer.count_node();
+        analyzer.count_connection();
+        analyzer.enter_scope();
+        analyzer.enter_scope();
+        assert_eq!(analyzer.max_depth(), 2);
+
+        analyzer.exit_scope();
+        analyzer.exit_scope();
+
+        // Test average branching factor calculation
+        // branching_factor / total_connections = 0 / 1 = 0.0 initially
+        assert_eq!(analyzer.average_branching_factor(), 0.0);
+        assert_eq!(analyzer.cyclomatic_complexity(), 2); // 1 - 1 + 2 = 2
+    }
+
+    #[test]
+    fn test_reference_validator_error_methods() {
+        let mut validator = ReferenceValidator::new();
+
+        // Test initial state
+        assert!(!validator.has_errors());
+        assert_eq!(validator.errors().len(), 0);
+        assert_eq!(validator.undefined_references().len(), 0);
+
+        // Add some test data
+        validator.define_id("existing");
+        validator.reference_id("existing");
+        validator.reference_id("missing");
+
+        // Check undefined references
+        let undefined = validator.undefined_references();
+        assert_eq!(undefined.len(), 1);
+        assert!(undefined.contains(&"missing".to_string()));
+
+        // Validate and check errors
+        validator.validate_references();
+        assert!(validator.has_errors());
+        assert_eq!(validator.errors().len(), 1);
+        assert!(validator.errors()[0].contains("missing"));
+    }
+
+    #[test]
+    fn test_title_setter_new() {
+        let title = "Test Title".to_string();
+        let setter = TitleSetter::new(title.clone());
+        assert_eq!(setter.title, title);
     }
 }
