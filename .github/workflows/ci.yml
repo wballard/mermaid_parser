@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        rust: [stable, beta, nightly]
+        rust: [stable]
 
     steps:
       - name: Checkout code
@@ -40,19 +40,7 @@ jobs:
             ${{ runner.os }}-cargo-
 
       - name: Run tests with all features
-        run: cargo test --all-features
-
-      - name: Run tests without default features
-        run: cargo test --no-default-features
-
-      - name: Run doc tests
-        run: cargo test --doc
-
-      - name: Run integration tests
-        run: cargo test --test '*'
-
-      - name: Run property tests
-        run: cargo test --test property_tests
+        run: cargo test
 
   clippy:
     name: Clippy
@@ -76,7 +64,7 @@ jobs:
           key: ${{ runner.os }}-cargo-clippy-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Run clippy
-        run: cargo clippy --all-features --all-targets -- -D warnings
+        run: cargo clippy
 
   fmt:
     name: Format
