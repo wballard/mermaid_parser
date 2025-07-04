@@ -247,14 +247,14 @@ fn parse_message(
     participants: &mut Vec<Participant>,
     alias_map: &HashMap<String, String>,
 ) -> Option<Message> {
-    // Try different arrow types
+    // Try different arrow types (order matters - check longer patterns first)
     let arrow_types = vec![
-        ("<<->>", ArrowType::BiDirectionalSolid),
         ("<<-->>", ArrowType::BiDirectionalDotted),
-        ("->>", ArrowType::SolidClosed),
+        ("<<->>", ArrowType::BiDirectionalSolid),
         ("-->>", ArrowType::DottedClosed),
-        ("->", ArrowType::SolidOpen),
+        ("->>", ArrowType::SolidClosed),
         ("-->", ArrowType::DottedOpen),
+        ("->", ArrowType::SolidOpen),
         ("--x", ArrowType::Cross),
         ("-x", ArrowType::Cross),
         ("--)", ArrowType::Point),

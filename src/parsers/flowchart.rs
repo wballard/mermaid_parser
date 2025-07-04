@@ -48,6 +48,7 @@ pub enum FlowToken {
     // Values
     NodeId(String),
     Text(String),
+    At, // @
 
     Comment(String),
     Semicolon,
@@ -110,11 +111,17 @@ fn flowchart_lexer<'src>(
         just('>').to(FlowToken::RightAngle),
     ));
 
-    // Edge labels: |text|
+    // Edge labels: |text| (with optional closing |)
     let edge_label = just('|')
         .then(none_of('|').repeated().collect::<String>())
-        .then(just('|'))
-        .map(|((_, text), _)| FlowToken::Text(format!("|{}|", text)));
+        .then(just('|').or_not())
+        .map(|((_, text), closing)| {
+            if closing.is_some() {
+                FlowToken::Text(format!("|{}|", text))
+            } else {
+                FlowToken::Text(format!("|{}", text))
+            }
+        });
 
     // Text for node labels - will be handled differently
     let text_chars = none_of("]})\n>|")
@@ -126,8 +133,9 @@ fn flowchart_lexer<'src>(
     // Simple identifier
     let identifier = text::ident().map(|s: &str| FlowToken::NodeId(s.to_string()));
 
-    // Semicolon
+    // Semicolon and At symbol
     let semicolon = just(';').to(FlowToken::Semicolon);
+    let at_symbol = just('@').to(FlowToken::At);
 
     // Combine all tokens (order matters for parsing)
     let token = choice((
@@ -139,6 +147,7 @@ fn flowchart_lexer<'src>(
         node_brackets,
         edge_label,
         semicolon,
+        at_symbol,
         identifier,
         text_chars, // Keep this last to avoid conflicts
     ));
@@ -244,6 +253,10 @@ fn parse_simple_node_and_edges(tokens: &[FlowToken]) -> (HashMap<String, FlowNod
                                 } else {
                                     continue;
                                 }
+                            } else {
+                                // No closing bracket found - skip this malformed node to avoid infinite loop
+                                i += 1;
+                                continue;
                             }
                         }
                     }
@@ -319,6 +332,7 @@ fn parse_simple_node_and_edges(tokens: &[FlowToken]) -> (HashMap<String, FlowNod
                                         let mut text_parts = Vec::new();
                                         let mut j = target_pos + 2;
 
+                                        let mut found_closing = false;
                                         while j < tokens.len() {
                                             match &tokens[j] {
                                                 FlowToken::NodeId(text) => {
@@ -358,12 +372,20 @@ fn parse_simple_node_and_edges(tokens: &[FlowToken]) -> (HashMap<String, FlowNod
                                                     };
                                                     nodes.insert(target_id.clone(), node);
                                                     i = j + 1;
+                                                    found_closing = true;
                                                     break;
                                                 }
                                                 _ => break,
                                             }
                                         }
-                                        continue;
+
+                                        if found_closing {
+                                            continue;
+                                        } else {
+                                            // No closing bracket found for target node - treat as malformed, skip to end
+                                            i = tokens.len(); // End parsing to avoid infinite loop
+                                            continue;
+                                        }
                                     }
                                 }
                             }
@@ -516,5 +538,36 @@ mod tests {
         assert_eq!(edge.from, "A");
         assert_eq!(edge.to, "B");
         assert_eq!(edge.edge_type, EdgeType::Arrow);
+    }
+
+    #[test]
+    fn test_malformed_unclosed_bracket() {
+        use std::time::{Duration, Instant};
+
+        let input = "graph TD\nA[ h ] -- hello --> B[";
+        println!("Testing malformed input: {}", input.replace('\n', "\\n"));
+
+        // Test lexer first
+        let start = Instant::now();
+        let tokens = flowchart_lexer().parse(input).into_result();
+        let lex_duration = start.elapsed();
+
+        println!("Lexer duration: {:?}", lex_duration);
+        println!("Tokens: {:?}", tokens);
+
+        // Test parser
+        let start = Instant::now();
+        let result = parse(input);
+        let parse_duration = start.elapsed();
+
+        println!("Parser duration: {:?}", parse_duration);
+        println!("Parser result: {:?}", result);
+
+        // Should not hang - fail test if it takes too long
+        assert!(
+            parse_duration < Duration::from_secs(1),
+            "Parser took too long: {:?}",
+            parse_duration
+        );
     }
 }

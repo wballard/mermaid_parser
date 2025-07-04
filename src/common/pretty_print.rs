@@ -971,8 +971,10 @@ impl MermaidPrinter for StateDiagram {
             printer.write_line(&format!("accDescr: {}", desc));
         }
 
-        // Write states
-        for (id, state) in &self.states {
+        // Write states (sorted for deterministic output)
+        let mut states: Vec<_> = self.states.iter().collect();
+        states.sort_by_key(|(id, _)| *id);
+        for (id, state) in states {
             write_state(&mut printer, id, state);
         }
 
@@ -1103,8 +1105,10 @@ impl MermaidPrinter for ErDiagram {
             ));
         }
 
-        // Write entities
-        for (name, entity) in &self.entities {
+        // Write entities (sorted for deterministic output)
+        let mut entities: Vec<_> = self.entities.iter().collect();
+        entities.sort_by_key(|(name, _)| *name);
+        for (name, entity) in entities {
             printer.write_line(&format!("{} {{", name));
             printer.indent();
 
@@ -1118,11 +1122,19 @@ impl MermaidPrinter for ErDiagram {
                 } else {
                     ""
                 };
-                let comment = attr.comment.as_deref().unwrap_or("");
-                printer.write_line(&format!(
-                    "{} {}{} \"{}\"",
-                    attr.attr_type, attr.name, key_str, comment
-                ));
+                let line = if let Some(comment) = &attr.comment {
+                    if comment.is_empty() {
+                        format!("{} {}{}", attr.attr_type, attr.name, key_str)
+                    } else {
+                        format!(
+                            "{} {}{} \"{}\"",
+                            attr.attr_type, attr.name, key_str, comment
+                        )
+                    }
+                } else {
+                    format!("{} {}{}", attr.attr_type, attr.name, key_str)
+                };
+                printer.write_line(&line);
             }
 
             printer.dedent();
@@ -1136,10 +1148,10 @@ impl MermaidPrinter for ErDiagram {
 
 fn format_er_cardinality(card: &ErCardinality) -> &'static str {
     match (&card.min, &card.max) {
-        (CardinalityValue::Zero, CardinalityValue::One) => "|o",
+        (CardinalityValue::Zero, CardinalityValue::One) => "o|",
         (CardinalityValue::One, CardinalityValue::One) => "||",
-        (CardinalityValue::Zero, CardinalityValue::Many) => "}o",
-        (CardinalityValue::One, CardinalityValue::Many) => "}|",
+        (CardinalityValue::Zero, CardinalityValue::Many) => "o{",
+        (CardinalityValue::One, CardinalityValue::Many) => "|{",
         _ => "||", // Default
     }
 }
@@ -1256,9 +1268,12 @@ impl MermaidPrinter for GanttDiagram {
                     task_str.push_str(&format!(" :{}", tags.join(", ")));
                 }
 
-                // Add ID if present
+                // Add ID or dependencies
                 if let Some(id) = &task.id {
-                    task_str.push_str(&format!(", {}", id));
+                    task_str.push_str(&format!(" :{}", id));
+                } else if !task.dependencies.is_empty() {
+                    // If no ID but has dependencies, format as ":after dep1, dep2"
+                    task_str.push_str(&format!(" :after {}", task.dependencies.join(", ")));
                 }
 
                 // Add start date and duration
