@@ -792,8 +792,10 @@ impl MermaidPrinter for ClassDiagram {
             printer.write_line(&format!("accDescr: {}", desc));
         }
 
-        // Write classes
-        for (name, class) in &self.classes {
+        // Write classes (sorted for deterministic output)
+        let mut classes: Vec<_> = self.classes.iter().collect();
+        classes.sort_by_key(|(name, _)| *name);
+        for (name, class) in classes {
             write_class(&mut printer, name, class);
         }
 

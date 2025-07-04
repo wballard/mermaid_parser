@@ -1,4 +1,4 @@
-use mermaid_parser::{parse_diagram, MermaidPrinter, PrintOptions};
+use mermaid_parser::{parse_diagram, DiagramType, MermaidPrinter, PrintOptions};
 
 #[test]
 fn test_flowchart_basic_pretty_print() {
@@ -96,13 +96,46 @@ fn test_class_diagram_pretty_print() {
     // assert!(output.contains("+bark()"));
     // assert!(output.contains("Animal <|-- Dog"));
 
-    // Verify round-trip
+    // Verify round-trip by comparing semantic content instead of Debug representation
     let reparsed = parse_diagram(&output).expect("Failed to reparse pretty-printed output");
+
+    // Extract both diagrams as ClassDiagram for comparison
+    let original_class = match &diagram {
+        DiagramType::Class(cd) => cd,
+        _ => panic!("Expected Class diagram"),
+    };
+
+    let reparsed_class = match &reparsed {
+        DiagramType::Class(cd) => cd,
+        _ => panic!("Expected Class diagram from reparsed"),
+    };
+
+    // Compare semantic content
     assert_eq!(
-        format!("{:?}", diagram),
-        format!("{:?}", reparsed),
-        "Round-trip failed"
+        original_class.title, reparsed_class.title,
+        "Titles don't match"
     );
+    assert_eq!(
+        original_class.accessibility, reparsed_class.accessibility,
+        "Accessibility doesn't match"
+    );
+    assert_eq!(
+        original_class.relationships, reparsed_class.relationships,
+        "Relationships don't match"
+    );
+    assert_eq!(
+        original_class.notes, reparsed_class.notes,
+        "Notes don't match"
+    );
+
+    // Compare classes by converting to sorted vectors
+    let mut original_classes: Vec<_> = original_class.classes.iter().collect();
+    original_classes.sort_by_key(|(name, _)| *name);
+
+    let mut reparsed_classes: Vec<_> = reparsed_class.classes.iter().collect();
+    reparsed_classes.sort_by_key(|(name, _)| *name);
+
+    assert_eq!(original_classes, reparsed_classes, "Classes don't match");
 }
 
 #[test]
