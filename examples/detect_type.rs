@@ -7,23 +7,34 @@ use mermaid_parser::parse_diagram;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let examples = vec![
-        ("Flowchart", r#"
+        (
+            "Flowchart",
+            r#"
 flowchart TD
     A --> B
     B --> C
-"#),
-        ("Sequence Diagram", r#"
+"#,
+        ),
+        (
+            "Sequence Diagram",
+            r#"
 sequenceDiagram
     Alice->>Bob: Hello Bob, how are you?
     Bob-->>Alice: Great!
-"#),
-        ("Sankey Diagram", r#"
+"#,
+        ),
+        (
+            "Sankey Diagram",
+            r#"
 sankey-beta
     A,B,10
     B,C,5
     B,D,3
-"#),
-        ("Timeline", r#"
+"#,
+        ),
+        (
+            "Timeline",
+            r#"
 timeline
     title History of Social Media Platform
     2002 : LinkedIn
@@ -31,8 +42,11 @@ timeline
          : Google
     2005 : Youtube
     2006 : Twitter
-"#),
-        ("State Diagram", r#"
+"#,
+        ),
+        (
+            "State Diagram",
+            r#"
 stateDiagram-v2
     [*] --> Still
     Still --> [*]
@@ -40,20 +54,27 @@ stateDiagram-v2
     Moving --> Still
     Moving --> Crash
     Crash --> [*]
-"#),
-        ("Pie Chart", r#"
+"#,
+        ),
+        (
+            "Pie Chart",
+            r#"
 pie title NETFLIX
     "Time spent looking for movie" : 90
     "Time spent watching it" : 10
-"#),
-        ("Gantt Chart", r#"
+"#,
+        ),
+        (
+            "Gantt Chart",
+            r#"
 gantt
     title A Gantt Diagram
     dateFormat  YYYY-MM-DD
     section Section
     A task           :a1, 2014-01-01, 30d
     Another task     :after a1  , 20d
-"#),
+"#,
+        ),
     ];
 
     println!("Diagram Type Detection Examples");
@@ -63,7 +84,7 @@ gantt
         println!("Testing: {}", description);
         println!("Input:");
         println!("{}", diagram.trim());
-        
+
         match parse_diagram(diagram) {
             Ok(parsed) => {
                 let diagram_type = match parsed {
@@ -97,7 +118,7 @@ gantt
                 println!("✗ Parse error: {}", e);
             }
         }
-        
+
         println!("{}\n", "-".repeat(50));
     }
 

@@ -7,21 +7,29 @@ use mermaid_parser::{parse_diagram, DiagramType};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let examples = vec![
-        ("Simple Flowchart", r#"
+        (
+            "Simple Flowchart",
+            r#"
 flowchart LR
     A[Start] --> B{Decision}
     B -->|Yes| C[Process]
     B -->|No| D[End]
     C --> D
-"#),
-        ("Sankey Flow", r#"
+"#,
+        ),
+        (
+            "Sankey Flow",
+            r#"
 sankey-beta
     Agriculture,Manufacturing,5
     Manufacturing,Services,3
     Agriculture,Services,2
     Services,Export,4
-"#),
-        ("Timeline", r#"
+"#,
+        ),
+        (
+            "Timeline",
+            r#"
 timeline
     title Development Timeline
     2023    : Planning
@@ -29,8 +37,11 @@ timeline
     2024    : Implementation
             : Testing
             : Release
-"#),
-        ("State Machine", r#"
+"#,
+        ),
+        (
+            "State Machine",
+            r#"
 stateDiagram-v2
     [*] --> Idle
     Idle --> Active : start
@@ -38,8 +49,11 @@ stateDiagram-v2
     Processing --> Active : continue
     Processing --> [*] : finish
     Active --> Idle : stop
-"#),
-        ("User Journey", r#"
+"#,
+        ),
+        (
+            "User Journey",
+            r#"
 journey
     title My working day
     section Go to work
@@ -49,7 +63,8 @@ journey
     section Go home
       Go downstairs: 5: Me
       Sit down: 5: Me
-"#),
+"#,
+        ),
     ];
 
     println!("Parsing Multiple Diagram Types");
@@ -59,7 +74,7 @@ journey
         println!("Processing: {}", name);
         println!("Source:");
         println!("{}", diagram_source.trim());
-        
+
         match parse_diagram(diagram_source) {
             Ok(diagram) => {
                 match diagram {
@@ -69,11 +84,13 @@ journey
                         println!("  Nodes: {}", flowchart.nodes.len());
                         println!("  Edges: {}", flowchart.edges.len());
                         println!("  Subgraphs: {}", flowchart.subgraphs.len());
-                        
+
                         // List first few nodes
                         let mut node_count = 0;
                         for (id, node) in &flowchart.nodes {
-                            if node_count >= 3 { break; }
+                            if node_count >= 3 {
+                                break;
+                            }
                             println!("    Node '{}': {:?}", id, node.text);
                             node_count += 1;
                         }
@@ -82,11 +99,11 @@ journey
                         println!("✓ Sankey diagram parsed successfully!");
                         println!("  Nodes: {}", sankey.nodes.len());
                         println!("  Links: {}", sankey.links.len());
-                        
+
                         // Calculate total flow
                         let total_flow: f64 = sankey.links.iter().map(|link| link.value).sum();
                         println!("  Total flow value: {}", total_flow);
-                        
+
                         // List nodes
                         for node in &sankey.nodes {
                             println!("    Node: '{}' ({})", node.id, node.name);
@@ -98,20 +115,26 @@ journey
                             println!("  Title: {}", title);
                         }
                         println!("  Sections: {}", timeline.sections.len());
-                        
+
                         for section in &timeline.sections {
-                            println!("    Section '{}': {} items", section.name, section.items.len());
+                            println!(
+                                "    Section '{}': {} items",
+                                section.name,
+                                section.items.len()
+                            );
                         }
                     }
                     DiagramType::State(state) => {
                         println!("✓ State diagram parsed successfully!");
                         println!("  States: {}", state.states.len());
                         println!("  Transitions: {}", state.transitions.len());
-                        
+
                         // List first few states
                         let mut state_count = 0;
                         for (id, state_def) in &state.states {
-                            if state_count >= 3 { break; }
+                            if state_count >= 3 {
+                                break;
+                            }
                             println!("    State: '{}' (type: {:?})", id, state_def.state_type);
                             state_count += 1;
                         }
@@ -122,12 +145,18 @@ journey
                             println!("  Title: {}", title);
                         }
                         println!("  Sections: {}", journey.sections.len());
-                        
+
                         for section in &journey.sections {
-                            println!("    Section '{}': {} tasks", section.name, section.tasks.len());
+                            println!(
+                                "    Section '{}': {} tasks",
+                                section.name,
+                                section.tasks.len()
+                            );
                             for task in &section.tasks {
-                                println!("      Task '{}': score {}, actors: {:?}", 
-                                    task.name, task.score, task.actors);
+                                println!(
+                                    "      Task '{}': score {}, actors: {:?}",
+                                    task.name, task.score, task.actors
+                                );
                             }
                         }
                     }
@@ -140,7 +169,7 @@ journey
                 println!("✗ Parse error: {}", e);
             }
         }
-        
+
         println!("{}\n", "=".repeat(60));
     }
 

@@ -22,13 +22,13 @@ flowchart TD
             println!("Successfully parsed a flowchart!");
             println!("Number of nodes: {}", flowchart.nodes.len());
             println!("Number of edges: {}", flowchart.edges.len());
-            
+
             // Print node information
             println!("\nNodes:");
             for (id, node) in &flowchart.nodes {
                 println!("  - {}: {:?}", id, node.text);
             }
-            
+
             // Print edge information
             println!("\nEdges:");
             for edge in &flowchart.edges {
