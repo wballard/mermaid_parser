@@ -1,5 +1,39 @@
 use mermaid_parser::common::ast::{StateNotePosition, StateType, StateVersion};
+use mermaid_parser::parse_diagram;
 use mermaid_parser::parsers::state;
+use rstest::*;
+use std::path::PathBuf;
+
+#[rstest]
+fn test_state_files(#[files("test/state/*.mermaid")] path: PathBuf) {
+    let content =
+        std::fs::read_to_string(&path).expect(&format!("Failed to read file: {:?}", path));
+
+    // Remove metadata comments
+    let content = content
+        .lines()
+        .filter(|line| !line.starts_with("//"))
+        .collect::<Vec<_>>()
+        .join("\n")
+        .trim()
+        .to_string();
+
+    // Skip empty files or files with only test identifiers
+    if content.is_empty() {
+        return;
+    }
+
+    let result = parse_diagram(&content);
+
+    assert!(result.is_ok(), "Failed to parse {:?}: {:?}", path, result);
+
+    match result.unwrap() {
+        mermaid_parser::DiagramType::State(_diagram) => {
+            // Just verify it parsed successfully - specific functionality tested in unit tests
+        }
+        _ => panic!("Expected State diagram from {:?}", path),
+    }
+}
 
 #[test]
 fn test_simple_state_diagram() {
