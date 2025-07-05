@@ -1,20 +1,12 @@
+mod common;
+
 use mermaid_parser::parse_diagram;
 use rstest::*;
 use std::path::PathBuf;
 
 #[rstest]
 fn test_gantt_files(#[files("test/gantt/*.mermaid")] path: PathBuf) {
-    let content = std::fs::read_to_string(&path)
-        .unwrap_or_else(|_| panic!("Failed to read file: {:?}", path));
-
-    // Remove metadata comments
-    let content = content
-        .lines()
-        .filter(|line| !line.starts_with("//"))
-        .collect::<Vec<_>>()
-        .join("\n")
-        .trim()
-        .to_string();
+    let content = common::read_and_clean_test_file(&path);
 
     // Skip empty files
     if content.is_empty() {

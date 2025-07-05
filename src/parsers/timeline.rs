@@ -1,7 +1,7 @@
 //! Timeline diagram parser implementation
 
 use crate::common::ast::{AccessibilityInfo, TimelineDiagram, TimelineItem, TimelineSection};
-use crate::error::{ParseError, Result};
+use crate::common::parser_utils::{parse_comment, parse_whitespace, parse_whitespace_required};
 use chumsky::prelude::*;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -16,70 +16,53 @@ pub enum TimelineToken {
     NewLine,
 }
 
-pub fn parse(input: &str) -> Result<TimelineDiagram> {
-    let tokens =
-        timeline_lexer()
-            .parse(input)
-            .into_result()
-            .map_err(|e| ParseError::SyntaxError {
-                message: "Failed to tokenize timeline diagram".to_string(),
-                expected: vec![],
-                found: format!("{:?}", e),
-                line: 0,
-                column: 0,
-            })?;
-
-    let result = timeline_parser()
-        .parse(&tokens[..])
-        .into_result()
-        .map_err(|e| ParseError::SyntaxError {
-            message: "Failed to parse timeline diagram".to_string(),
-            expected: vec![],
-            found: format!("{:?}", e),
-            line: 0,
-            column: 0,
-        });
-    result
+crate::create_parser_fn! {
+    pub fn parse(input: &str) -> Result<TimelineDiagram> {
+        lexer: timeline_lexer,
+        parser: timeline_parser,
+        diagram_type: "timeline"
+    }
 }
 
 fn timeline_lexer<'src>(
 ) -> impl Parser<'src, &'src str, Vec<TimelineToken>, extra::Err<Simple<'src, char>>> {
-    let whitespace = one_of(" \t").repeated();
-
     // Comment lines starting with %% or # and extending to end of line
-    let comment = choice((just("%%"), just("#")))
-        .then(none_of('\n').repeated())
-        .then(just('\n').or_not())
-        .ignored();
+    let comment = choice((
+        parse_comment().ignored(),
+        just("#")
+            .then(none_of('\n').repeated())
+            .then(just('\n').or_not())
+            .ignored(),
+    ));
 
     let timeline_keyword = just("timeline").map(|_| TimelineToken::Timeline);
 
     let title = just("title")
-        .padded_by(whitespace)
+        .padded_by(parse_whitespace())
         .ignore_then(none_of('\n').repeated().at_least(1).collect::<String>())
         .map(|text| TimelineToken::Title(text.trim().to_string()));
 
     let section = just("section")
-        .padded_by(whitespace)
+        .padded_by(parse_whitespace())
         .ignore_then(none_of('\n').repeated().at_least(1).collect::<String>())
         .map(|text| TimelineToken::Section(text.trim().to_string()));
 
     let acc_title_line = just("accTitle")
-        .then(whitespace)
+        .then(parse_whitespace())
         .then(just(':'))
-        .then(whitespace)
+        .then(parse_whitespace())
         .ignore_then(none_of('\n').repeated().collect::<String>())
         .map(|text| TimelineToken::AccTitleValue(text.trim().to_string()));
 
     let acc_descr_line = just("accDescr")
-        .then(whitespace)
+        .then(parse_whitespace())
         .then(just(':'))
-        .then(whitespace)
+        .then(parse_whitespace())
         .ignore_then(none_of('\n').repeated().collect::<String>())
         .map(|text| TimelineToken::AccDescrValue(text.trim().to_string()));
 
     let event = just(':')
-        .then(whitespace.at_least(1))
+        .then(parse_whitespace_required())
         .ignore_then(none_of('\n').repeated().at_least(1).collect::<String>())
         .map(|text| TimelineToken::Event(text.trim().to_string()));
 
@@ -120,11 +103,11 @@ fn timeline_lexer<'src>(
     ));
 
     // Skip any leading whitespace/newlines before the first token
-    let leading_ws = choice((one_of(" \t\n\r").ignored(), comment)).repeated();
+    let leading_ws = choice((one_of(" \t\n\r").ignored(), comment.clone())).repeated();
 
     leading_ws.ignore_then(
         choice((comment.map(|_| None), token.map(Some)))
-            .padded_by(whitespace)
+            .padded_by(parse_whitespace())
             .repeated()
             .collect::<Vec<_>>()
             .map(|tokens| tokens.into_iter().flatten().collect()),

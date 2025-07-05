@@ -3,6 +3,7 @@
 use crate::common::ast::{
     AccessibilityInfo, EdgeType, FlowDirection, FlowEdge, FlowNode, FlowchartDiagram, NodeShape,
 };
+use crate::common::parser_utils::{parse_comment, parse_whitespace};
 use crate::error::Result;
 use chumsky::prelude::*;
 use std::collections::HashMap;
@@ -64,11 +65,7 @@ impl From<&FlowToken> for String {
 
 fn flowchart_lexer<'src>(
 ) -> impl Parser<'src, &'src str, Vec<FlowToken>, extra::Err<Simple<'src, char>>> {
-    let whitespace = just(' ').or(just('\t')).repeated();
-
-    let comment = just("%%")
-        .then(none_of('\n').repeated())
-        .map(|_| FlowToken::Comment("".to_string()));
+    let comment = parse_comment().map(|_| FlowToken::Comment("".to_string()));
 
     let flowchart_keyword = just("flowchart").map(|_| FlowToken::Flowchart);
 
@@ -154,9 +151,11 @@ fn flowchart_lexer<'src>(
 
     // Handle whitespace and newlines
     choice((
-        whitespace.ignore_then(token),
+        parse_whitespace().ignore_then(token),
         just('\n').to(FlowToken::NewLine),
-        whitespace.ignore_then(just('\n')).to(FlowToken::NewLine), // Handle trailing whitespace before newline
+        parse_whitespace()
+            .ignore_then(just('\n'))
+            .to(FlowToken::NewLine), // Handle trailing whitespace before newline
     ))
     .repeated()
     .collect::<Vec<_>>()

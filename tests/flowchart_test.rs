@@ -1,20 +1,12 @@
+mod common;
+
 use mermaid_parser::{parse_diagram, DiagramType};
 use rstest::*;
 use std::path::PathBuf;
 
 #[rstest]
 fn test_flowchart_files(#[files("test/flowchart/*.mermaid")] path: PathBuf) {
-    let content = std::fs::read_to_string(&path)
-        .unwrap_or_else(|_| panic!("Failed to read file: {:?}", path));
-
-    // Remove metadata comments
-    let content = content
-        .lines()
-        .filter(|line| !line.starts_with("//"))
-        .collect::<Vec<_>>()
-        .join("\n")
-        .trim()
-        .to_string();
+    let content = common::read_and_clean_test_file(&path);
 
     // Skip empty files
     if content.is_empty() {
@@ -41,21 +33,7 @@ fn test_flowchart_files(#[files("test/flowchart/*.mermaid")] path: PathBuf) {
                 || !diagram.subgraphs.is_empty();
 
             // Check if the file contains advanced syntax that our basic parser doesn't support
-            let has_unsupported_syntax = content.contains("<br>") 
-                || content.contains("<br/>") 
-                || content.contains("<br />")
-                || content.contains("linkStyle")
-                || content.contains("classDef")
-                || content.contains("@{")  // Node styling syntax
-                || content.contains("style ")
-                || content.contains("|")  // Edge labels (heuristic)
-                || content.contains(":::")  // Class assignment syntax
-                || content.contains(" & ")  // Multiple nodes syntax
-                || content.contains("@-->")  // Edge IDs syntax
-                || content.contains("subgraph")  // Subgraph syntax (not yet fully implemented)
-                || content.contains("o--o")  // Special edge types
-                || content.contains("<-->")  // Bidirectional arrows
-                || content.contains("x--x"); // Cross edge types
+            let has_unsupported_syntax = common::has_complex_flowchart_syntax(&content);
 
             // Some test files might be minimal but valid
             // Only assert content was parsed if the file doesn't contain unsupported syntax

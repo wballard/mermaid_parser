@@ -1,7 +1,7 @@
 //! Class diagram parser implementation
 
 use crate::common::ast::{AccessibilityInfo, Class, ClassDiagram};
-use crate::error::{ParseError, Result};
+use crate::common::parser_utils::{parse_comment, parse_whitespace};
 use chumsky::prelude::*;
 use std::collections::HashMap;
 
@@ -49,11 +49,7 @@ pub enum ClassToken {
 
 fn class_lexer<'src>(
 ) -> impl Parser<'src, &'src str, Vec<ClassToken>, extra::Err<Simple<'src, char>>> {
-    let comment = choice((
-        just("%%").then(none_of('\n').repeated()),
-        just("//").then(none_of('\n').repeated()),
-    ))
-    .map(|_| ClassToken::Comment("".to_string()));
+    let comment = parse_comment().map(|_| ClassToken::Comment("".to_string()));
 
     let class_diagram = just("classDiagram").map(|_| ClassToken::ClassDiagram);
     let class_keyword = just("class").map(|_| ClassToken::Class);
@@ -110,9 +106,7 @@ fn class_lexer<'src>(
     ));
 
     // Handle whitespace separately from tokens
-    let whitespace = just(' ').or(just('\t')).repeated();
-
-    whitespace
+    parse_whitespace()
         .ignore_then(token)
         .or(newline)
         .repeated()
@@ -167,29 +161,12 @@ fn class_parser<'src>(
     })
 }
 
-pub fn parse(input: &str) -> Result<ClassDiagram> {
-    let tokens = class_lexer()
-        .parse(input)
-        .into_result()
-        .map_err(|e| ParseError::SyntaxError {
-            message: "Failed to tokenize class diagram".to_string(),
-            expected: vec![],
-            found: format!("{:?}", e),
-            line: 0,
-            column: 0,
-        })?;
-
-    let result = class_parser()
-        .parse(&tokens[..])
-        .into_result()
-        .map_err(|e| ParseError::SyntaxError {
-            message: "Failed to parse class diagram".to_string(),
-            expected: vec![],
-            found: format!("{:?}", e),
-            line: 0,
-            column: 0,
-        });
-    result
+crate::create_parser_fn! {
+    pub fn parse(input: &str) -> Result<ClassDiagram> {
+        lexer: class_lexer,
+        parser: class_parser,
+        diagram_type: "class"
+    }
 }
 
 #[cfg(test)]
