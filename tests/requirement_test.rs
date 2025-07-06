@@ -8,8 +8,8 @@ use std::path::PathBuf;
 
 #[rstest]
 fn test_requirement_files(#[files("test/requirement/*.mermaid")] path: PathBuf) {
-    let content =
-        std::fs::read_to_string(&path).expect(&format!("Failed to read file: {:?}", path));
+    let content = std::fs::read_to_string(&path)
+        .unwrap_or_else(|_| panic!("Failed to read file: {:?}", path));
 
     // Skip files with non-standard headers (test artifacts)
     let clean_content = content

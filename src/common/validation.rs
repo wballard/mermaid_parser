@@ -301,7 +301,7 @@ impl FlowchartValidator {
         }
 
         // Check for isolated nodes (warning)
-        for (node_id, _) in &diagram.nodes {
+        for node_id in diagram.nodes.keys() {
             if !connected_nodes.contains(node_id) {
                 errors.push(ValidationError::warning(
                     "isolated_node",
@@ -359,7 +359,7 @@ impl FlowchartValidator {
         let defined_classes: HashSet<_> = diagram.class_defs.keys().collect();
 
         // Check if referenced style classes are defined
-        for (_node_id, node) in &diagram.nodes {
+        for node in diagram.nodes.values() {
             for class_name in &node.classes {
                 if !defined_classes.contains(class_name) {
                     errors.push(ValidationError::warning(
@@ -428,72 +428,10 @@ impl SequenceValidator {
         let participant_names: HashSet<_> = diagram.participants.iter().map(|p| &p.actor).collect();
 
         for statement in &diagram.statements {
-            self.check_statement_participants(statement, &participant_names, &mut errors);
+            check_statement_participants(statement, &participant_names, &mut errors);
         }
 
         errors
-    }
-
-    fn check_statement_participants(
-        &self,
-        statement: &SequenceStatement,
-        participants: &HashSet<&String>,
-        errors: &mut Vec<ValidationError>,
-    ) {
-        match statement {
-            SequenceStatement::Message(msg) => {
-                if !participants.contains(&msg.from) {
-                    errors.push(ValidationError::error(
-                        "undefined_participant",
-                        format!("Message references undefined participant '{}'", msg.from),
-                    ));
-                }
-                if !participants.contains(&msg.to) {
-                    errors.push(ValidationError::error(
-                        "undefined_participant",
-                        format!("Message references undefined participant '{}'", msg.to),
-                    ));
-                }
-            }
-            SequenceStatement::Loop(loop_stmt) => {
-                for stmt in &loop_stmt.statements {
-                    self.check_statement_participants(stmt, participants, errors);
-                }
-            }
-            SequenceStatement::Alt(alt) => {
-                for stmt in &alt.statements {
-                    self.check_statement_participants(stmt, participants, errors);
-                }
-                if let Some(else_branch) = &alt.else_branch {
-                    for stmt in &else_branch.statements {
-                        self.check_statement_participants(stmt, participants, errors);
-                    }
-                }
-            }
-            SequenceStatement::Opt(opt) => {
-                for stmt in &opt.statements {
-                    self.check_statement_participants(stmt, participants, errors);
-                }
-            }
-            SequenceStatement::Par(par) => {
-                for branch in &par.branches {
-                    for stmt in &branch.statements {
-                        self.check_statement_participants(stmt, participants, errors);
-                    }
-                }
-            }
-            SequenceStatement::Critical(critical) => {
-                for stmt in &critical.statements {
-                    self.check_statement_participants(stmt, participants, errors);
-                }
-                for option in &critical.options {
-                    for stmt in &option.statements {
-                        self.check_statement_participants(stmt, participants, errors);
-                    }
-                }
-            }
-            _ => {} // Other statement types
-        }
     }
 
     fn validate_activation_blocks(&self, diagram: &SequenceDiagram) -> Vec<ValidationError> {
@@ -501,7 +439,7 @@ impl SequenceValidator {
         let mut activation_stack = Vec::new();
 
         for statement in &diagram.statements {
-            self.check_activation_balance(statement, &mut activation_stack, &mut errors);
+            check_activation_balance(statement, &mut activation_stack, &mut errors);
         }
 
         // Check if any activations are left unbalanced
@@ -517,53 +455,113 @@ impl SequenceValidator {
 
         errors
     }
+}
 
-    fn check_activation_balance(
-        &self,
-        statement: &SequenceStatement,
-        activation_stack: &mut Vec<String>,
-        errors: &mut Vec<ValidationError>,
-    ) {
-        match statement {
-            SequenceStatement::Activate(participant) => {
-                activation_stack.push(participant.clone());
+fn check_statement_participants(
+    statement: &SequenceStatement,
+    participants: &HashSet<&String>,
+    errors: &mut Vec<ValidationError>,
+) {
+    match statement {
+        SequenceStatement::Message(msg) => {
+            if !participants.contains(&msg.from) {
+                errors.push(ValidationError::error(
+                    "undefined_participant",
+                    format!("Message references undefined participant '{}'", msg.from),
+                ));
             }
-            SequenceStatement::Deactivate(participant) => {
-                if let Some(last_activated) = activation_stack.pop() {
-                    if last_activated != *participant {
-                        errors.push(ValidationError::warning(
-                            "mismatched_activation",
-                            format!(
-                                "Deactivate '{}' does not match last activate '{}'",
-                                participant, last_activated
-                            ),
-                        ));
-                    }
-                } else {
-                    errors.push(ValidationError::error(
-                        "unmatched_deactivate",
-                        format!("Deactivate '{}' without matching activate", participant),
+            if !participants.contains(&msg.to) {
+                errors.push(ValidationError::error(
+                    "undefined_participant",
+                    format!("Message references undefined participant '{}'", msg.to),
+                ));
+            }
+        }
+        SequenceStatement::Loop(loop_stmt) => {
+            for stmt in &loop_stmt.statements {
+                check_statement_participants(stmt, participants, errors);
+            }
+        }
+        SequenceStatement::Alt(alt) => {
+            for stmt in &alt.statements {
+                check_statement_participants(stmt, participants, errors);
+            }
+            if let Some(else_branch) = &alt.else_branch {
+                for stmt in &else_branch.statements {
+                    check_statement_participants(stmt, participants, errors);
+                }
+            }
+        }
+        SequenceStatement::Opt(opt) => {
+            for stmt in &opt.statements {
+                check_statement_participants(stmt, participants, errors);
+            }
+        }
+        SequenceStatement::Par(par) => {
+            for branch in &par.branches {
+                for stmt in &branch.statements {
+                    check_statement_participants(stmt, participants, errors);
+                }
+            }
+        }
+        SequenceStatement::Critical(critical) => {
+            for stmt in &critical.statements {
+                check_statement_participants(stmt, participants, errors);
+            }
+            for option in &critical.options {
+                for stmt in &option.statements {
+                    check_statement_participants(stmt, participants, errors);
+                }
+            }
+        }
+        _ => {} // Other statement types
+    }
+}
+
+fn check_activation_balance(
+    statement: &SequenceStatement,
+    activation_stack: &mut Vec<String>,
+    errors: &mut Vec<ValidationError>,
+) {
+    match statement {
+        SequenceStatement::Activate(participant) => {
+            activation_stack.push(participant.clone());
+        }
+        SequenceStatement::Deactivate(participant) => {
+            if let Some(last_activated) = activation_stack.pop() {
+                if last_activated != *participant {
+                    errors.push(ValidationError::warning(
+                        "mismatched_activation",
+                        format!(
+                            "Deactivate '{}' does not match last activate '{}'",
+                            participant, last_activated
+                        ),
                     ));
                 }
+            } else {
+                errors.push(ValidationError::error(
+                    "unmatched_deactivate",
+                    format!("Deactivate '{}' without matching activate", participant),
+                ));
             }
-            // Recursively check nested statements
-            SequenceStatement::Loop(loop_stmt) => {
-                for stmt in &loop_stmt.statements {
-                    self.check_activation_balance(stmt, activation_stack, errors);
-                }
-            }
-            SequenceStatement::Alt(alt) => {
-                for stmt in &alt.statements {
-                    self.check_activation_balance(stmt, activation_stack, errors);
-                }
-                if let Some(else_branch) = &alt.else_branch {
-                    for stmt in &else_branch.statements {
-                        self.check_activation_balance(stmt, activation_stack, errors);
-                    }
-                }
-            }
-            _ => {} // Other statement types
         }
+        // Recursively check nested statements
+        SequenceStatement::Loop(loop_stmt) => {
+            for stmt in &loop_stmt.statements {
+                check_activation_balance(stmt, activation_stack, errors);
+            }
+        }
+        SequenceStatement::Alt(alt) => {
+            for stmt in &alt.statements {
+                check_activation_balance(stmt, activation_stack, errors);
+            }
+            if let Some(else_branch) = &alt.else_branch {
+                for stmt in &else_branch.statements {
+                    check_activation_balance(stmt, activation_stack, errors);
+                }
+            }
+        }
+        _ => {} // Other statement types
     }
 }
 
@@ -633,7 +631,7 @@ impl ClassValidator {
 
         // Check for cycles using DFS
         for class_name in diagram.classes.keys() {
-            if self.has_inheritance_cycle(&inheritance_graph, class_name, &mut HashSet::new()) {
+            if has_inheritance_cycle(&inheritance_graph, class_name, &mut HashSet::new()) {
                 errors.push(ValidationError::error(
                     "circular_inheritance",
                     format!(
@@ -645,30 +643,6 @@ impl ClassValidator {
         }
 
         errors
-    }
-
-    fn has_inheritance_cycle(
-        &self,
-        graph: &HashMap<String, Vec<String>>,
-        class: &str,
-        visited: &mut HashSet<String>,
-    ) -> bool {
-        if visited.contains(class) {
-            return true;
-        }
-
-        visited.insert(class.to_string());
-
-        if let Some(parents) = graph.get(class) {
-            for parent in parents {
-                if self.has_inheritance_cycle(graph, parent, visited) {
-                    return true;
-                }
-            }
-        }
-
-        visited.remove(class);
-        false
     }
 
     fn validate_relationship_references(&self, diagram: &ClassDiagram) -> Vec<ValidationError> {
@@ -727,6 +701,29 @@ impl ClassValidator {
 
         errors
     }
+}
+
+fn has_inheritance_cycle(
+    graph: &HashMap<String, Vec<String>>,
+    class: &str,
+    visited: &mut HashSet<String>,
+) -> bool {
+    if visited.contains(class) {
+        return true;
+    }
+
+    visited.insert(class.to_string());
+
+    if let Some(parents) = graph.get(class) {
+        for parent in parents {
+            if has_inheritance_cycle(graph, parent, visited) {
+                return true;
+            }
+        }
+    }
+
+    visited.remove(class);
+    false
 }
 
 impl DiagramValidator for ClassValidator {
@@ -808,11 +805,11 @@ impl StateValidator {
 
         // DFS to find all reachable states
         for start_state in &start_states {
-            self.mark_reachable_states(diagram, start_state, &mut reachable_states);
+            mark_reachable_states(diagram, start_state, &mut reachable_states);
         }
 
         // Check for unreachable states
-        for (state_id, _) in &diagram.states {
+        for state_id in diagram.states.keys() {
             if !reachable_states.contains(state_id) && !start_states.contains(state_id) {
                 errors.push(ValidationError::warning(
                     "unreachable_state",
@@ -822,26 +819,6 @@ impl StateValidator {
         }
 
         errors
-    }
-
-    fn mark_reachable_states(
-        &self,
-        diagram: &StateDiagram,
-        state_id: &str,
-        reachable: &mut HashSet<String>,
-    ) {
-        if reachable.contains(state_id) {
-            return;
-        }
-
-        reachable.insert(state_id.to_string());
-
-        // Find all transitions from this state
-        for transition in &diagram.transitions {
-            if transition.from == state_id {
-                self.mark_reachable_states(diagram, &transition.to, reachable);
-            }
-        }
     }
 
     fn validate_transition_references(&self, diagram: &StateDiagram) -> Vec<ValidationError> {
@@ -886,6 +863,21 @@ impl StateValidator {
         }
 
         errors
+    }
+}
+
+fn mark_reachable_states(diagram: &StateDiagram, state_id: &str, reachable: &mut HashSet<String>) {
+    if reachable.contains(state_id) {
+        return;
+    }
+
+    reachable.insert(state_id.to_string());
+
+    // Find all transitions from this state
+    for transition in &diagram.transitions {
+        if transition.from == state_id {
+            mark_reachable_states(diagram, &transition.to, reachable);
+        }
     }
 }
 

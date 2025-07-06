@@ -192,7 +192,7 @@ mod pretty_print_coverage_tests {
         }
 
         // Test all edge types
-        let edge_types = vec![
+        let edge_types = [
             EdgeType::Arrow,
             EdgeType::DottedArrow,
             EdgeType::ThickArrow,

@@ -105,16 +105,16 @@ impl fmt::Display for ParseError {
                 expected,
                 found,
             } => {
-                write!(
+                writeln!(
                     f,
-                    "Syntax error at line {}, column {}: {}\n",
+                    "Syntax error at line {}, column {}: {}",
                     location.line, location.column, message
                 )?;
-                write!(f, "{}\n", snippet)?;
+                writeln!(f, "{}", snippet)?;
                 if !expected.is_empty() {
-                    write!(
+                    writeln!(
                         f,
-                        "Expected one of: [{}], but found: '{}'\n",
+                        "Expected one of: [{}], but found: '{}'",
                         expected.join(", "),
                         found
                     )?;
@@ -122,9 +122,9 @@ impl fmt::Display for ParseError {
                 if !suggestions.is_empty() {
                     for suggestion in suggestions.iter() {
                         if suggestion.contains("http") || suggestion.starts_with("See ") {
-                            write!(f, " = help: {}\n", suggestion)?;
+                            writeln!(f, " = help: {}", suggestion)?;
                         } else {
-                            write!(f, " = note: {}\n", suggestion)?;
+                            writeln!(f, " = note: {}", suggestion)?;
                         }
                     }
                 }

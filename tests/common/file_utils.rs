@@ -18,6 +18,7 @@ pub fn read_and_clean_test_file(path: &PathBuf) -> String {
 }
 
 /// Checks if a file should be skipped based on content
+#[allow(dead_code)]
 pub fn should_skip_file(content: &str, expected_prefix: &str) -> bool {
     if content.is_empty() {
         return true;
@@ -32,6 +33,7 @@ pub fn should_skip_file(content: &str, expected_prefix: &str) -> bool {
 }
 
 /// Checks if content contains unsupported syntax patterns
+#[allow(dead_code)]
 pub fn has_unsupported_syntax(content: &str) -> bool {
     // Common unsupported patterns found in various test files
     content.contains("rect ")
@@ -56,6 +58,7 @@ pub fn has_unsupported_syntax(content: &str) -> bool {
 }
 
 /// Checks if content contains complex flowchart syntax
+#[allow(dead_code)]
 pub fn has_complex_flowchart_syntax(content: &str) -> bool {
     content.contains("graph ") 
         || content.contains("direction ")
@@ -81,6 +84,7 @@ pub fn has_complex_flowchart_syntax(content: &str) -> bool {
 }
 
 /// Checks for sequence diagram unsupported syntax
+#[allow(dead_code)]
 pub fn has_unsupported_sequence_syntax(content: &str) -> bool {
     content.contains("rect ")
         || content.contains("alt ")

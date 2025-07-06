@@ -37,7 +37,7 @@ fn test_git_files(#[files("test/git/*.mermaid")] path: PathBuf) {
 
     // Basic structure validation
     assert!(
-        diagram.operations.len() > 0 || diagram.title.is_some() || diagram.branches.len() > 0,
+        !diagram.operations.is_empty() || diagram.title.is_some() || !diagram.branches.is_empty(),
         "Git graph {:?} should have operations, title, or branches",
         path
     );

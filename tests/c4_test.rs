@@ -5,8 +5,8 @@ use std::path::PathBuf;
 
 #[rstest]
 fn test_c4_files(#[files("test/c4/*.mermaid")] path: PathBuf) {
-    let content =
-        std::fs::read_to_string(&path).expect(&format!("Failed to read file: {:?}", path));
+    let content = std::fs::read_to_string(&path)
+        .unwrap_or_else(|_| panic!("Failed to read file: {:?}", path));
 
     // Remove metadata comments
     let content = content

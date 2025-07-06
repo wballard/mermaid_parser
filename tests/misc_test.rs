@@ -87,8 +87,8 @@ fn test_edge_cases() {
     for input in cases {
         let result = parse_diagram(input);
         // These should be parsed as misc diagrams
-        if result.is_ok() {
-            match result.unwrap() {
+        if let Ok(diagram) = result {
+            match diagram {
                 DiagramType::Misc(_) => {
                     // Success
                 }
@@ -100,22 +100,17 @@ fn test_edge_cases() {
 
 #[rstest]
 fn test_misc_files(#[files("test/misc/*.mermaid")] path: PathBuf) {
-    let content =
-        std::fs::read_to_string(&path).expect(&format!("Failed to read file: {:?}", path));
+    let content = std::fs::read_to_string(&path)
+        .unwrap_or_else(|_| panic!("Failed to read file: {:?}", path));
 
     let result = parse_diagram(&content);
 
     // For misc diagrams, we're more forgiving - they might not all parse correctly
-    if let Ok(diagram) = result {
-        match diagram {
-            DiagramType::Misc(_) => {
-                // Success - it was parsed as a misc diagram
-            }
-            _ => {
-                // It might have been recognized as another diagram type
-                // That's okay for misc files
-            }
-        }
+    if let Ok(DiagramType::Misc(_)) = result {
+        // Success - it was parsed as a misc diagram
+    } else if result.is_ok() {
+        // It might have been recognized as another diagram type
+        // That's okay for misc files
     }
     // Even if parsing fails, that's acceptable for misc files
     // as they may contain experimental or invalid syntax

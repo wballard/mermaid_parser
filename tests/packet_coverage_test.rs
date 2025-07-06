@@ -1,7 +1,7 @@
 //! Comprehensive tests targeting missing coverage areas in packet.rs parser
 
-use mermaid_parser::parsers::packet;
 use mermaid_parser::error::ParseError;
+use mermaid_parser::parsers::packet;
 
 #[cfg(test)]
 mod packet_coverage_tests {
@@ -19,9 +19,16 @@ mod packet_coverage_tests {
     fn test_missing_packet_header() {
         let input = "0-15: \"Source Port\"";
         let result = packet::parse(input);
-        
+
         assert!(result.is_err());
-        if let Err(ParseError::SyntaxError { message, expected, found, line, column }) = result {
+        if let Err(ParseError::SyntaxError {
+            message,
+            expected,
+            found,
+            line,
+            column,
+        }) = result
+        {
             assert_eq!(message, "Expected packet header");
             assert!(expected.contains(&"packet-beta".to_string()));
             assert!(expected.contains(&"packet".to_string()));
@@ -132,7 +139,13 @@ title   TCP Header Format
 
         let result = packet::parse(input);
         assert!(result.is_err());
-        if let Err(ParseError::SyntaxError { message, expected, found, .. }) = result {
+        if let Err(ParseError::SyntaxError {
+            message,
+            expected,
+            found,
+            ..
+        }) = result
+        {
             assert_eq!(message, "Invalid bit width");
             assert!(expected.contains(&"number".to_string()));
             assert_eq!(found, "abc");
@@ -150,7 +163,13 @@ abc-15: "Invalid"
 
         let result = packet::parse(input);
         assert!(result.is_err());
-        if let Err(ParseError::SyntaxError { message, expected, found, .. }) = result {
+        if let Err(ParseError::SyntaxError {
+            message,
+            expected,
+            found,
+            ..
+        }) = result
+        {
             assert_eq!(message, "Invalid start bit number");
             assert!(expected.contains(&"number".to_string()));
             assert_eq!(found, "abc");
@@ -168,7 +187,13 @@ abc-15: "Invalid"
 
         let result = packet::parse(input);
         assert!(result.is_err());
-        if let Err(ParseError::SyntaxError { message, expected, found, .. }) = result {
+        if let Err(ParseError::SyntaxError {
+            message,
+            expected,
+            found,
+            ..
+        }) = result
+        {
             assert_eq!(message, "Invalid end bit number");
             assert!(expected.contains(&"number".to_string()));
             assert_eq!(found, "xyz");
@@ -186,7 +211,13 @@ def: "Invalid"
 
         let result = packet::parse(input);
         assert!(result.is_err());
-        if let Err(ParseError::SyntaxError { message, expected, found, .. }) = result {
+        if let Err(ParseError::SyntaxError {
+            message,
+            expected,
+            found,
+            ..
+        }) = result
+        {
             assert_eq!(message, "Invalid bit number");
             assert!(expected.contains(&"number".to_string()));
             assert_eq!(found, "def");
@@ -346,7 +377,7 @@ title Complex Packet Format
 
         let diagram = packet::parse(input).unwrap();
         assert_eq!(diagram.fields.len(), 4);
-        
+
         // Should preserve order from input, not sort by bit position
         assert_eq!(diagram.fields[0].name, "Second");
         assert_eq!(diagram.fields[1].name, "First");

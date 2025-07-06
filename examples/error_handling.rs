@@ -126,7 +126,7 @@ flowchart TD
     println!("Error Recovery Patterns");
     println!("======================\n");
 
-    let potentially_broken_diagrams = vec![
+    let potentially_broken_diagrams = [
         r#"flowchart TD\nA --> B\nB --> C"#,
         r#"sequenceDiagram\nAlice->>Bob: Hello"#,
         r#"invalid diagram type\ncontent here"#,
@@ -136,7 +136,7 @@ flowchart TD
         println!("Attempting to parse diagram {}", i + 1);
 
         match parse_diagram(diagram) {
-            Ok(parsed) => println!("✓ Successfully parsed"),
+            Ok(_parsed) => println!("✓ Successfully parsed"),
             Err(e) => {
                 println!("✗ Failed to parse: {}", e);
                 println!("  Attempting recovery strategies...");

@@ -8,20 +8,26 @@ use std::collections::HashMap;
 #[test]
 fn test_reference_validator_valid_flowchart() {
     let mut nodes = HashMap::new();
-    nodes.insert("A".to_string(), FlowNode {
-        id: "A".to_string(),
-        text: Some("Start".to_string()),
-        shape: NodeShape::Rectangle,
-        classes: vec![],
-        icon: None,
-    });
-    nodes.insert("B".to_string(), FlowNode {
-        id: "B".to_string(),
-        text: Some("End".to_string()),
-        shape: NodeShape::Rectangle,
-        classes: vec![],
-        icon: None,
-    });
+    nodes.insert(
+        "A".to_string(),
+        FlowNode {
+            id: "A".to_string(),
+            text: Some("Start".to_string()),
+            shape: NodeShape::Rectangle,
+            classes: vec![],
+            icon: None,
+        },
+    );
+    nodes.insert(
+        "B".to_string(),
+        FlowNode {
+            id: "B".to_string(),
+            text: Some("End".to_string()),
+            shape: NodeShape::Rectangle,
+            classes: vec![],
+            icon: None,
+        },
+    );
 
     let diagram = DiagramType::Flowchart(FlowchartDiagram {
         title: None,
@@ -43,7 +49,7 @@ fn test_reference_validator_valid_flowchart() {
 
     let mut validator = ReferenceValidator::new();
     diagram.accept(&mut validator);
-    
+
     assert!(validator.errors().is_empty());
 }
 
@@ -71,7 +77,7 @@ fn test_reference_validator_undefined_node() {
 
     let mut validator = ReferenceValidator::new();
     diagram.accept(&mut validator);
-    
+
     assert_eq!(validator.errors().len(), 2); // Both A and B are undefined
 }
 
@@ -92,20 +98,18 @@ fn test_reference_validator_sequence_diagram() {
                 alias: None,
             },
         ],
-        statements: vec![
-            SequenceStatement::Message(Message {
-                from: "Alice".to_string(),
-                to: "Bob".to_string(),
-                text: "Hello".to_string(),
-                arrow_type: ArrowType::SolidOpen,
-            }),
-        ],
+        statements: vec![SequenceStatement::Message(Message {
+            from: "Alice".to_string(),
+            to: "Bob".to_string(),
+            text: "Hello".to_string(),
+            arrow_type: ArrowType::SolidOpen,
+        })],
         autonumber: None,
     });
 
     let mut validator = ReferenceValidator::new();
     diagram.accept(&mut validator);
-    
+
     assert!(validator.errors().is_empty());
 }
 
@@ -113,27 +117,36 @@ fn test_reference_validator_sequence_diagram() {
 #[test]
 fn test_complexity_analyzer_flowchart() {
     let mut nodes = HashMap::new();
-    nodes.insert("A".to_string(), FlowNode {
-        id: "A".to_string(),
-        text: Some("Start".to_string()),
-        shape: NodeShape::Rectangle,
-        classes: vec![],
-        icon: None,
-    });
-    nodes.insert("B".to_string(), FlowNode {
-        id: "B".to_string(),
-        text: Some("Decision".to_string()),
-        shape: NodeShape::Rhombus,
-        classes: vec![],
-        icon: None,
-    });
-    nodes.insert("C".to_string(), FlowNode {
-        id: "C".to_string(),
-        text: Some("End".to_string()),
-        shape: NodeShape::Rectangle,
-        classes: vec![],
-        icon: None,
-    });
+    nodes.insert(
+        "A".to_string(),
+        FlowNode {
+            id: "A".to_string(),
+            text: Some("Start".to_string()),
+            shape: NodeShape::Rectangle,
+            classes: vec![],
+            icon: None,
+        },
+    );
+    nodes.insert(
+        "B".to_string(),
+        FlowNode {
+            id: "B".to_string(),
+            text: Some("Decision".to_string()),
+            shape: NodeShape::Rhombus,
+            classes: vec![],
+            icon: None,
+        },
+    );
+    nodes.insert(
+        "C".to_string(),
+        FlowNode {
+            id: "C".to_string(),
+            text: Some("End".to_string()),
+            shape: NodeShape::Rectangle,
+            classes: vec![],
+            icon: None,
+        },
+    );
 
     let diagram = DiagramType::Flowchart(FlowchartDiagram {
         title: None,
@@ -164,7 +177,7 @@ fn test_complexity_analyzer_flowchart() {
 
     let mut analyzer = ComplexityAnalyzer::new();
     diagram.accept(&mut analyzer);
-    
+
     let complexity = analyzer.cyclomatic_complexity();
     assert!(complexity > 0);
 }
@@ -186,25 +199,21 @@ fn test_complexity_analyzer_sequence_diagram() {
                 alias: None,
             },
         ],
-        statements: vec![
-            SequenceStatement::Loop(Loop {
-                condition: "While true".to_string(),
-                statements: vec![
-                    SequenceStatement::Message(Message {
-                        from: "A".to_string(),
-                        to: "B".to_string(),
-                        text: "Request".to_string(),
-                        arrow_type: ArrowType::SolidOpen,
-                    }),
-                ],
-            }),
-        ],
+        statements: vec![SequenceStatement::Loop(Loop {
+            condition: "While true".to_string(),
+            statements: vec![SequenceStatement::Message(Message {
+                from: "A".to_string(),
+                to: "B".to_string(),
+                text: "Request".to_string(),
+                arrow_type: ArrowType::SolidOpen,
+            })],
+        })],
         autonumber: None,
     });
 
     let mut analyzer = ComplexityAnalyzer::new();
     diagram.accept(&mut analyzer);
-    
+
     let complexity = analyzer.cyclomatic_complexity();
     assert!(complexity > 1); // Loop adds complexity
 }
@@ -213,13 +222,16 @@ fn test_complexity_analyzer_sequence_diagram() {
 #[test]
 fn test_title_setter_flowchart() {
     let mut nodes = HashMap::new();
-    nodes.insert("A".to_string(), FlowNode {
-        id: "A".to_string(),
-        text: Some("Node".to_string()),
-        shape: NodeShape::Rectangle,
-        classes: vec![],
-        icon: None,
-    });
+    nodes.insert(
+        "A".to_string(),
+        FlowNode {
+            id: "A".to_string(),
+            text: Some("Node".to_string()),
+            shape: NodeShape::Rectangle,
+            classes: vec![],
+            icon: None,
+        },
+    );
 
     let mut diagram = DiagramType::Flowchart(FlowchartDiagram {
         title: None,
@@ -235,7 +247,7 @@ fn test_title_setter_flowchart() {
 
     let mut setter = TitleSetter::new("Test Flowchart".to_string());
     diagram.accept_mut(&mut setter);
-    
+
     if let DiagramType::Flowchart(fc) = &diagram {
         assert_eq!(fc.title, Some("Test Flowchart".to_string()));
     }
@@ -253,7 +265,7 @@ fn test_title_setter_sequence_diagram() {
 
     let mut setter = TitleSetter::new("Test Sequence".to_string());
     diagram.accept_mut(&mut setter);
-    
+
     if let DiagramType::Sequence(seq) = &diagram {
         assert_eq!(seq.title, Some("Test Sequence".to_string()));
     }
@@ -269,7 +281,7 @@ fn test_title_setter_timeline() {
 
     let mut setter = TitleSetter::new("Test Timeline".to_string());
     diagram.accept_mut(&mut setter);
-    
+
     if let DiagramType::Timeline(timeline) = &diagram {
         assert_eq!(timeline.title, Some("Test Timeline".to_string()));
     }
@@ -279,27 +291,36 @@ fn test_title_setter_timeline() {
 #[test]
 fn test_node_counter_flowchart() {
     let mut nodes = HashMap::new();
-    nodes.insert("A".to_string(), FlowNode {
-        id: "A".to_string(),
-        text: Some("Node A".to_string()),
-        shape: NodeShape::Rectangle,
-        classes: vec![],
-        icon: None,
-    });
-    nodes.insert("B".to_string(), FlowNode {
-        id: "B".to_string(),
-        text: Some("Node B".to_string()),
-        shape: NodeShape::Rectangle,
-        classes: vec![],
-        icon: None,
-    });
-    nodes.insert("C".to_string(), FlowNode {
-        id: "C".to_string(),
-        text: Some("Node C".to_string()),
-        shape: NodeShape::Rectangle,
-        classes: vec![],
-        icon: None,
-    });
+    nodes.insert(
+        "A".to_string(),
+        FlowNode {
+            id: "A".to_string(),
+            text: Some("Node A".to_string()),
+            shape: NodeShape::Rectangle,
+            classes: vec![],
+            icon: None,
+        },
+    );
+    nodes.insert(
+        "B".to_string(),
+        FlowNode {
+            id: "B".to_string(),
+            text: Some("Node B".to_string()),
+            shape: NodeShape::Rectangle,
+            classes: vec![],
+            icon: None,
+        },
+    );
+    nodes.insert(
+        "C".to_string(),
+        FlowNode {
+            id: "C".to_string(),
+            text: Some("Node C".to_string()),
+            shape: NodeShape::Rectangle,
+            classes: vec![],
+            icon: None,
+        },
+    );
 
     let diagram = DiagramType::Flowchart(FlowchartDiagram {
         title: None,
@@ -330,7 +351,7 @@ fn test_node_counter_flowchart() {
 
     let mut counter = NodeCounter::new();
     diagram.accept(&mut counter);
-    
+
     assert_eq!(counter.nodes(), 3);
     assert_eq!(counter.edges(), 2);
 }
@@ -376,7 +397,7 @@ fn test_node_counter_sequence_diagram() {
 
     let mut counter = NodeCounter::new();
     diagram.accept(&mut counter);
-    
+
     assert_eq!(counter.nodes(), 3); // participants
     assert_eq!(counter.elements(), 2); // statements
 }
@@ -398,7 +419,7 @@ fn test_node_counter_empty_diagrams() {
 
     let mut counter = NodeCounter::new();
     empty_flowchart.accept(&mut counter);
-    
+
     assert_eq!(counter.nodes(), 0);
     assert_eq!(counter.edges(), 0);
 
@@ -413,7 +434,7 @@ fn test_node_counter_empty_diagrams() {
 
     let mut counter2 = NodeCounter::new();
     empty_sequence.accept(&mut counter2);
-    
+
     assert_eq!(counter2.nodes(), 0);
     assert_eq!(counter2.edges(), 0);
 }
@@ -437,16 +458,14 @@ fn test_complex_nested_structure() {
                     shape: MindmapNodeShape::Square,
                     icon: None,
                     class: None,
-                    children: vec![
-                        MindmapNode {
-                            id: "leaf1".to_string(),
-                            text: "Leaf 1".to_string(),
-                            shape: MindmapNodeShape::Default,
-                            icon: None,
-                            class: None,
-                            children: vec![],
-                        },
-                    ],
+                    children: vec![MindmapNode {
+                        id: "leaf1".to_string(),
+                        text: "Leaf 1".to_string(),
+                        shape: MindmapNodeShape::Default,
+                        icon: None,
+                        class: None,
+                        children: vec![],
+                    }],
                 },
                 MindmapNode {
                     id: "branch2".to_string(),
@@ -462,12 +481,12 @@ fn test_complex_nested_structure() {
 
     let mut counter = NodeCounter::new();
     diagram.accept(&mut counter);
-    
+
     assert_eq!(counter.nodes(), 4); // root + 2 branches + 1 leaf
 
     let mut analyzer = ComplexityAnalyzer::new();
     diagram.accept(&mut analyzer);
-    
+
     let complexity = analyzer.cyclomatic_complexity();
     assert!(complexity > 0); // Nested structure should have complexity
 }

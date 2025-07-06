@@ -302,98 +302,94 @@ fn parse_simple_node_and_edges(tokens: &[FlowToken]) -> (HashMap<String, FlowNod
 
                 // Find target node
                 if target_pos < tokens.len() {
-                    match &tokens[target_pos] {
-                        FlowToken::NodeId(target_id) => {
-                            // Create edge
-                            let edge = FlowEdge {
-                                from: source_id,
-                                to: target_id.clone(),
-                                edge_type: EdgeType::Arrow,
-                                label: edge_label,
-                                min_length: None,
-                            };
-                            edges.push(edge);
+                    if let FlowToken::NodeId(target_id) = &tokens[target_pos] {
+                        // Create edge
+                        let edge = FlowEdge {
+                            from: source_id,
+                            to: target_id.clone(),
+                            edge_type: EdgeType::Arrow,
+                            label: edge_label,
+                            min_length: None,
+                        };
+                        edges.push(edge);
 
-                            // Check if target has node definition after it
-                            if target_pos + 1 < tokens.len() {
-                                if let Some(left_bracket) = tokens.get(target_pos + 1) {
-                                    if matches!(
-                                        left_bracket,
-                                        FlowToken::LeftSquare
-                                            | FlowToken::LeftParen
-                                            | FlowToken::LeftBrace
-                                            | FlowToken::DoubleLeftSquare
-                                            | FlowToken::DoubleLeftParen
-                                            | FlowToken::TripleLeftParen
-                                            | FlowToken::DoubleLeftBrace
-                                    ) {
-                                        // Parse target node definition
-                                        let mut text_parts = Vec::new();
-                                        let mut j = target_pos + 2;
+                        // Check if target has node definition after it
+                        if target_pos + 1 < tokens.len() {
+                            if let Some(left_bracket) = tokens.get(target_pos + 1) {
+                                if matches!(
+                                    left_bracket,
+                                    FlowToken::LeftSquare
+                                        | FlowToken::LeftParen
+                                        | FlowToken::LeftBrace
+                                        | FlowToken::DoubleLeftSquare
+                                        | FlowToken::DoubleLeftParen
+                                        | FlowToken::TripleLeftParen
+                                        | FlowToken::DoubleLeftBrace
+                                ) {
+                                    // Parse target node definition
+                                    let mut text_parts = Vec::new();
+                                    let mut j = target_pos + 2;
 
-                                        let mut found_closing = false;
-                                        while j < tokens.len() {
-                                            match &tokens[j] {
-                                                FlowToken::NodeId(text) => {
-                                                    text_parts.push(text.clone());
-                                                    j += 1;
-                                                }
-                                                FlowToken::Text(text) => {
-                                                    text_parts.push(text.clone());
-                                                    j += 1;
-                                                }
-                                                bracket
-                                                    if matches!(
-                                                        bracket,
-                                                        FlowToken::RightSquare
-                                                            | FlowToken::RightParen
-                                                            | FlowToken::RightBrace
-                                                            | FlowToken::DoubleRightSquare
-                                                            | FlowToken::DoubleRightParen
-                                                            | FlowToken::TripleRightParen
-                                                            | FlowToken::DoubleRightBrace
-                                                    ) =>
-                                                {
-                                                    let shape =
-                                                        parse_node_shape(left_bracket, bracket);
-                                                    let node_text = if text_parts.is_empty() {
-                                                        None
-                                                    } else {
-                                                        Some(text_parts.join(" "))
-                                                    };
-
-                                                    let node = FlowNode {
-                                                        id: target_id.clone(),
-                                                        text: node_text,
-                                                        shape,
-                                                        classes: Vec::new(),
-                                                        icon: None,
-                                                    };
-                                                    nodes.insert(target_id.clone(), node);
-                                                    i = j + 1;
-                                                    found_closing = true;
-                                                    break;
-                                                }
-                                                _ => break,
+                                    let mut found_closing = false;
+                                    while j < tokens.len() {
+                                        match &tokens[j] {
+                                            FlowToken::NodeId(text) => {
+                                                text_parts.push(text.clone());
+                                                j += 1;
                                             }
-                                        }
+                                            FlowToken::Text(text) => {
+                                                text_parts.push(text.clone());
+                                                j += 1;
+                                            }
+                                            bracket
+                                                if matches!(
+                                                    bracket,
+                                                    FlowToken::RightSquare
+                                                        | FlowToken::RightParen
+                                                        | FlowToken::RightBrace
+                                                        | FlowToken::DoubleRightSquare
+                                                        | FlowToken::DoubleRightParen
+                                                        | FlowToken::TripleRightParen
+                                                        | FlowToken::DoubleRightBrace
+                                                ) =>
+                                            {
+                                                let shape = parse_node_shape(left_bracket, bracket);
+                                                let node_text = if text_parts.is_empty() {
+                                                    None
+                                                } else {
+                                                    Some(text_parts.join(" "))
+                                                };
 
-                                        if found_closing {
-                                            continue;
-                                        } else {
-                                            // No closing bracket found for target node - treat as malformed, skip to end
-                                            i = tokens.len(); // End parsing to avoid infinite loop
-                                            continue;
+                                                let node = FlowNode {
+                                                    id: target_id.clone(),
+                                                    text: node_text,
+                                                    shape,
+                                                    classes: Vec::new(),
+                                                    icon: None,
+                                                };
+                                                nodes.insert(target_id.clone(), node);
+                                                i = j + 1;
+                                                found_closing = true;
+                                                break;
+                                            }
+                                            _ => break,
                                         }
+                                    }
+
+                                    if found_closing {
+                                        continue;
+                                    } else {
+                                        // No closing bracket found for target node - treat as malformed, skip to end
+                                        i = tokens.len(); // End parsing to avoid infinite loop
+                                        continue;
                                     }
                                 }
                             }
-
-                            // Skip to after the target
-                            i = target_pos + 1;
-                            continue;
                         }
-                        _ => {}
+
+                        // Skip to after the target
+                        i = target_pos + 1;
+                        continue;
                     }
                 }
 
@@ -427,7 +423,7 @@ pub fn parse(input: &str) -> Result<FlowchartDiagram> {
             (FlowToken::Flowchart | FlowToken::Graph, _) => (FlowDirection::TD, 1), // No direction specified, skip only header
             _ => (FlowDirection::TD, 0), // Default, no tokens to skip
         }
-    } else if tokens.len() >= 1 && matches!(tokens[0], FlowToken::Flowchart | FlowToken::Graph) {
+    } else if !tokens.is_empty() && matches!(tokens[0], FlowToken::Flowchart | FlowToken::Graph) {
         (FlowDirection::TD, 1) // Just flowchart/graph keyword, no direction
     } else {
         (FlowDirection::TD, 0)

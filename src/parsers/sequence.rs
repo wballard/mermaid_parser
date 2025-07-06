@@ -405,11 +405,11 @@ fn parse_alt_block(
             break;
         }
 
-        if trimmed.starts_with("else") {
+        if let Some(stripped) = trimmed.strip_prefix("else") {
             line_iter.next(); // consume the else line
             in_else = true;
-            if trimmed.len() > 4 {
-                else_condition = Some(trimmed[4..].trim().to_string());
+            if !stripped.is_empty() {
+                else_condition = Some(stripped.trim().to_string());
             }
             continue;
         }

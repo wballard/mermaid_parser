@@ -369,15 +369,17 @@ fn test_universal_validator() {
 
     assert!(result.is_err());
     let errors = result.unwrap_err();
-    assert!(errors.len() > 0);
+    assert!(!errors.is_empty());
     assert!(errors.iter().any(|e| e.rule == "undefined_node_reference"));
 }
 
 #[test]
 fn test_validation_config() {
     // Test with custom configuration that ignores certain rules
-    let mut config = ValidationConfig::default();
-    config.min_severity = Severity::Error; // Only show errors, not warnings
+    let mut config = ValidationConfig {
+        min_severity: Severity::Error, // Only show errors, not warnings
+        ..Default::default()
+    };
     config.ignore_rules.insert("isolated_node"); // Ignore isolated node warnings
 
     let mut nodes = HashMap::new();

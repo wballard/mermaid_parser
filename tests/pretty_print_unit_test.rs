@@ -43,7 +43,11 @@ mod tests {
         // In compact mode, there should be no indentation
         let lines: Vec<&str> = output.lines().collect();
         for line in lines {
-            assert!(!line.starts_with("    "), "Line should not be indented in compact mode: {}", line);
+            assert!(
+                !line.starts_with("    "),
+                "Line should not be indented in compact mode: {}",
+                line
+            );
         }
     }
 
@@ -76,11 +80,16 @@ mod tests {
         ];
 
         for (input, expected_type) in test_cases {
-            let diagram = parse_diagram(input).expect(&format!("Failed to parse: {}", input));
+            let diagram =
+                parse_diagram(input).unwrap_or_else(|_| panic!("Failed to parse: {}", input));
             let output = diagram.to_mermaid();
-            assert!(output.contains(expected_type), 
-                "Output for {} should contain '{}', but got: {}", 
-                input, expected_type, output);
+            assert!(
+                output.contains(expected_type),
+                "Output for {} should contain '{}', but got: {}",
+                input,
+                expected_type,
+                output
+            );
         }
     }
 
@@ -136,10 +145,10 @@ mod tests {
         // Test that DiagramType's to_mermaid delegates to to_mermaid_pretty with default options
         let input = "pie\n\"A\" : 50\n\"B\" : 50";
         let diagram = parse_diagram(input).expect("Failed to parse");
-        
+
         let default_output = diagram.to_mermaid();
         let pretty_output = diagram.to_mermaid_pretty(&PrintOptions::default());
-        
+
         assert_eq!(default_output, pretty_output);
     }
 
@@ -159,9 +168,14 @@ mod tests {
         ];
 
         for input in test_cases {
-            let diagram = parse_diagram(input).expect(&format!("Failed to parse: {}", input));
+            let diagram =
+                parse_diagram(input).unwrap_or_else(|_| panic!("Failed to parse: {}", input));
             let output = diagram.to_mermaid();
-            assert!(!output.is_empty(), "Empty diagram should still produce output: {}", input);
+            assert!(
+                !output.is_empty(),
+                "Empty diagram should still produce output: {}",
+                input
+            );
         }
     }
 

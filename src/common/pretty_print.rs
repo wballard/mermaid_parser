@@ -365,47 +365,6 @@ fn write_flow_edge_with_smart_nodes(
     printer.write_line(&edge_str);
 }
 
-fn write_flow_edge_with_nodes(
-    printer: &mut PrettyPrinter,
-    edge: &FlowEdge,
-    nodes: &std::collections::HashMap<String, FlowNode>,
-) {
-    let arrow = match &edge.edge_type {
-        EdgeType::Arrow => "-->",
-        EdgeType::DottedArrow => "-.->",
-        EdgeType::ThickArrow => "==>",
-        EdgeType::OpenLink => "---",
-        EdgeType::DottedLink => "-.-",
-        EdgeType::ThickLink => "===",
-        EdgeType::Invisible => "~~~",
-        EdgeType::CircleEdge => "--o",
-        EdgeType::CrossEdge => "--x",
-        EdgeType::MultiDirectional => "<-->",
-    };
-
-    // Format source node with definition
-    let source_str = if let Some(source_node) = nodes.get(&edge.from) {
-        format_node_with_definition(&edge.from, source_node)
-    } else {
-        edge.from.clone()
-    };
-
-    // Format target node with definition
-    let target_str = if let Some(target_node) = nodes.get(&edge.to) {
-        format_node_with_definition(&edge.to, target_node)
-    } else {
-        edge.to.clone()
-    };
-
-    let edge_str = if let Some(label) = &edge.label {
-        format!("{} {}|{}| {}", source_str, arrow, label, target_str)
-    } else {
-        format!("{} {} {}", source_str, arrow, target_str)
-    };
-
-    printer.write_line(&edge_str);
-}
-
 fn format_node_with_definition(id: &str, node: &FlowNode) -> String {
     let text = node.text.as_deref().unwrap_or("");
     match &node.shape {

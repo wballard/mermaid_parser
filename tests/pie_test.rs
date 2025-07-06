@@ -4,8 +4,8 @@ use std::path::PathBuf;
 
 #[rstest]
 fn test_pie_files(#[files("test/pie/*.mermaid")] path: PathBuf) {
-    let content =
-        std::fs::read_to_string(&path).expect(&format!("Failed to read file: {:?}", path));
+    let content = std::fs::read_to_string(&path)
+        .unwrap_or_else(|_| panic!("Failed to read file: {:?}", path));
 
     // Remove metadata comments
     let content = content

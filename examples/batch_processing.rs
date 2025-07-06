@@ -38,7 +38,7 @@ impl BatchStats {
             DiagramType::Pie(d) => ("Pie", d.data.len(), 0),
             DiagramType::Git(d) => ("Git", d.commits.len(), d.branches.len()),
             DiagramType::C4(d) => ("C4", d.elements.len(), d.relationships.len()),
-            DiagramType::Mindmap(d) => ("Mindmap", 1, 0), // Has root node
+            DiagramType::Mindmap(_d) => ("Mindmap", 1, 0), // Has root node
             DiagramType::Quadrant(d) => ("Quadrant", d.points.len(), 0),
             DiagramType::XyChart(d) => ("XyChart", d.data_series.len(), 0),
             DiagramType::Kanban(d) => ("Kanban", d.sections.len(), 0),
@@ -48,7 +48,7 @@ impl BatchStats {
             DiagramType::Requirement(d) => {
                 ("Requirement", d.requirements.len(), d.relationships.len())
             }
-            DiagramType::Treemap(d) => ("Treemap", 1, 0), // Has root node
+            DiagramType::Treemap(_d) => ("Treemap", 1, 0), // Has root node
             DiagramType::Radar(d) => ("Radar", d.datasets.len(), 0),
             DiagramType::Misc(_) => ("Misc", 0, 0),
         };
@@ -268,7 +268,7 @@ flowchart TD
     println!("Parallel Processing Simulation");
     println!("==============================");
 
-    let large_batch = vec![
+    let large_batch = [
         r#"flowchart TD; A --> B"#,
         r#"sequenceDiagram; A->>B: msg"#,
         r#"sankey-beta; A,B,10"#,

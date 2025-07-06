@@ -273,7 +273,7 @@ mod tests {
         let tokens = tokens.unwrap();
 
         // Should have: Animal, <|--, Dog
-        let expected_tokens = vec![
+        let expected_tokens = [
             ClassToken::Identifier("Animal".to_string()),
             ClassToken::Inheritance,
             ClassToken::Identifier("Dog".to_string()),

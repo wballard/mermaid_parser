@@ -7,19 +7,17 @@ fn load_sample_files() -> Vec<(String, String)> {
 
     // Load flowchart samples (576 total)
     if let Ok(entries) = fs::read_dir("test/flowchart") {
-        for entry in entries.take(10) {
+        for entry in entries.take(10).flatten() {
             // Take first 10 for individual benchmarks
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.extension().and_then(|s| s.to_str()) == Some("mermaid") {
-                    if let Ok(content) = fs::read_to_string(&path) {
-                        let name = path
-                            .file_stem()
-                            .and_then(|s| s.to_str())
-                            .unwrap_or("unknown")
-                            .to_string();
-                        samples.push((format!("flowchart_{}", name), content));
-                    }
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()) == Some("mermaid") {
+                if let Ok(content) = fs::read_to_string(&path) {
+                    let name = path
+                        .file_stem()
+                        .and_then(|s| s.to_str())
+                        .unwrap_or("unknown")
+                        .to_string();
+                    samples.push((format!("flowchart_{}", name), content));
                 }
             }
         }
@@ -29,19 +27,17 @@ fn load_sample_files() -> Vec<(String, String)> {
     for diagram_type in &["sankey", "architecture", "block", "c4", "class"] {
         let dir_path = format!("test/{}", diagram_type);
         if let Ok(entries) = fs::read_dir(&dir_path) {
-            for entry in entries.take(2) {
+            for entry in entries.take(2).flatten() {
                 // Take 2 samples per type
-                if let Ok(entry) = entry {
-                    let path = entry.path();
-                    if path.extension().and_then(|s| s.to_str()) == Some("mermaid") {
-                        if let Ok(content) = fs::read_to_string(&path) {
-                            let name = path
-                                .file_stem()
-                                .and_then(|s| s.to_str())
-                                .unwrap_or("unknown")
-                                .to_string();
-                            samples.push((format!("{}_{}", diagram_type, name), content));
-                        }
+                let path = entry.path();
+                if path.extension().and_then(|s| s.to_str()) == Some("mermaid") {
+                    if let Ok(content) = fs::read_to_string(&path) {
+                        let name = path
+                            .file_stem()
+                            .and_then(|s| s.to_str())
+                            .unwrap_or("unknown")
+                            .to_string();
+                        samples.push((format!("{}_{}", diagram_type, name), content));
                     }
                 }
             }
@@ -55,13 +51,11 @@ fn load_all_flowchart_samples() -> Vec<String> {
     let mut samples = Vec::new();
 
     if let Ok(entries) = fs::read_dir("test/flowchart") {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.extension().and_then(|s| s.to_str()) == Some("mermaid") {
-                    if let Ok(content) = fs::read_to_string(&path) {
-                        samples.push(content);
-                    }
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|s| s.to_str()) == Some("mermaid") {
+                if let Ok(content) = fs::read_to_string(&path) {
+                    samples.push(content);
                 }
             }
         }

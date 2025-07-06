@@ -229,10 +229,10 @@ fn parse_state_declaration(line: &str, states: &mut HashMap<String, State>) -> O
         .trim_end_matches(" {");
 
     // Handle state with display name: state "Display Name" as StateId
-    if state_text.starts_with('"') {
-        if let Some(end_quote) = state_text[1..].find('"') {
-            let display_name = state_text[1..=end_quote].to_string();
-            if let Some(as_part) = state_text[end_quote + 2..].strip_prefix(" as ") {
+    if let Some(stripped) = state_text.strip_prefix('"') {
+        if let Some(end_quote) = stripped.find('"') {
+            let display_name = stripped[..end_quote].to_string();
+            if let Some(as_part) = stripped[end_quote + 1..].strip_prefix(" as ") {
                 let id = as_part.trim().to_string();
                 let state = State {
                     id: id.clone(),

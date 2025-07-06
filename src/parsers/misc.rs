@@ -361,7 +361,7 @@ mod tests {
     fn test_lexer_gitgraph() {
         let input = "gitGraph:\n    commit\n    branch develop";
         let tokens = misc_lexer().parse(input).unwrap();
-        assert!(tokens.len() > 0);
+        assert!(!tokens.is_empty());
         assert!(matches!(tokens[0], MiscToken::GitGraph));
     }
 
