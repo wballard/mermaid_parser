@@ -122,9 +122,3 @@ jobs:
             exit 1
           fi
           echo "Coverage check passed!"
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          files: lcov.info
-          fail_ci_if_error: true
