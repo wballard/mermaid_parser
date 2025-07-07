@@ -1,4 +1,47 @@
 //! Sankey diagram parser implementation
+//!
+//! This module provides parsing capabilities for Mermaid Sankey diagrams, which visualize
+//! flows and their quantities between nodes. Sankey diagrams show how resources, data, or energy move through a system.
+//!
+//! ## Syntax Support
+//!
+//! The parser supports the Mermaid Sankey syntax:
+//!
+//! ```text
+//! sankey-beta
+//!     Source,Target,Value
+//!     A,B,10
+//!     B,C,5
+//! ```
+//!
+//! ## Features
+//!
+//! - **Node discovery** - Automatically identifies nodes from link definitions
+//! - **Value parsing** - Supports integer and floating-point flow values
+//! - **Text handling** - Processes both quoted and unquoted node names
+//! - **Error recovery** - Provides detailed error messages with suggestions
+//!
+//! ## Example
+//!
+//! ```rust
+//! use mermaid_parser::parsers::sankey;
+//!
+//! let input = r#"
+//! sankey-beta
+//!     A,B,10
+//!     B,C,5
+//!     A,C,3
+//! "#;
+//!
+//! let diagram = sankey::parse(input)?;
+//! println!("Nodes: {}, Links: {}", diagram.nodes.len(), diagram.links.len());
+//! 
+//! // Access flow data
+//! for link in &diagram.links {
+//!     println!("{} -> {} ({})", link.source, link.target, link.value);
+//! }
+//! # Ok::<(), Box<dyn std::error::Error>>(())
+//! ```
 
 use crate::common::ast::{SankeyDiagram, SankeyLink, SankeyNode};
 use crate::error::{format_error_snippet, Location, ParseError, Result};
@@ -14,6 +57,43 @@ pub enum SankeyToken {
     UnquotedText(String), // text
 }
 
+/// Parse a Mermaid Sankey diagram from text input
+///
+/// This function processes a Sankey diagram, extracting flow information and 
+/// building a structured representation of the data.
+///
+/// # Arguments
+///
+/// * `input` - The Mermaid Sankey diagram text to parse
+///
+/// # Returns
+///
+/// Returns a [`Result`] containing the parsed [`SankeyDiagram`] or a [`ParseError`].
+///
+/// # Example
+///
+/// ```rust
+/// use mermaid_parser::parsers::sankey;
+///
+/// let input = r#"
+/// sankey-beta
+///     A,B,10
+///     B,C,5
+/// "#;
+///
+/// let diagram = sankey::parse(input)?;
+/// assert_eq!(diagram.nodes.len(), 3); // A, B, C
+/// assert_eq!(diagram.links.len(), 2);
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
+///
+/// # Errors
+///
+/// Returns [`ParseError`] if:
+/// - The input doesn't start with "sankey-beta" or "sankey"
+/// - Link definitions are malformed
+/// - Values cannot be parsed as numbers
+/// - Required syntax elements are missing
 pub fn parse(input: &str) -> Result<SankeyDiagram> {
     let tokens = sankey_lexer()
         .parse(input)
