@@ -86,13 +86,11 @@ journey
                         println!("  Subgraphs: {}", flowchart.subgraphs.len());
 
                         // List first few nodes
-                        let mut node_count = 0;
-                        for (id, node) in &flowchart.nodes {
+                        for (node_count, (id, node)) in flowchart.nodes.iter().enumerate() {
                             if node_count >= 3 {
                                 break;
                             }
                             println!("    Node '{}': {:?}", id, node.text);
-                            node_count += 1;
                         }
                     }
                     DiagramType::Sankey(sankey) => {
@@ -130,13 +128,11 @@ journey
                         println!("  Transitions: {}", state.transitions.len());
 
                         // List first few states
-                        let mut state_count = 0;
-                        for (id, state_def) in &state.states {
+                        for (state_count, (id, state_def)) in state.states.iter().enumerate() {
                             if state_count >= 3 {
                                 break;
                             }
                             println!("    State: '{}' (type: {:?})", id, state_def.state_type);
-                            state_count += 1;
                         }
                     }
                     DiagramType::Journey(journey) => {

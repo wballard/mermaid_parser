@@ -85,7 +85,7 @@ sankey-beta
 
             // Analyze node types
             let mut shape_counts = std::collections::HashMap::new();
-            for (_, node) in &flowchart.nodes {
+            for node in flowchart.nodes.values() {
                 *shape_counts.entry(format!("{:?}", node.shape)).or_insert(0) += 1;
             }
 

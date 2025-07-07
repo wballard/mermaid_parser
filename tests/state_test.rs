@@ -285,7 +285,7 @@ fn test_complex_example() {
     // Check composite state
     let auth_state = &diagram.states["Authenticating"];
     assert_eq!(auth_state.state_type, StateType::Composite);
-    assert!(auth_state.substates.len() > 0);
+    assert!(!auth_state.substates.is_empty());
 
     // Check choice state
     let choice_state = &diagram.states["choice1"];

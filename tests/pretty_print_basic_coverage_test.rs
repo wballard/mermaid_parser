@@ -10,9 +10,9 @@ fn test_print_options_default() {
     let options = PrintOptions::default();
     assert_eq!(options.indent_width, 4);
     assert_eq!(options.max_line_length, 80);
-    assert_eq!(options.align_arrows, false);
-    assert_eq!(options.sort_nodes, false);
-    assert_eq!(options.compact_mode, false);
+    assert!(!options.align_arrows);
+    assert!(!options.sort_nodes);
+    assert!(!options.compact_mode);
 }
 
 // Test edge cases in PrintOptions
@@ -116,7 +116,7 @@ fn test_flowchart_all_directions() {
         },
     );
 
-    let directions = vec![
+    let directions = [
         FlowDirection::TD,
         FlowDirection::TB,
         FlowDirection::BT,
@@ -124,7 +124,7 @@ fn test_flowchart_all_directions() {
         FlowDirection::LR,
     ];
 
-    let expected_strings = vec!["TD", "TB", "BT", "RL", "LR"];
+    let expected_strings = ["TD", "TB", "BT", "RL", "LR"];
 
     for (direction, expected) in directions.iter().zip(expected_strings.iter()) {
         let diagram = DiagramType::Flowchart(FlowchartDiagram {
@@ -169,7 +169,7 @@ fn test_flowchart_all_edge_types() {
         },
     );
 
-    let edge_types = vec![
+    let edge_types = [
         EdgeType::Arrow,
         EdgeType::DottedArrow,
         EdgeType::ThickArrow,
@@ -182,7 +182,7 @@ fn test_flowchart_all_edge_types() {
         EdgeType::MultiDirectional,
     ];
 
-    let expected_arrows = vec![
+    let expected_arrows = [
         "-->", "-.->", "==>", "---", "-.-", "===", "~~~", "--o", "--x", "<-->",
     ];
 

@@ -47,7 +47,7 @@ fn test_pie_with_show_data() {
 
     let diagram = pie::parse(input).unwrap();
 
-    assert_eq!(diagram.show_data, true);
+    assert!(diagram.show_data);
     assert_eq!(diagram.data.len(), 3);
     assert_eq!(diagram.data[1].value, 85.5); // Test decimal values
 }
@@ -89,7 +89,8 @@ accDescr: This chart shows distribution
 
 #[test]
 fn test_value_parsing() {
-    let values = vec![("42", 42.0), ("3.14", 3.14), ("100", 100.0), ("0.5", 0.5)];
+    #[allow(clippy::approx_constant)]
+    let values = [("42", 42.0), ("3.14", 3.14), ("100", 100.0), ("0.5", 0.5)];
 
     for (input, expected) in values {
         let parsed: f64 = input.parse().unwrap();
@@ -114,7 +115,7 @@ fn test_basic_pie() {
     assert_eq!(diagram.data[1].value, 85.0);
     assert_eq!(diagram.data[2].label, "Rats");
     assert_eq!(diagram.data[2].value, 15.0);
-    assert_eq!(diagram.show_data, false);
+    assert!(!diagram.show_data);
     assert_eq!(diagram.title, None);
 }
 
@@ -141,16 +142,16 @@ fn test_pie_with_integer_values() {
 fn test_pie_mixed_values() {
     let input = r#"pie showData
     "Integer" : 42
-    "Float" : 3.14159
+    "Float" : 3.141592653589793
     "Zero" : 0
 "#;
 
     let diagram = pie::parse(input).unwrap();
 
-    assert_eq!(diagram.show_data, true);
+    assert!(diagram.show_data);
     assert_eq!(diagram.data.len(), 3);
 
     assert_eq!(diagram.data[0].value, 42.0);
-    assert!((diagram.data[1].value - 3.14159).abs() < 0.001);
+    assert!((diagram.data[1].value - std::f64::consts::PI).abs() < 0.001);
     assert_eq!(diagram.data[2].value, 0.0);
 }

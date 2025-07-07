@@ -26,6 +26,7 @@ enum Category {
     Structure,
     Naming,
     Complexity,
+    #[allow(dead_code)]
     Performance,
     Accessibility,
     BestPractice,
@@ -389,40 +390,39 @@ impl DiagramValidator {
         let mut rec_stack = HashSet::new();
 
         for node_id in flowchart.nodes.keys() {
-            if !visited.contains(node_id) {
-                if self.has_cycle_util(flowchart, node_id, &mut visited, &mut rec_stack) {
-                    return true;
-                }
+            if !visited.contains(node_id)
+                && has_cycle_util(flowchart, node_id, &mut visited, &mut rec_stack)
+            {
+                return true;
             }
         }
         false
     }
+}
 
-    fn has_cycle_util(
-        &self,
-        flowchart: &mermaid_parser::common::ast::FlowchartDiagram,
-        node: &str,
-        visited: &mut HashSet<String>,
-        rec_stack: &mut HashSet<String>,
-    ) -> bool {
-        visited.insert(node.to_string());
-        rec_stack.insert(node.to_string());
+fn has_cycle_util(
+    flowchart: &mermaid_parser::common::ast::FlowchartDiagram,
+    node: &str,
+    visited: &mut HashSet<String>,
+    rec_stack: &mut HashSet<String>,
+) -> bool {
+    visited.insert(node.to_string());
+    rec_stack.insert(node.to_string());
 
-        for edge in &flowchart.edges {
-            if edge.from == node {
-                if !visited.contains(&edge.to) {
-                    if self.has_cycle_util(flowchart, &edge.to, visited, rec_stack) {
-                        return true;
-                    }
-                } else if rec_stack.contains(&edge.to) {
+    for edge in &flowchart.edges {
+        if edge.from == node {
+            if !visited.contains(&edge.to) {
+                if has_cycle_util(flowchart, &edge.to, visited, rec_stack) {
                     return true;
                 }
+            } else if rec_stack.contains(&edge.to) {
+                return true;
             }
         }
-
-        rec_stack.remove(node);
-        false
     }
+
+    rec_stack.remove(node);
+    false
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
