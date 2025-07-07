@@ -50,14 +50,14 @@
 //!
 //! ```rust
 //! use mermaid_parser::parsers::flowchart;
-//! 
+//!
 //! let input = r#"
 //! flowchart TD
 //!     A[Start] --> B{Decision}
 //!     B -->|Yes| C[Process]
 //!     B -->|No| D[Skip]
 //! "#;
-//! 
+//!
 //! let diagram = flowchart::parse(input)?;
 //! println!("Parsed flowchart with {} nodes", diagram.nodes.len());
 //! # Ok::<(), Box<dyn std::error::Error>>(())

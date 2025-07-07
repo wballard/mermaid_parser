@@ -35,7 +35,7 @@
 //!
 //! let diagram = sankey::parse(input)?;
 //! println!("Nodes: {}, Links: {}", diagram.nodes.len(), diagram.links.len());
-//! 
+//!
 //! // Access flow data
 //! for link in &diagram.links {
 //!     println!("{} -> {} ({})", link.source, link.target, link.value);
@@ -59,7 +59,7 @@ pub enum SankeyToken {
 
 /// Parse a Mermaid Sankey diagram from text input
 ///
-/// This function processes a Sankey diagram, extracting flow information and 
+/// This function processes a Sankey diagram, extracting flow information and
 /// building a structured representation of the data.
 ///
 /// # Arguments
