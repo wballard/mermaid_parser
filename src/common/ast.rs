@@ -52,87 +52,242 @@ pub enum DiagramType {
 }
 
 /// Common accessibility information used across diagram types
+///
+/// Provides standardized accessibility metadata that can be attached to diagrams
+/// to improve screen reader support and overall accessibility compliance.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct AccessibilityInfo {
+    /// Optional title for accessibility purposes
     pub title: Option<String>,
+    /// Optional description for accessibility purposes  
     pub description: Option<String>,
 }
 
-// Sankey Diagrams
+/// Sankey flow diagram representation
+///
+/// Sankey diagrams visualize the flow of data, energy, or materials through a system.
+/// They consist of nodes (representing entities) and weighted links (representing flows).
+///
+/// # Example
+///
+/// ```
+/// use mermaid_parser::common::ast::{SankeyDiagram, SankeyNode, SankeyLink};
+///
+/// let diagram = SankeyDiagram {
+///     nodes: vec![
+///         SankeyNode { id: "A".to_string(), name: "Source".to_string() },
+///         SankeyNode { id: "B".to_string(), name: "Target".to_string() },
+///     ],
+///     links: vec![
+///         SankeyLink {
+///             source: "A".to_string(),
+///             target: "B".to_string(),
+///             value: 10.0,
+///         },
+///     ],
+/// };
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct SankeyDiagram {
+    /// Collection of nodes in the Sankey diagram
     pub nodes: Vec<SankeyNode>,
+    /// Collection of weighted links between nodes
     pub links: Vec<SankeyLink>,
 }
 
+/// A node in a Sankey diagram
+///
+/// Represents an entity through which flow passes. Each node has a unique
+/// identifier and a human-readable name.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SankeyNode {
+    /// Unique identifier for the node
     pub id: String,
+    /// Display name for the node
     pub name: String,
 }
 
+/// A weighted link between two nodes in a Sankey diagram
+///
+/// Represents the flow of data/energy/materials from a source node to a target node.
+/// The value indicates the magnitude of the flow.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SankeyLink {
+    /// Identifier of the source node
     pub source: String,
+    /// Identifier of the target node
     pub target: String,
+    /// Magnitude of the flow (must be positive)
     pub value: f64,
 }
 
-// Timeline Diagrams
+/// Timeline diagram representation
+///
+/// Timeline diagrams display chronological sequences of events or periods.
+/// They are useful for showing historical progressions, project timelines,
+/// or any time-based data.
+///
+/// # Example
+///
+/// ```
+/// use mermaid_parser::common::ast::{TimelineDiagram, TimelineSection, TimelineItem, AccessibilityInfo};
+///
+/// let diagram = TimelineDiagram {
+///     title: Some("Project Timeline".to_string()),
+///     accessibility: AccessibilityInfo::default(),
+///     sections: vec![
+///         TimelineSection {
+///             name: "Phase 1".to_string(),
+///             items: vec![
+///                 TimelineItem::Event("Project Start".to_string()),
+///                 TimelineItem::Period("Development".to_string()),
+///             ],
+///         },
+///     ],
+/// };
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct TimelineDiagram {
+    /// Optional title for the timeline
     pub title: Option<String>,
+    /// Accessibility information for screen readers
     pub accessibility: AccessibilityInfo,
+    /// Chronological sections containing timeline items
     pub sections: Vec<TimelineSection>,
 }
 
+/// A section within a timeline diagram
+///
+/// Groups related timeline items under a common heading or time period.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TimelineSection {
+    /// Name or heading for this section
     pub name: String,
+    /// Items (events or periods) within this section
     pub items: Vec<TimelineItem>,
 }
 
+/// Individual items that can appear in a timeline
+///
+/// Timeline items represent either discrete events or time periods.
 #[derive(Debug, Clone, PartialEq)]
 pub enum TimelineItem {
+    /// A specific time period or duration
     Period(String),
+    /// A discrete event that occurred at a point in time
     Event(String),
 }
 
-// Journey Diagrams
+/// User journey diagram representation
+///
+/// Journey diagrams map user experiences through a process or service,
+/// showing tasks, satisfaction scores, and the actors involved at each step.
+///
+/// # Example
+///
+/// ```
+/// use mermaid_parser::common::ast::{JourneyDiagram, JourneySection, JourneyTask, AccessibilityInfo};
+///
+/// let diagram = JourneyDiagram {
+///     title: Some("Customer Journey".to_string()),
+///     accessibility: AccessibilityInfo::default(),
+///     sections: vec![
+///         JourneySection {
+///             name: "Online Shopping".to_string(),
+///             tasks: vec![
+///                 JourneyTask {
+///                     name: "Browse Products".to_string(),
+///                     score: 5,
+///                     actors: vec!["Customer".to_string()],
+///                 },
+///             ],
+///         },
+///     ],
+/// };
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct JourneyDiagram {
+    /// Optional title for the journey
     pub title: Option<String>,
+    /// Accessibility information for screen readers
     pub accessibility: AccessibilityInfo,
+    /// Sections grouping related journey tasks
     pub sections: Vec<JourneySection>,
 }
 
+/// A section within a journey diagram
+///
+/// Groups related tasks or steps in the user journey under a common theme.
 #[derive(Debug, Clone, PartialEq)]
 pub struct JourneySection {
+    /// Name or heading for this section of the journey
     pub name: String,
+    /// Tasks performed within this section
     pub tasks: Vec<JourneyTask>,
 }
 
+/// A specific task or step in a user journey
+///
+/// Represents an action taken by users, with an associated satisfaction score
+/// and the actors involved in performing the task.
 #[derive(Debug, Clone, PartialEq)]
 pub struct JourneyTask {
+    /// Name or description of the task
     pub name: String,
+    /// Satisfaction score (typically 1-5, where 5 is most satisfied)
     pub score: i32,
+    /// List of actors (roles/personas) involved in this task
     pub actors: Vec<String>,
 }
 
-// Sequence Diagrams
+/// Sequence diagram representation
+///
+/// Sequence diagrams show interactions between participants over time,
+/// displaying the order of message exchanges and method calls.
+///
+/// # Example
+///
+/// ```
+/// use mermaid_parser::common::ast::{SequenceDiagram, Participant, ParticipantType, AccessibilityInfo};
+///
+/// let diagram = SequenceDiagram {
+///     title: Some("API Interaction".to_string()),
+///     accessibility: AccessibilityInfo::default(),
+///     participants: vec![
+///         Participant {
+///             actor: "Client".to_string(),
+///             alias: None,
+///             participant_type: ParticipantType::Actor,
+///         },
+///     ],
+///     statements: vec![],
+///     autonumber: None,
+/// };
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct SequenceDiagram {
+    /// Optional title for the sequence diagram
     pub title: Option<String>,
+    /// Accessibility information for screen readers
     pub accessibility: AccessibilityInfo,
+    /// List of participants in the sequence
     pub participants: Vec<Participant>,
+    /// Sequence of statements (messages, notes, etc.)
     pub statements: Vec<SequenceStatement>,
+    /// Optional automatic numbering configuration
     pub autonumber: Option<AutoNumber>,
 }
 
+/// A participant in a sequence diagram
+///
+/// Represents an actor, object, or system component that can send and receive messages.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Participant {
+    /// The name/identifier of the participant
     pub actor: String,
+    /// Optional alias or display name for the participant
     pub alias: Option<String>,
+    /// Type of participant (actor, boundary, control, entity, etc.)
     pub participant_type: ParticipantType,
 }
 

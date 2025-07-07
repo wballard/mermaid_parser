@@ -1,18 +1,68 @@
 use crate::common::ast::*;
 
 /// Trait for converting AST back to Mermaid syntax
+///
+/// This trait enables converting parsed diagram ASTs back into valid Mermaid syntax.
+/// It supports both basic conversion and pretty-printing with customizable formatting options.
+///
+/// # Example
+///
+/// ```rust
+/// use mermaid_parser::common::pretty_print::{MermaidPrinter, PrintOptions};
+/// use mermaid_parser::parse_diagram;
+///
+/// let diagram = parse_diagram("flowchart TD\n    A --> B")?;
+///
+/// // Basic conversion
+/// let basic = diagram.to_mermaid();
+///
+/// // Pretty-printed with custom options
+/// let options = PrintOptions {
+///     indent_width: 2,
+///     align_arrows: true,
+///     ..Default::default()
+/// };
+/// let pretty = diagram.to_mermaid_pretty(&options);
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
 pub trait MermaidPrinter {
+    /// Convert the AST to Mermaid syntax using default formatting
     fn to_mermaid(&self) -> String;
+
+    /// Convert the AST to Mermaid syntax with custom formatting options
     fn to_mermaid_pretty(&self, options: &PrintOptions) -> String;
 }
 
-/// Options for pretty printing
+/// Options for pretty printing Mermaid diagrams
+///
+/// Configures various formatting aspects when converting ASTs back to Mermaid syntax.
+/// These options allow control over indentation, line length, alignment, and other
+/// stylistic choices.
+///
+/// # Example
+///
+/// ```rust
+/// use mermaid_parser::common::pretty_print::PrintOptions;
+///
+/// let options = PrintOptions {
+///     indent_width: 2,        // Use 2 spaces for indentation
+///     max_line_length: 100,   // Wrap lines at 100 characters
+///     align_arrows: true,     // Align arrow operators
+///     sort_nodes: true,       // Sort nodes alphabetically
+///     compact_mode: false,    // Use readable formatting
+/// };
+/// ```
 #[derive(Debug, Clone)]
 pub struct PrintOptions {
+    /// Number of spaces to use for each indentation level
     pub indent_width: usize,
+    /// Maximum line length before wrapping (0 = no limit)
     pub max_line_length: usize,
+    /// Whether to align arrow operators for better readability
     pub align_arrows: bool,
+    /// Whether to sort nodes alphabetically in output
     pub sort_nodes: bool,
+    /// Whether to use compact formatting (minimal whitespace)
     pub compact_mode: bool,
 }
 

@@ -8,51 +8,141 @@ use crate::common::ast::*;
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
 /// Trait for calculating diagram metrics
+///
+/// This trait can be implemented by any diagram type to provide standardized
+/// metrics calculation. The metrics help assess diagram complexity, quality,
+/// and provide suggestions for improvement.
+///
+/// # Example
+///
+/// ```rust
+/// // Example of how a DiagramMetrics trait implementation would look
+/// // (In practice, this is implemented inside the crate)
+///
+/// use mermaid_parser::common::metrics::{DiagramMetrics, MetricsReport};
+///
+/// // Custom diagram type that implements DiagramMetrics
+/// struct MyDiagram {
+///     nodes: Vec<String>,
+///     edges: Vec<(String, String)>,
+/// }
+///
+/// impl DiagramMetrics for MyDiagram {
+///     fn calculate_metrics(&self) -> MetricsReport {
+///         // Calculate metrics based on nodes, edges, complexity, etc.
+///         # unimplemented!()
+///     }
+/// }
+/// ```
 pub trait DiagramMetrics {
-    /// Calculate metrics for this diagram
+    /// Calculate comprehensive metrics for this diagram
+    ///
+    /// Returns a complete metrics report including basic statistics,
+    /// complexity analysis, quality assessment, and improvement suggestions.
     fn calculate_metrics(&self) -> MetricsReport;
 }
 
 /// Comprehensive metrics report
+///
+/// Contains all calculated metrics for a diagram, including basic statistics,
+/// complexity measures, quality assessments, and actionable suggestions for improvement.
+///
+/// # Example
+///
+/// ```rust
+/// use mermaid_parser::common::metrics::MetricsReport;
+///
+/// fn analyze_diagram_quality(report: &MetricsReport) {
+///     println!("Nodes: {}, Edges: {}", report.basic.node_count, report.basic.edge_count);
+///     println!("Complexity: {}", report.complexity.cyclomatic);
+///     println!("Quality: {:.2}", report.quality.maintainability);
+///     
+///     for suggestion in &report.suggestions {
+///         println!("Suggestion: {}", suggestion.message);
+///     }
+/// }
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct MetricsReport {
+    /// Basic structural metrics (node count, edge count, etc.)
     pub basic: BasicMetrics,
+    /// Complexity analysis metrics
     pub complexity: ComplexityMetrics,
+    /// Quality assessment metrics
     pub quality: QualityMetrics,
+    /// List of improvement suggestions
     pub suggestions: Vec<Suggestion>,
 }
 
 /// Basic diagram metrics
+///
+/// Fundamental structural measurements of a diagram including counts of
+/// nodes and edges, as well as dimensional properties like depth and breadth.
 #[derive(Debug, Clone, PartialEq)]
 pub struct BasicMetrics {
+    /// Total number of nodes in the diagram
     pub node_count: usize,
+    /// Total number of edges/connections in the diagram
     pub edge_count: usize,
+    /// Maximum depth of the diagram (longest path from root)
     pub depth: usize,
+    /// Maximum breadth of the diagram (widest level)
     pub breadth: usize,
 }
 
 /// Complexity metrics
+///
+/// Advanced measurements of diagram complexity using established software
+/// engineering metrics adapted for diagram analysis.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ComplexityMetrics {
+    /// Cyclomatic complexity - number of independent paths
     pub cyclomatic: usize,
+    /// Cognitive complexity - difficulty of understanding (0.0-100.0)
     pub cognitive: f64,
+    /// Maximum nesting depth of subgraphs or nested structures
     pub nesting_depth: usize,
+    /// Coupling factor - degree of interconnectedness (0.0-1.0)
     pub coupling: f64,
 }
 
 /// Quality metrics
+///
+/// Assessment of diagram quality across multiple dimensions. All scores
+/// range from 0.0 (poor) to 1.0 (excellent).
 #[derive(Debug, Clone, PartialEq)]
 pub struct QualityMetrics {
+    /// Maintainability score - how easy the diagram is to modify (0.0-1.0)
     pub maintainability: f64,
+    /// Readability score - how easy the diagram is to understand (0.0-1.0)
     pub readability: f64,
+    /// Modularity score - how well-structured and organized (0.0-1.0)
     pub modularity: f64,
 }
 
 /// Improvement suggestion
+///
+/// Actionable recommendation for improving diagram quality, structure, or readability.
+/// Each suggestion includes a category, descriptive message, and severity level.
+///
+/// # Example
+///
+/// ```rust
+/// use mermaid_parser::common::metrics::{Suggestion, SuggestionCategory, SeverityLevel};
+///
+/// let suggestion = Suggestion {
+///     category: SuggestionCategory::Structure,
+///     message: "Consider adding labels to improve clarity".to_string(),
+///     severity: SeverityLevel::Warning,
+/// };
+/// ```
 #[derive(Debug, Clone, PartialEq)]
 pub struct Suggestion {
+    /// Category of the suggestion (performance, readability, etc.)
     pub category: SuggestionCategory,
+    /// Human-readable description of the suggested improvement
     pub message: String,
+    /// Severity level indicating importance of the suggestion
     pub severity: SeverityLevel,
 }
 

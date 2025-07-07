@@ -1,21 +1,35 @@
 //! # Mermaid Parser
 //!
-//! A Rust parser for Mermaid diagrams using the Chumsky parsing library.
-//! This crate focuses on parsing Mermaid syntax into Abstract Syntax Trees (ASTs)
+//! A high-performance Rust parser for [Mermaid](https://mermaid.js.org/) diagrams using the
+//! [Chumsky](https://github.com/zesterer/chumsky) parser combinator library.
+//! This crate focuses on parsing Mermaid syntax into Abstract Syntax Trees ([`DiagramType`])
 //! without rendering graphics.
+//!
+//! ## Features
+//!
+//! - 🚀 **Fast parsing** using advanced parser combinators
+//! - 📊 **Comprehensive diagram support** for 20+ diagram types
+//! - 🔍 **Detailed error reporting** with [`ParseError`] and source location information
+//! - 🧪 **Visitor pattern** support via [`AstVisitor`] for AST analysis
+//! - 📖 **Type-safe API** with full rustdoc documentation
+//! - ⚡ **Memory efficient** with zero-copy parsing where possible
 //!
 //! ## Supported Diagram Types
 //!
-//! - **Sankey Diagrams**: Flow data visualization
-//! - **Timeline Diagrams**: Chronological event sequences  
-//! - **User Journey**: User experience mapping with satisfaction scores
-//! - **Sequence Diagrams**: Message passing between actors
-//! - **Class Diagrams**: Object-oriented relationships
-//! - **State Diagrams**: State machine representations
-//! - **Flowcharts**: General-purpose flow diagrams
-//! - And many more...
+//! The parser supports all major Mermaid diagram types through the [`DiagramType`] enum:
 //!
-//! ## Example Usage
+//! - **[`DiagramType::Sankey`]**: Flow data visualization with weighted connections
+//! - **[`DiagramType::Timeline`]**: Chronological event sequences  
+//! - **[`DiagramType::Journey`]**: User experience mapping with satisfaction scores
+//! - **[`DiagramType::Sequence`]**: Message passing between actors over time
+//! - **[`DiagramType::Class`]**: Object-oriented class relationships
+//! - **[`DiagramType::State`]**: State machine representations
+//! - **[`DiagramType::Flowchart`]**: General-purpose flow diagrams
+//! - **[`DiagramType::Gantt`]**: Project timeline charts
+//! - **[`DiagramType::Pie`]**: Data distribution visualization
+//! - And many more specialized types...
+//!
+//! ## Quick Start
 //!
 //! ```rust
 //! use mermaid_parser::{parse_diagram, DiagramType};
@@ -31,8 +45,52 @@
 //!         println!("Found {} nodes and {} links",
 //!                  diagram.nodes.len(), diagram.links.len());
 //!     }
-//!     Ok(_) => println!("Parsed a different diagram type"),
+//!     Ok(other) => println!("Parsed diagram: {:?}", other),
 //!     Err(e) => eprintln!("Parse error: {}", e),
+//! }
+//! ```
+//!
+//! ## Error Handling
+//!
+//! The parser provides comprehensive error handling through [`ParseError`]:
+//!
+//! ```rust
+//! use mermaid_parser::{parse_diagram, ParseError};
+//!
+//! let invalid_input = "flowchart TD\n    A => B";  // Invalid arrow syntax
+//!
+//! match parse_diagram(invalid_input) {
+//!     Ok(diagram) => println!("Success: {:?}", diagram),
+//!     Err(ParseError::SyntaxError { message, line, column, .. }) => {
+//!         eprintln!("Syntax error at {}:{}: {}", line, column, message);
+//!     }
+//!     Err(e) => eprintln!("Other error: {}", e),
+//! }
+//! ```
+//!
+//! ## Advanced Usage
+//!
+//! ### AST Analysis with Visitor Pattern
+//!
+//! ```rust
+//! use mermaid_parser::{parse_diagram, NodeCounter};
+//!
+//! if let Ok(diagram) = parse_diagram("flowchart TD\n    A --> B\n    B --> C") {
+//!     let mut counter = NodeCounter::new();
+//!     diagram.accept(&mut counter);
+//!     println!("Found {} nodes", counter.nodes());
+//! }
+//! ```
+//!
+//! ### Diagram Metrics and Analysis
+//!
+//! ```rust
+//! use mermaid_parser::{parse_diagram, ComplexityAnalyzer};
+//!
+//! if let Ok(diagram) = parse_diagram("flowchart TD\n    A --> B") {
+//!     let mut analyzer = ComplexityAnalyzer::new();
+//!     diagram.accept(&mut analyzer);
+//!     println!("Cyclomatic complexity: {}", analyzer.cyclomatic_complexity());
 //! }
 //! ```
 
@@ -53,8 +111,11 @@ pub use error::{ParseError, Result};
 
 /// Parse a Mermaid diagram from text input
 ///
-/// This function automatically detects the diagram type and parses
-/// it into the appropriate AST representation.
+/// This function automatically detects the diagram type using [`detect_diagram_type`] and
+/// routes to the appropriate specialized parser to build a [`DiagramType`] AST.
+///
+/// The parser supports all major Mermaid diagram types with intelligent error recovery
+/// and detailed error reporting via [`ParseError`].
 ///
 /// # Arguments
 ///
@@ -62,16 +123,60 @@ pub use error::{ParseError, Result};
 ///
 /// # Returns
 ///
-/// Returns a `Result` containing the parsed diagram or a parse error.
+/// Returns a [`Result`]`<`[`DiagramType`], [`ParseError`]`>` containing the parsed
+/// diagram or a detailed parse error with location information.
 ///
-/// # Example
+/// # Examples
+///
+/// ## Basic Usage
+///
+/// ```rust
+/// use mermaid_parser::{parse_diagram, DiagramType};
+///
+/// let result = parse_diagram("sankey-beta\nA,B,10");
+/// assert!(result.is_ok());
+///
+/// if let Ok(DiagramType::Sankey(sankey)) = result {
+///     assert_eq!(sankey.links.len(), 1);
+/// }
+/// ```
+///
+/// ## Error Handling
+///
+/// ```rust
+/// use mermaid_parser::{parse_diagram, ParseError};
+///
+/// match parse_diagram("invalid diagram") {
+///     Ok(diagram) => println!("Parsed: {:?}", diagram),
+///     Err(ParseError::EmptyInput) => println!("Input was empty"),
+///     Err(e) => println!("Parse error: {}", e),
+/// }
+/// ```
+///
+/// ## Supported Diagram Types
+///
+/// All major Mermaid diagram types are supported:
 ///
 /// ```rust
 /// use mermaid_parser::parse_diagram;
 ///
-/// let result = parse_diagram("sankey-beta\nA,B,10");
-/// assert!(result.is_ok());
+/// // Flowcharts
+/// let flowchart = parse_diagram("flowchart TD\n    A --> B");
+///
+/// // Sequence diagrams  
+/// let sequence = parse_diagram("sequenceDiagram\n    A->>B: Hello");
+///
+/// // And many more...
 /// ```
+///
+/// # Errors
+///
+/// Returns [`ParseError`] variants for different error conditions:
+///
+/// - [`ParseError::EmptyInput`] - No valid diagram content found
+/// - [`ParseError::SyntaxError`] - Invalid syntax according to grammar rules
+/// - [`ParseError::SemanticError`] - Valid syntax but semantically incorrect
+/// - See [`ParseError`] for complete error type documentation
 pub fn parse_diagram(input: &str) -> Result<DiagramType> {
     // Detect diagram type from input
     let diagram_type = detect_diagram_type(input)?;
@@ -111,7 +216,53 @@ pub fn parse_diagram(input: &str) -> Result<DiagramType> {
 /// Detect the type of Mermaid diagram from input text
 ///
 /// This function examines the first non-comment, non-whitespace line
-/// to determine the diagram type.
+/// to determine the diagram type. It handles various diagram type keywords
+/// including their beta versions and alternative names.
+///
+/// The detection process:
+/// 1. Skips comment lines (starting with `//` or `#`)
+/// 2. Finds the first meaningful line with content
+/// 3. Extracts the first word (diagram type keyword)
+/// 4. Normalizes and matches against known diagram types
+///
+/// # Arguments
+///
+/// * `input` - The Mermaid diagram text to analyze
+///
+/// # Returns
+///
+/// Returns a [`Result`]`<&'static str, `[`ParseError`]`>` containing the diagram
+/// type identifier or [`ParseError::EmptyInput`] if no valid content is found.
+///
+/// # Examples
+///
+/// ```rust
+/// # use mermaid_parser::*;
+/// // This function is private, but shows the detection logic
+/// let sankey_input = "sankey-beta\nA,B,10";
+/// // Would detect as "sankey"
+///
+/// let flowchart_input = "flowchart TD\nA --> B";  
+/// // Would detect as "flowchart"
+///
+/// let commented_input = "// Comment\n# Another comment\ntimeline\ntitle: Test";
+/// // Would detect as "timeline" (skips comments)
+/// ```
+///
+/// # Supported Keywords
+///
+/// - `sankey-beta`, `sankey` → "sankey"
+/// - `flowchart`, `graph` → "flowchart"
+/// - `sequenceDiagram` → "sequence"
+/// - `classDiagram` → "class"
+/// - `stateDiagram`, `stateDiagram-v2` → "state"
+/// - And many more... (see source for complete list)
+///
+/// Unknown diagram types default to "misc" for fallback parsing.
+///
+/// # Errors
+///
+/// Returns [`ParseError::EmptyInput`] if the input contains no valid diagram content.
 fn detect_diagram_type(input: &str) -> Result<&'static str> {
     let first_line = input
         .lines()

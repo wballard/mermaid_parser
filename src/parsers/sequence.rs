@@ -1,7 +1,59 @@
-//! Parser for Mermaid sequence diagrams
+//! Sequence diagram parser implementation
 //!
-//! Sequence diagrams show message exchanges between actors/participants over time.
-//! Medium complexity grammar (329 lines) with participants, messages, loops, alternatives, and notes.
+//! This module provides parsing capabilities for Mermaid sequence diagrams, which visualize
+//! interactions between participants over time. Sequence diagrams are essential for modeling
+//! communication patterns, API flows, and system interactions.
+//!
+//! ## Syntax Support
+//!
+//! The parser supports comprehensive Mermaid sequence diagram syntax including:
+//!
+//! - **Participants**: `participant A`, `actor B`, `boundary C`
+//! - **Messages**: `A->>B: message`, `A-->>B: async`, `A-xB: destroy`
+//! - **Activations**: automatic and manual activation boxes
+//! - **Notes**: `note over A: note text`, `note left of A`
+//! - **Control flow**: `alt/else/end`, `opt/end`, `loop/end`, `par/and/end`
+//! - **Autonumbering**: automatic message numbering
+//!
+//! ## Features
+//!
+//! - **Rich message types** - Synchronous, asynchronous, creation, destruction
+//! - **Control structures** - Alternatives, loops, parallel sections
+//! - **Participant management** - Automatic participant discovery and aliasing
+//! - **Note attachments** - Flexible note positioning and styling
+//! - **Activation tracking** - Automatic lifeline activation management
+//!
+//! ## Example
+//!
+//! ```rust
+//! use mermaid_parser::parsers::sequence;
+//! use mermaid_parser::common::ast::SequenceStatement;
+//!
+//! let input = r#"
+//! sequenceDiagram
+//!     participant A as Alice
+//!     participant B as Bob
+//!     A->>B: Hello Bob!
+//!     activate B
+//!     B-->>A: Hello Alice!
+//!     deactivate B
+//! "#;
+//!
+//! let diagram = sequence::parse(input)?;
+//! println!("Participants: {}, Messages: {}",
+//!          diagram.participants.len(), diagram.statements.len());
+//!
+//! // Access message information
+//! for statement in &diagram.statements {
+//!     match statement {
+//!         SequenceStatement::Message(msg) => {
+//!             println!("Message: {} -> {}: {}", msg.from, msg.to, msg.text);
+//!         }
+//!         _ => {}
+//!     }
+//! }
+//! # Ok::<(), Box<dyn std::error::Error>>(())
+//! ```
 
 use crate::common::ast::{
     AccessibilityInfo, Alternative, ArrowType, AutoNumber, ElseBranch, Loop, Message, Note,

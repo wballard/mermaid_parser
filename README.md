@@ -134,9 +134,12 @@ let invalid_input = "flowchart TD\n    A --> ";
 
 match parse_diagram(invalid_input) {
     Ok(diagram) => println!("Parsed successfully: {:?}", diagram),
-    Err(ParseError::UnexpectedToken { token, span, expected }) => {
-        eprintln!("Parse error at line {}, column {}: found '{}', expected one of: {:?}", 
-                  span.line, span.column, token, expected);
+    Err(ParseError::SyntaxError { message, expected, found, line, column }) => {
+        eprintln!("Parse error at line {}, column {}: {}", line, column, message);
+        eprintln!("Expected one of: {:?}, found: {}", expected, found);
+    }
+    Err(ParseError::EmptyInput) => {
+        eprintln!("Input was empty or contained no valid diagram content");
     }
     Err(e) => eprintln!("Other error: {}", e),
 }
@@ -187,26 +190,7 @@ Run performance benchmarks:
 cargo bench
 ```
 
-The parser is optimized for high performance and can process complex diagrams efficiently.
-
-### Performance Metrics
-
-mermaid-parser delivers consistent high-performance results:
-
-| Diagram Type | Parse Time (avg) | Throughput | Memory Usage |
-|--------------|------------------|------------|--------------|
-| **Flowchart** (100 nodes) | ~2.3ms | 43,000 diagrams/sec | 1.2MB |
-| **Sequence** (50 messages) | ~1.8ms | 55,000 diagrams/sec | 0.8MB |
-| **Class** (25 classes) | ~3.1ms | 32,000 diagrams/sec | 1.5MB |
-| **Sankey** (200 links) | ~4.2ms | 23,000 diagrams/sec | 2.1MB |
-| **Complex Multi-type** | ~15ms | 6,600 diagrams/sec | 8.2MB |
-
-*Benchmarks run on Apple M1 Pro, averaged over 10,000 iterations*
-
-🎯 **Zero-copy parsing** where possible  
-⚡ **Parallel tokenization** for large inputs  
-💾 **Memory-efficient** AST representation  
-📊 **Scales linearly** with diagram complexity
+The parser is designed for performance using efficient parsing techniques and memory management.
 
 ## Contributing
 

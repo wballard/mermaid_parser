@@ -59,7 +59,7 @@ Support for 20+ diagram types including:
 ## Architecture Overview
 
 ```mermaid
-graph TB
+flowchart TB
     Input[Input Text] --> Detector[Diagram Type Detector]
     Detector --> Parser[Specialized Parser]
     Parser --> AST[Abstract Syntax Tree]

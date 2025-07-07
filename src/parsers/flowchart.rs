@@ -1,4 +1,49 @@
 //! Flowchart diagram parser implementation
+//!
+//! This module provides parsing capabilities for Mermaid flowchart diagrams, which are
+//! general-purpose diagrams showing process flows, decision trees, and system workflows.
+//!
+//! ## Syntax Support
+//!
+//! The parser supports comprehensive Mermaid flowchart syntax including:
+//!
+//! - **Directions**: `TD`, `TB`, `BT`, `LR`, `RL`
+//! - **Node shapes**: rectangles `[text]`, diamonds `{text}`, circles `((text))`, etc.
+//! - **Edge types**: solid `-->`, dotted `-.->`, thick `==>`, with labels
+//! - **Subgraphs**: nested diagram sections
+//! - **Styling**: CSS classes, inline styles, click events
+//!
+//! ## Features
+//!
+//! - **Flexible node syntax** - Supports all standard Mermaid node shapes
+//! - **Rich edge types** - Multiple arrow styles and decorations
+//! - **Subgraph nesting** - Hierarchical diagram organization
+//! - **Style integration** - CSS styling and click handlers
+//! - **Error recovery** - Robust parsing with helpful error messages
+//!
+//! ## Example
+//!
+//! ```rust
+//! use mermaid_parser::parsers::flowchart;
+//!
+//! let input = r#"
+//! flowchart TD
+//!     A[Start] --> B{Decision?}
+//!     B -->|Yes| C[Process]
+//!     B -->|No| D[Skip]
+//!     C --> E[End]
+//!     D --> E
+//! "#;
+//!
+//! let diagram = flowchart::parse(input)?;
+//! println!("Nodes: {}, Edges: {}", diagram.nodes.len(), diagram.edges.len());
+//!
+//! // Access node information
+//! for (node_id, node) in &diagram.nodes {
+//!     println!("Node {}: {:?}", node_id, node.shape);
+//! }
+//! # Ok::<(), Box<dyn std::error::Error>>(())
+//! ```
 
 use crate::common::ast::{
     AccessibilityInfo, EdgeType, FlowDirection, FlowEdge, FlowNode, FlowchartDiagram, NodeShape,
