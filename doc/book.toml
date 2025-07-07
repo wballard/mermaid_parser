@@ -14,7 +14,12 @@ create-missing = true
 # Preprocessor to handle cross-references and links
 
 [output.html]
-additional-css = ["theme/custom.css"]
+default-theme = "navy"
+preferred-dark-theme = "navy"
+smart-punctuation = true
+mathjax-support = false
+copy-fonts = true
+no-section-label = false
 git-repository-url = "https://github.com/wballard/mermaid-parser"
 edit-url-template = "https://github.com/wballard/mermaid-parser/edit/main/doc/{path}"
 
