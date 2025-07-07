@@ -1,11 +1,11 @@
-use mermaid_parser::parsers::radar;
 use mermaid_parser::error::ParseError;
+use mermaid_parser::parsers::radar;
 
 #[test]
 fn test_empty_input() {
     let input = "";
     let result = radar::parse(input);
-    
+
     assert!(result.is_err());
     match result {
         Err(ParseError::EmptyInput) => {
@@ -25,8 +25,11 @@ fn test_accessibility_title() {
 "#;
 
     let diagram = radar::parse(input).unwrap();
-    
-    assert_eq!(diagram.accessibility.title, Some("Chart for Screen Readers".to_string()));
+
+    assert_eq!(
+        diagram.accessibility.title,
+        Some("Chart for Screen Readers".to_string())
+    );
 }
 
 #[test]
@@ -39,9 +42,9 @@ fn test_accessibility_description() {
 "#;
 
     let diagram = radar::parse(input).unwrap();
-    
+
     assert_eq!(
-        diagram.accessibility.description, 
+        diagram.accessibility.description,
         Some("This chart shows performance metrics across different categories".to_string())
     );
 }
@@ -60,7 +63,7 @@ fn test_accessibility_multiline_description() {
 "#;
 
     let diagram = radar::parse(input).unwrap();
-    
+
     assert_eq!(
         diagram.accessibility.description,
         Some("This is a multi-line description that spans multiple lines to provide detailed accessibility information".to_string())
@@ -77,7 +80,7 @@ fn test_accessibility_multiline_description_empty() {
 "#;
 
     let diagram = radar::parse(input).unwrap();
-    
+
     assert_eq!(diagram.accessibility.description, Some("".to_string()));
 }
 
@@ -90,7 +93,7 @@ fn test_invalid_numeric_value() {
 "#;
 
     let result = radar::parse(input);
-    
+
     assert!(result.is_err());
     match result {
         Err(ParseError::SyntaxError { message, .. }) => {
@@ -108,7 +111,7 @@ fn test_non_radar_file() {
 "#;
 
     let result = radar::parse(input);
-    
+
     // Should return empty diagram for non-radar content
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -126,12 +129,12 @@ fn test_axis_without_quotes() {
 "#;
 
     let diagram = radar::parse(input).unwrap();
-    
+
     assert_eq!(diagram.axes.len(), 3);
     assert!(diagram.axes.contains(&"Frontend".to_string()));
     assert!(diagram.axes.contains(&"Backend".to_string()));
     assert!(diagram.axes.contains(&"Database".to_string()));
-    
+
     let dataset = &diagram.datasets[0];
     assert_eq!(dataset.values.len(), 3);
 }
@@ -150,7 +153,7 @@ radar
 "#;
 
     let diagram = radar::parse(input).unwrap();
-    
+
     assert_eq!(diagram.title, Some("Test".to_string()));
     assert_eq!(diagram.datasets.len(), 1);
     assert_eq!(diagram.axes.len(), 1);
@@ -169,12 +172,12 @@ fn test_dataset_with_missing_values() {
 "#;
 
     let diagram = radar::parse(input).unwrap();
-    
+
     // All datasets should have values for all axes
     assert_eq!(diagram.axes.len(), 3);
     assert_eq!(diagram.datasets[0].values.len(), 3);
     assert_eq!(diagram.datasets[1].values.len(), 3);
-    
+
     // Dataset2 should have 0.0 for missing "B" axis
     let b_index = diagram.axes.iter().position(|a| a == "B").unwrap();
     assert_eq!(diagram.datasets[1].values[b_index], 0.0);
@@ -189,7 +192,7 @@ radar
 "#;
 
     let diagram = radar::parse(input).unwrap();
-    
+
     assert_eq!(diagram.config.background_color, Some("#ffffff".to_string()));
     assert_eq!(diagram.config.grid_color, None);
 }
@@ -204,7 +207,7 @@ radar
 "#;
 
     let diagram = radar::parse(input).unwrap();
-    
+
     assert_eq!(diagram.config.grid_color, Some("#abc".to_string()));
 }
 
@@ -223,7 +226,7 @@ fn test_empty_lines_ignored() {
 "#;
 
     let diagram = radar::parse(input).unwrap();
-    
+
     assert_eq!(diagram.title, Some("Test Chart".to_string()));
     assert_eq!(diagram.axes.len(), 2);
     assert_eq!(diagram.datasets.len(), 1);
@@ -234,7 +237,7 @@ fn test_line_with_only_whitespace() {
     let input = "radar\n    \n    ds Data\n    \"A\" : 50\n        \n    \"B\" : 75";
 
     let diagram = radar::parse(input).unwrap();
-    
+
     assert_eq!(diagram.datasets.len(), 1);
     assert_eq!(diagram.axes.len(), 2);
 }
@@ -249,7 +252,7 @@ fn test_zero_values() {
 "#;
 
     let diagram = radar::parse(input).unwrap();
-    
+
     let values = &diagram.datasets[0].values;
     assert_eq!(values[0], 0.0);
     assert_eq!(values[1], 0.0);
@@ -266,7 +269,7 @@ fn test_negative_values() {
 "#;
 
     let diagram = radar::parse(input).unwrap();
-    
+
     let values = &diagram.datasets[0].values;
     assert_eq!(values[0], -10.5);
     assert_eq!(values[1], 25.0);
@@ -282,7 +285,7 @@ fn test_axis_value_without_colon() {
 "#;
 
     let diagram = radar::parse(input).unwrap();
-    
+
     // Line without colon should be ignored
     assert_eq!(diagram.axes.len(), 1);
     assert_eq!(diagram.axes[0], "B");
@@ -297,8 +300,8 @@ fn test_multiple_colons_in_line() {
 "#;
 
     let result = radar::parse(input);
-    
-    // The parser takes the first colon as separator, so "Time: 10:30" : 50 
+
+    // The parser takes the first colon as separator, so "Time: 10:30" : 50
     // becomes axis="Time" and tries to parse "10:30\" : 50" as a number, which fails
     assert!(result.is_err());
 }
@@ -312,13 +315,13 @@ fn test_dataset_normalization_edge_cases() {
 "#;
 
     let diagram = radar::parse(input).unwrap();
-    
+
     assert_eq!(diagram.datasets.len(), 2);
-    
+
     // Empty dataset should have one value (0.0) for the single axis
     assert_eq!(diagram.datasets[0].values.len(), 1);
     assert_eq!(diagram.datasets[0].values[0], 0.0);
-    
+
     // OnlyOne dataset should have the provided value
     assert_eq!(diagram.datasets[1].values.len(), 1);
     assert_eq!(diagram.datasets[1].values[0], 100.0);
@@ -333,7 +336,7 @@ radar
 "#;
 
     let diagram = radar::parse(input).unwrap();
-    
+
     // Config should remain at defaults
     assert_eq!(diagram.config.background_color, None);
     assert_eq!(diagram.config.grid_color, None);
@@ -349,7 +352,7 @@ fn test_very_large_values() {
 "#;
 
     let diagram = radar::parse(input).unwrap();
-    
+
     let values = &diagram.datasets[0].values;
     assert_eq!(values[0], 1000000.0);
     assert_eq!(values[1], 1000000.0);
@@ -370,7 +373,7 @@ fn test_axis_ordering_preserved() {
 "#;
 
     let diagram = radar::parse(input).unwrap();
-    
+
     // Axes should be in order of first appearance
     assert_eq!(diagram.axes[0], "Z");
     assert_eq!(diagram.axes[1], "A");
@@ -388,7 +391,7 @@ fn test_mixed_quote_styles() {
 "#;
 
     let diagram = radar::parse(input).unwrap();
-    
+
     // Parser handles all three styles - single quotes are treated as part of the axis name
     assert_eq!(diagram.axes.len(), 3);
     assert!(diagram.axes.contains(&"Double".to_string()));
@@ -407,13 +410,15 @@ fn test_whitespace_in_axis_names() {
 "#;
 
     let diagram = radar::parse(input).unwrap();
-    
+
     assert_eq!(diagram.axes.len(), 4);
     // Axis names should preserve internal structure
     assert!(diagram.axes.contains(&"  Leading Spaces".to_string()));
     assert!(diagram.axes.contains(&"Trailing Spaces  ".to_string()));
     assert!(diagram.axes.contains(&"  Both  ".to_string()));
-    assert!(diagram.axes.contains(&"Multiple   Internal   Spaces".to_string()));
+    assert!(diagram
+        .axes
+        .contains(&"Multiple   Internal   Spaces".to_string()));
 }
 
 #[test]
@@ -428,7 +433,7 @@ fn test_special_characters_in_axis_names() {
 "#;
 
     let diagram = radar::parse(input).unwrap();
-    
+
     assert_eq!(diagram.axes.len(), 5);
     assert!(diagram.axes.contains(&"A/B Testing".to_string()));
     assert!(diagram.axes.contains(&"Cost ($)".to_string()));
@@ -448,7 +453,7 @@ fn test_unicode_in_content() {
 "#;
 
     let diagram = radar::parse(input).unwrap();
-    
+
     assert_eq!(diagram.title, Some("技能评估".to_string()));
     assert_eq!(diagram.datasets[0].name, "当前水平");
     assert!(diagram.axes.contains(&"编程".to_string()));
@@ -500,7 +505,10 @@ fn test_title_with_special_characters() {
 "#;
 
     let diagram = radar::parse(input).unwrap();
-    assert_eq!(diagram.title, Some("Skills & Competencies (2024) - Q1".to_string()));
+    assert_eq!(
+        diagram.title,
+        Some("Skills & Competencies (2024) - Q1".to_string())
+    );
 }
 
 #[test]
@@ -509,7 +517,7 @@ fn test_empty_dataset_name() {
     let input = "radar\n    ds\n    \"A\" : 50\n    \"B\" : 60\n";
 
     let diagram = radar::parse(input).unwrap();
-    
+
     // The line "ds" without trailing space doesn't match "ds " so no dataset is created
     // and subsequent axis-value pairs are ignored
     assert_eq!(diagram.datasets.len(), 0);
@@ -527,7 +535,7 @@ fn test_values_in_different_formats() {
 "#;
 
     let diagram = radar::parse(input).unwrap();
-    
+
     let values = &diagram.datasets[0].values;
     assert_eq!(values[0], 42.0);
     assert_eq!(values[1], 42.0);
@@ -535,7 +543,7 @@ fn test_values_in_different_formats() {
     assert_eq!(values[3], 42.0);
 }
 
-#[test] 
+#[test]
 fn test_dataset_declaration_without_space() {
     // Test that "ds" (without space) doesn't create a new dataset
     let input = r#"radar
@@ -546,7 +554,7 @@ fn test_dataset_declaration_without_space() {
 "#;
 
     let diagram = radar::parse(input).unwrap();
-    
+
     // "ds" without space doesn't match "ds " so it doesn't create a new dataset
     // The "B" value is added to the current dataset (DatasetOne)
     assert_eq!(diagram.datasets.len(), 1);
@@ -564,7 +572,7 @@ fn test_title_with_only_whitespace() {
 "#;
 
     let diagram = radar::parse(input).unwrap();
-    
+
     // Title with only whitespace becomes None since trim() produces empty string
     assert_eq!(diagram.title, None);
 }
@@ -591,18 +599,24 @@ radar
 "#;
 
     let diagram = radar::parse(input).unwrap();
-    
+
     // Check various aspects
     assert_eq!(diagram.title, Some("Empty Title".to_string()));
-    assert_eq!(diagram.accessibility.title, Some("Accessibility Title".to_string()));
+    assert_eq!(
+        diagram.accessibility.title,
+        Some("Accessibility Title".to_string())
+    );
     // The multiline description replaces the single line one
     let expected_desc = "This multiline description should be ignored because we already have one";
-    assert_eq!(diagram.accessibility.description, Some(expected_desc.to_string()));
+    assert_eq!(
+        diagram.accessibility.description,
+        Some(expected_desc.to_string())
+    );
     assert_eq!(diagram.config.background_color, Some("#fff".to_string()));
     assert_eq!(diagram.config.grid_color, Some("#000".to_string()));
     assert_eq!(diagram.datasets.len(), 2); // "Dataset One" and "Empty Dataset"
     assert_eq!(diagram.axes.len(), 3); // Unquoted, Quoted, and "Third Axis"
-    
+
     // Verify the datasets
     assert_eq!(diagram.datasets[0].name, "Dataset One");
     assert_eq!(diagram.datasets[1].name, "Empty Dataset");

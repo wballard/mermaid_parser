@@ -5,7 +5,7 @@ fn test_empty_input_error() {
     let input = "";
     let result = parse_diagram(input);
     assert!(result.is_err(), "Empty input should produce an error");
-    
+
     // The error might not contain "Empty input" but should be an error
     // Let's just verify it's an error
 }
@@ -17,10 +17,13 @@ fn test_missing_treemap_keyword_error() {
         Operations: 500000
         Marketing: 300000
 "#;
-    
+
     let result = parse_diagram(input);
-    assert!(result.is_err(), "Missing treemap keyword should produce an error");
-    
+    assert!(
+        result.is_err(),
+        "Missing treemap keyword should produce an error"
+    );
+
     // Just verify it's an error - the parse_diagram function might not give
     // the specific treemap error message
 }
@@ -127,7 +130,7 @@ Root
         DiagramType::Treemap(diagram) => {
             assert_eq!(diagram.root.name, "Root");
             assert_eq!(diagram.root.children.len(), 4);
-            
+
             // Invalid numbers should result in None value
             assert_eq!(diagram.root.children[0].value, None);
             assert_eq!(diagram.root.children[1].value, None);
@@ -187,21 +190,21 @@ fn test_deep_nesting() {
         DiagramType::Treemap(diagram) => {
             assert_eq!(diagram.root.name, "Level1");
             assert_eq!(diagram.root.children.len(), 1);
-            
+
             let level2 = &diagram.root.children[0];
             assert_eq!(level2.name, "Level2");
             assert_eq!(level2.children.len(), 1);
-            
+
             let level3 = &level2.children[0];
             assert_eq!(level3.name, "Level3");
             assert_eq!(level3.children.len(), 2);
-            
+
             let level4 = &level3.children[0];
             assert_eq!(level4.name, "Level4");
             assert_eq!(level4.children.len(), 2);
             assert_eq!(level4.children[0].name, "Level5");
             assert_eq!(level4.children[0].value, Some(100.0));
-            
+
             let level4b = &level3.children[1];
             assert_eq!(level4b.name, "Level4b");
             assert_eq!(level4b.children.len(), 1);
@@ -288,7 +291,7 @@ fn test_decimal_and_negative_values() {
         DiagramType::Treemap(diagram) => {
             assert_eq!(diagram.root.name, "Financial Summary");
             assert_eq!(diagram.root.children.len(), 7);
-            
+
             assert_eq!(diagram.root.children[0].value, Some(1000000.50));
             assert_eq!(diagram.root.children[1].value, Some(-500000.25));
             assert_eq!(diagram.root.children[2].value, Some(500000.25));
@@ -360,7 +363,10 @@ fn test_title_variations() {
     match result.unwrap() {
         DiagramType::Treemap(diagram) => {
             // Actually, it seems the parser takes the last title, not the first
-            assert_eq!(diagram.title, Some("Second Title Should Be Ignored".to_string()));
+            assert_eq!(
+                diagram.title,
+                Some("Second Title Should Be Ignored".to_string())
+            );
             assert_eq!(diagram.root.name, "Root");
         }
         _ => panic!("Expected Treemap diagram"),
@@ -386,27 +392,27 @@ fn test_node_without_colon_separator() {
         DiagramType::Treemap(diagram) => {
             assert_eq!(diagram.root.name, "Root");
             assert_eq!(diagram.root.children.len(), 6);
-            
+
             // Without colon, entire line is name
             assert_eq!(diagram.root.children[0].name, "Child1 100");
             assert_eq!(diagram.root.children[0].value, None);
-            
+
             // Normal case
             assert_eq!(diagram.root.children[1].name, "Child2");
             assert_eq!(diagram.root.children[1].value, Some(200.0));
-            
+
             // Space before colon
             assert_eq!(diagram.root.children[2].name, "Child3");
             assert_eq!(diagram.root.children[2].value, Some(300.0));
-            
+
             // No space after colon
             assert_eq!(diagram.root.children[3].name, "Child4");
             assert_eq!(diagram.root.children[3].value, Some(400.0));
-            
+
             // Empty name before colon
             assert_eq!(diagram.root.children[4].name, "");
             assert_eq!(diagram.root.children[4].value, Some(500.0));
-            
+
             // Empty value after colon
             assert_eq!(diagram.root.children[5].name, "Child6");
             assert_eq!(diagram.root.children[5].value, None);
@@ -455,7 +461,7 @@ fn test_complex_quote_scenarios() {
             // Quotes not at start/end are preserved
             assert_eq!(diagram.root.name, "Root\"Node");
             assert_eq!(diagram.root.children.len(), 4);
-            
+
             // Empty quoted string
             assert_eq!(diagram.root.children[0].name, "");
             // Space in quotes

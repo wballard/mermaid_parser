@@ -69,7 +69,7 @@ fn test_empty_quoted_fields() {
     assert!(result.is_ok());
     let diagram = result.unwrap();
     assert_eq!(diagram.links.len(), 3);
-    
+
     // Empty quoted strings are preserved
     assert_eq!(diagram.links[0].source, "");
     assert_eq!(diagram.links[0].target, "");
@@ -90,7 +90,7 @@ fn test_escaped_quotes_in_quoted_fields() {
     let result = sankey::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     assert_eq!(diagram.links[0].source, "Node with \"quotes\"");
     assert_eq!(diagram.links[0].target, "Another \"quoted\" node");
     assert_eq!(diagram.links[1].source, "Normal");
@@ -150,7 +150,7 @@ B,C,20
 #[test]
 fn test_mixed_whitespace() {
     let input = "sankey-beta\n\t  \t\nA,B,10\n\t\n  \t  \nB,C,20\n";
-    
+
     let result = sankey::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -160,7 +160,7 @@ fn test_mixed_whitespace() {
 #[test]
 fn test_carriage_return_newlines() {
     let input = "sankey-beta\r\nA,B,10\r\nB,C,20\r\n";
-    
+
     let result = sankey::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -170,7 +170,7 @@ fn test_carriage_return_newlines() {
 #[test]
 fn test_header_at_eof() {
     let input = "sankey-beta";
-    
+
     let result = sankey::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -181,7 +181,7 @@ fn test_header_at_eof() {
 #[test]
 fn test_tabs_in_fields() {
     let input = "sankey-beta\nA\t,\tB\t,\t10\t\nC,D,20\n";
-    
+
     let result = sankey::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -201,7 +201,7 @@ Node@special#chars,Node$money%percent,30
     let result = sankey::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     assert_eq!(diagram.links[0].source, "Node-with-hyphens");
     assert_eq!(diagram.links[0].target, "Node_with_underscores");
     assert_eq!(diagram.links[1].source, "Node/with/slashes");
@@ -222,7 +222,7 @@ G,H,.5
     let result = sankey::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     assert_eq!(diagram.links[0].value, 123.456);
     assert_eq!(diagram.links[1].value, 1000.0);
     assert_eq!(diagram.links[2].value, 0.015);
@@ -239,7 +239,7 @@ C,D,-5.5
     let result = sankey::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     // Negative values are parsed correctly
     assert_eq!(diagram.links[0].value, -10.0);
     assert_eq!(diagram.links[1].value, -5.5);
@@ -255,7 +255,7 @@ C,D,   20.5
     let result = sankey::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     // Spaces are trimmed from numeric values
     assert_eq!(diagram.links[0].value, 10.0);
     assert_eq!(diagram.links[1].value, 20.5);
@@ -265,10 +265,10 @@ C,D,   20.5
 fn test_get_line_column_function() {
     // Test internal line/column calculation with multi-byte characters
     let input = "sankey-beta\n❌Invalid,Syntax,10\nA,B,20";
-    
+
     let _result = sankey::parse(input);
     // Should still parse successfully if lexer accepts these characters
-    
+
     // Test another case that might trigger error handling
     let input2 = "not-a-sankey\nA,B,10";
     let result2 = sankey::parse(input2);
@@ -278,7 +278,7 @@ fn test_get_line_column_function() {
 #[test]
 fn test_missing_comma_error() {
     let input = "sankey-beta\nA B 10\n";
-    
+
     let result = sankey::parse(input);
     assert!(result.is_err());
     match result {
@@ -302,10 +302,10 @@ B,A,5
     let result = sankey::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     // Should have exactly 3 unique nodes
     assert_eq!(diagram.nodes.len(), 3);
-    
+
     let node_names: Vec<_> = diagram.nodes.iter().map(|n| &n.name).collect();
     assert!(node_names.contains(&&"A".to_string()));
     assert!(node_names.contains(&&"B".to_string()));
@@ -315,7 +315,7 @@ B,A,5
 #[test]
 fn test_empty_lines_at_start() {
     let input = "\n\n\nsankey-beta\nA,B,10\n";
-    
+
     let result = sankey::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -325,7 +325,7 @@ fn test_empty_lines_at_start() {
 #[test]
 fn test_comment_without_newline_at_eof() {
     let input = "sankey-beta\nA,B,10\n%% Final comment without newline";
-    
+
     let result = sankey::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -335,7 +335,7 @@ fn test_comment_without_newline_at_eof() {
 #[test]
 fn test_link_without_final_newline() {
     let input = "sankey-beta\nA,B,10\nB,C,20";
-    
+
     let result = sankey::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -346,7 +346,7 @@ fn test_link_without_final_newline() {
 fn test_lexer_error_coverage() {
     // Test input that triggers lexer errors
     let input = "sankey-beta\n\"Unclosed quote";
-    
+
     let result = sankey::parse(input);
     assert!(result.is_err());
     match result {
@@ -364,7 +364,7 @@ fn test_parser_error_without_specific_error() {
     // The parser expects tokens in a specific order
     // We'd need to create a scenario where the parser fails without a specific error
     // This is mostly for coverage of the error handling branches
-    
+
     let input = "sankey-beta\n";
     let result = sankey::parse(input);
     assert!(result.is_ok()); // Empty sankey is valid

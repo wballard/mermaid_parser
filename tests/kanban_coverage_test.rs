@@ -22,7 +22,9 @@ fn test_invalid_header_error() {
     let result = kanban::parse(input);
     assert!(result.is_err());
     match result {
-        Err(ParseError::SyntaxError { message, expected, .. }) => {
+        Err(ParseError::SyntaxError {
+            message, expected, ..
+        }) => {
             assert!(message.contains("Expected 'kanban' keyword"));
             assert!(expected.contains(&"kanban".to_string()));
         }
@@ -122,7 +124,7 @@ fn test_inline_metadata() {
     let result = kanban::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     // Just verify the diagram was parsed
     assert!(!diagram.sections.is_empty(), "No sections found");
 }
@@ -290,7 +292,7 @@ fn test_metadata_with_quotes() {
     let diagram = result.unwrap();
     assert!(!diagram.sections.is_empty());
     assert!(!diagram.sections[0].items.is_empty());
-    
+
     // Metadata might be parsed if standalone update works
     let item = &diagram.sections[0].items[0];
     if !item.metadata.is_empty() {
@@ -316,7 +318,7 @@ fn test_multiline_metadata_value() {
     let diagram = result.unwrap();
     assert!(!diagram.sections.is_empty());
     assert!(!diagram.sections[0].items.is_empty());
-    
+
     let item = &diagram.sections[0].items[0];
     // Multi-line values might be supported
     if let Some(desc) = item.metadata.get("description") {
@@ -336,14 +338,14 @@ fn test_metadata_without_quotes() {
     assert!(result.is_ok());
     let diagram = result.unwrap();
     assert!(!diagram.sections.is_empty());
-    
+
     // Just verify parsing succeeded
 }
 
 #[test]
 fn test_very_large_indentation() {
     let input = "kanban\n  Todo\n                    item1[Very indented task]";
-    
+
     let result = kanban::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -361,14 +363,14 @@ fn test_metadata_edge_cases() {
 
     let result = kanban::parse(input);
     assert!(result.is_ok());
-    
+
     // Test empty metadata content
     let input2 = r#"kanban
   Todo
     item1[Task]
     @{}
 "#;
-    
+
     let result2 = kanban::parse(input2);
     assert!(result2.is_ok());
     let diagram2 = result2.unwrap();
@@ -446,7 +448,7 @@ fn test_multiple_metadata_updates() {
     assert!(result.is_ok());
     let diagram = result.unwrap();
     let item = &diagram.sections[0].items[0];
-    
+
     // Multiple metadata updates might be supported
     if !item.metadata.is_empty() {
         // Check if priority was set

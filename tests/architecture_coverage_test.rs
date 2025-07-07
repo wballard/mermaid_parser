@@ -85,7 +85,7 @@ fn test_ports_on_services() {
     let result = architecture::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     // Ports might not be supported in the parser
     if !diagram.edges.is_empty() {
         let edge = &diagram.edges[0];
@@ -111,7 +111,7 @@ fn test_all_port_types() {
     let result = architecture::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     // Port syntax might not be parsed correctly
     // Just check services exist
     assert_eq!(diagram.services.len(), 4);
@@ -286,7 +286,7 @@ fn test_edge_with_port_on_junction() {
     let result = architecture::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     // Port syntax might not be parsed
     assert_eq!(diagram.services.len(), 1);
     assert_eq!(diagram.junctions.len(), 1);
@@ -303,7 +303,10 @@ fn test_direction_parsing() {
     let diagram = result.unwrap();
     // Direction might not be parsed from header, check default
     // Default seems to be TB
-    assert!(matches!(diagram.direction, ArchDirection::TB | ArchDirection::LR));
+    assert!(matches!(
+        diagram.direction,
+        ArchDirection::TB | ArchDirection::LR
+    ));
 }
 
 #[test]
@@ -314,7 +317,7 @@ fn test_all_directions() {
     for dir_str in test_cases {
         let input = format!("architecture-beta {}\n    service s1[Service 1]", dir_str);
         let result = architecture::parse(&input);
-        
+
         // Some direction strings might cause parsing issues
         if result.is_ok() {
             let diagram = result.unwrap();
@@ -337,7 +340,7 @@ fn test_edge_type_matching() {
     let result = architecture::parse(input);
     assert!(result.is_ok());
     let _diagram = result.unwrap();
-    
+
     // Test EdgeEndpoint PartialEq
     let endpoint1 = EdgeEndpoint {
         id: "s1".to_string(),
@@ -348,7 +351,7 @@ fn test_edge_type_matching() {
         port: None,
     };
     assert_eq!(endpoint1, endpoint2);
-    
+
     let endpoint3 = EdgeEndpoint {
         id: "s2".to_string(),
         port: None,
@@ -419,7 +422,10 @@ fn test_special_characters_in_titles() {
     let result = architecture::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    assert_eq!(diagram.services.get("web").unwrap().title, "Web Server v2.0");
+    assert_eq!(
+        diagram.services.get("web").unwrap().title,
+        "Web Server v2.0"
+    );
     assert_eq!(diagram.services.get("api").unwrap().title, "API (REST)");
 }
 
@@ -469,7 +475,7 @@ fn test_complex_diagram() {
     let result = architecture::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     assert_eq!(diagram.groups.len(), 2);
     assert_eq!(diagram.services.len(), 5);
     assert_eq!(diagram.junctions.len(), 1);
