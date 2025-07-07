@@ -14,7 +14,7 @@ fn test_empty_input_error() {
     assert!(result.is_err());
     // Parser reports syntax error for empty input
     match result {
-        Err(ParseError::SyntaxError { .. }) => {},
+        Err(ParseError::SyntaxError { .. }) => {}
         _ => panic!("Expected SyntaxError for empty input"),
     }
 }
@@ -26,7 +26,7 @@ fn test_non_requirement_header_error() {
     assert!(result.is_err());
     // Parser doesn't provide detailed expected/found info
     match result {
-        Err(ParseError::SyntaxError { .. }) => {},
+        Err(ParseError::SyntaxError { .. }) => {}
         _ => panic!("Expected SyntaxError for non-requirement header"),
     }
 }
@@ -34,12 +34,12 @@ fn test_non_requirement_header_error() {
 #[test]
 fn test_requirement_token_from_string() {
     use requirement::RequirementToken;
-    
+
     // Test the From<&RequirementToken> for String implementation
     let token = RequirementToken::RequirementDiagram;
     let token_str: String = String::from(&token);
     assert_eq!(token_str, "RequirementDiagram");
-    
+
     let id_token = RequirementToken::Id;
     let id_str: String = String::from(&id_token);
     assert_eq!(id_str, "Id");
@@ -58,7 +58,7 @@ physicalRequirement phys_req {
 "#;
 
     let diagram = requirement::parse(input).unwrap();
-    
+
     assert_eq!(diagram.requirements.len(), 1);
     let req = &diagram.requirements["phys_req"];
     assert_eq!(req.req_type, RequirementType::PhysicalRequirement);
@@ -78,7 +78,7 @@ requirement med_risk_req {
 "#;
 
     let diagram = requirement::parse(input).unwrap();
-    
+
     let req = &diagram.requirements["med_risk_req"];
     assert_eq!(req.risk, Some(RiskLevel::Medium));
 }
@@ -101,7 +101,7 @@ requirement demonstration_req {
 "#;
 
     let diagram = requirement::parse(input).unwrap();
-    
+
     assert_eq!(
         diagram.requirements["analysis_req"].verify_method,
         Some(VerificationMethod::Analysis)
@@ -157,14 +157,15 @@ elem2 - copies -> req2
 "#;
 
     let diagram = requirement::parse(input).unwrap();
-    
+
     assert_eq!(diagram.relationships.len(), 6);
-    
-    let rel_types: Vec<RelationshipType> = diagram.relationships
+
+    let rel_types: Vec<RelationshipType> = diagram
+        .relationships
         .iter()
         .map(|r| r.relationship_type.clone())
         .collect();
-    
+
     assert!(rel_types.contains(&RelationshipType::Contains));
     assert!(rel_types.contains(&RelationshipType::Derives));
     assert!(rel_types.contains(&RelationshipType::Refines));
@@ -184,7 +185,7 @@ child <- contains - parent
 "#;
 
     let diagram = requirement::parse(input).unwrap();
-    
+
     let rel = &diagram.relationships[0];
     assert_eq!(rel.source, "parent");
     assert_eq!(rel.target, "child");
@@ -208,13 +209,13 @@ element quoted_elem {
 "#;
 
     let diagram = requirement::parse(input).unwrap();
-    
+
     let req = &diagram.requirements["quoted_req"];
     // Parser may split on dashes
     assert_eq!(req.id, "REQ");
     // Parser may stop at certain keywords
     assert!(req.text.starts_with("This is a"));
-    
+
     let elem = &diagram.elements["quoted_elem"];
     assert_eq!(elem.element_type, "test document");
     assert_eq!(elem.doc_ref, Some("path/to/doc.pdf".to_string()));
@@ -231,9 +232,15 @@ requirement test { id: 1 text: test }
 "#;
 
     let diagram = requirement::parse(input).unwrap();
-    
-    assert_eq!(diagram.accessibility.title, Some("Requirement Diagram Title".to_string()));
-    assert_eq!(diagram.accessibility.description, Some("This is an accessibility description".to_string()));
+
+    assert_eq!(
+        diagram.accessibility.title,
+        Some("Requirement Diagram Title".to_string())
+    );
+    assert_eq!(
+        diagram.accessibility.description,
+        Some("This is an accessibility description".to_string())
+    );
 }
 
 #[test]
@@ -248,7 +255,7 @@ requirement test { id: 1 text: test }
 "#;
 
     let diagram = requirement::parse(input).unwrap();
-    
+
     assert_eq!(
         diagram.accessibility.description,
         Some("This is a single line accessibility description".to_string())
@@ -271,7 +278,7 @@ requirement req3 { id: 3 text: another normal requirement }
 "#;
 
     let diagram = requirement::parse(input).unwrap();
-    
+
     // Test that class definitions are parsed (though they may not be stored in the AST)
     assert_eq!(diagram.requirements.len(), 3);
 }
@@ -310,10 +317,12 @@ requirement __internal_req__ {
 "#;
 
     let diagram = requirement::parse(input).unwrap();
-    
+
     assert_eq!(diagram.requirements.len(), 3);
     assert!(diagram.requirements.contains_key("REQ_001_SystemInit"));
-    assert!(diagram.requirements.contains_key("Complex Name With Spaces"));
+    assert!(diagram
+        .requirements
+        .contains_key("Complex Name With Spaces"));
     assert!(diagram.requirements.contains_key("__internal_req__"));
 }
 
@@ -340,7 +349,7 @@ requirement missing_id {
         // Parser rejects it, which is also valid
         assert!(result1.is_err());
     }
-    
+
     // Test requirement without text
     let input2 = r#"requirementDiagram
 
@@ -396,7 +405,7 @@ req1 satisfies req2
 
     let result1 = requirement::parse(input1);
     assert!(result1.is_err());
-    
+
     // Test relationship with invalid type
     let input2 = r#"requirementDiagram
 
@@ -446,7 +455,7 @@ requirement duplicate {
             // If it succeeds, we should have one requirement with the last values
             assert_eq!(diagram.requirements.len(), 1);
             assert_eq!(diagram.requirements["duplicate"].id, "2");
-        },
+        }
         Err(_) => {
             // Or it might error, which is also acceptable
         }
@@ -456,7 +465,7 @@ requirement duplicate {
 #[test]
 fn test_empty_requirement_diagram() {
     let input = "requirementDiagram\n";
-    
+
     let diagram = requirement::parse(input).unwrap();
     assert_eq!(diagram.requirements.len(), 0);
     assert_eq!(diagram.elements.len(), 0);
@@ -500,7 +509,7 @@ req_with_underscores - satisfies -> elem_with_underscores
 "#;
 
     let diagram = requirement::parse(input).unwrap();
-    
+
     assert!(diagram.requirements.contains_key("req_with_underscores"));
     assert!(diagram.elements.contains_key("elem_with_underscores"));
     assert_eq!(diagram.relationships.len(), 1);
@@ -522,7 +531,7 @@ accTitle: accDescr direction style classDef class
 
     let tokens = requirement::requirement_lexer().parse(input).into_result();
     assert!(tokens.is_ok());
-    
+
     let token_vec = tokens.unwrap();
     assert!(!token_vec.is_empty());
 }

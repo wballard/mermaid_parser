@@ -12,12 +12,12 @@ fn test_empty_input_error() {
     let result = sequence::parse(input);
     assert!(result.is_err());
     match result {
-        Err(ParseError::EmptyInput) => {},
+        Err(ParseError::EmptyInput) => {}
         _ => panic!("Expected EmptyInput error"),
     }
 }
 
-#[test] 
+#[test]
 fn test_missing_header_error() {
     let input = "participant Alice\nAlice->Bob: Hello";
     let result = sequence::parse(input);
@@ -25,7 +25,7 @@ fn test_missing_header_error() {
     match result {
         Err(ParseError::SyntaxError { message, .. }) => {
             assert!(message.contains("Expected sequenceDiagram header"));
-        },
+        }
         _ => panic!("Expected SyntaxError for missing header"),
     }
 }
@@ -36,7 +36,7 @@ fn test_title_directive() {
     title Test Sequence Diagram
     participant Alice
     Alice->Bob: Hello"#;
-    
+
     let result = sequence::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -50,7 +50,7 @@ fn test_autonumber_with_start_and_step() {
     participant Alice
     Alice->Bob: Message 1
     Bob->Alice: Message 2"#;
-    
+
     let result = sequence::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -67,7 +67,7 @@ fn test_autonumber_with_only_start() {
     autonumber 5
     participant Alice
     Alice->Bob: Message"#;
-    
+
     let result = sequence::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -83,7 +83,7 @@ fn test_autonumber_with_invalid_numbers() {
     autonumber abc xyz
     participant Alice
     Alice->Bob: Message"#;
-    
+
     let result = sequence::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -98,11 +98,11 @@ fn test_actor_declaration_basic() {
     let input = r#"sequenceDiagram
     actor Alice
     Alice->Bob: Message"#;
-    
+
     let result = sequence::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     let alice = diagram.participants.iter().find(|p| p.actor == "Alice");
     assert!(alice.is_some());
     assert_eq!(alice.unwrap().participant_type, ParticipantType::Actor);
@@ -114,15 +114,15 @@ fn test_participant_with_alias() {
     participant Alice as A
     participant Bob as B
     A->B: Hello"#;
-    
+
     let result = sequence::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     let alice = diagram.participants.iter().find(|p| p.actor == "Alice");
     assert!(alice.is_some());
     assert_eq!(alice.unwrap().alias, Some("A".to_string()));
-    
+
     // Message should be from Alice to Bob (aliases resolved)
     if let SequenceStatement::Message(msg) = &diagram.statements[0] {
         assert_eq!(msg.from, "Alice");
@@ -136,13 +136,17 @@ fn test_duplicate_participant_declaration() {
     participant Alice
     participant Alice
     Alice->Bob: Hello"#;
-    
+
     let result = sequence::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     // Should only have Alice once in participants
-    let alice_count = diagram.participants.iter().filter(|p| p.actor == "Alice").count();
+    let alice_count = diagram
+        .participants
+        .iter()
+        .filter(|p| p.actor == "Alice")
+        .count();
     assert_eq!(alice_count, 1);
 }
 
@@ -153,11 +157,11 @@ fn test_alias_tracking() {
     participant Bob as B
     A->B: Message 1
     B->A: Message 2"#;
-    
+
     let result = sequence::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     // All messages should use real names, not aliases
     for stmt in &diagram.statements {
         if let SequenceStatement::Message(msg) = stmt {
@@ -181,15 +185,19 @@ fn test_all_arrow_types() {
         ("--)", ArrowType::Point),
         ("-)", ArrowType::Point),
     ];
-    
+
     for (arrow, expected_type) in arrow_tests {
         let input = format!("sequenceDiagram\n    Alice{}Bob: Test message", arrow);
         let result = sequence::parse(&input);
         assert!(result.is_ok(), "Failed to parse arrow {}", arrow);
         let diagram = result.unwrap();
-        
+
         if let SequenceStatement::Message(msg) = &diagram.statements[0] {
-            assert_eq!(msg.arrow_type, expected_type, "Arrow {} type mismatch", arrow);
+            assert_eq!(
+                msg.arrow_type, expected_type,
+                "Arrow {} type mismatch",
+                arrow
+            );
         }
     }
 }
@@ -198,11 +206,11 @@ fn test_all_arrow_types() {
 fn test_message_without_text() {
     let input = r#"sequenceDiagram
     Alice->Bob"#;
-    
+
     let result = sequence::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     if let SequenceStatement::Message(msg) = &diagram.statements[0] {
         assert_eq!(msg.text, "");
     }
@@ -216,18 +224,20 @@ fn test_note_positions() {
     note left of Alice: Left note
     note right of Bob: Right note  
     note over Alice: Over note"#;
-    
+
     let result = sequence::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
-    let notes: Vec<_> = diagram.statements.iter()
+
+    let notes: Vec<_> = diagram
+        .statements
+        .iter()
         .filter_map(|s| match s {
             SequenceStatement::Note(n) => Some(n),
             _ => None,
         })
         .collect();
-    
+
     assert_eq!(notes.len(), 3);
     assert_eq!(notes[0].position, NotePosition::LeftOf);
     assert_eq!(notes[1].position, NotePosition::RightOf);
@@ -239,13 +249,15 @@ fn test_note_without_position() {
     let input = r#"sequenceDiagram
     participant Alice
     note Alice: This should fail"#;
-    
+
     let result = sequence::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     // Note without proper position prefix is ignored
-    let notes: Vec<_> = diagram.statements.iter()
+    let notes: Vec<_> = diagram
+        .statements
+        .iter()
         .filter_map(|s| match s {
             SequenceStatement::Note(_) => Some(()),
             _ => None,
@@ -259,11 +271,11 @@ fn test_note_without_text() {
     let input = r#"sequenceDiagram
     participant Alice
     note over Alice"#;
-    
+
     let result = sequence::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     if let Some(SequenceStatement::Note(note)) = diagram.statements.first() {
         assert_eq!(note.text, "");
     }
@@ -275,11 +287,11 @@ fn test_note_over_multiple_participants() {
     participant Alice
     participant Bob
     note over Alice,Bob"#;
-    
+
     let result = sequence::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     if let Some(SequenceStatement::Note(note)) = diagram.statements.first() {
         assert_eq!(note.position, NotePosition::Over);
         assert_eq!(note.actor, "Alice");
@@ -299,21 +311,36 @@ fn test_loop_with_nested_structures() {
         Bob->Alice: Pong
         deactivate Bob
     end"#;
-    
+
     let result = sequence::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     if let Some(SequenceStatement::Loop(loop_stmt)) = diagram.statements.first() {
         assert_eq!(loop_stmt.condition, "Check every second");
         assert_eq!(loop_stmt.statements.len(), 5);
-        
+
         // Check nested statement types
-        assert!(matches!(loop_stmt.statements[0], SequenceStatement::Message(_)));
-        assert!(matches!(loop_stmt.statements[1], SequenceStatement::Note(_)));
-        assert!(matches!(loop_stmt.statements[2], SequenceStatement::Activate(_)));
-        assert!(matches!(loop_stmt.statements[3], SequenceStatement::Message(_)));
-        assert!(matches!(loop_stmt.statements[4], SequenceStatement::Deactivate(_)));
+        assert!(matches!(
+            loop_stmt.statements[0],
+            SequenceStatement::Message(_)
+        ));
+        assert!(matches!(
+            loop_stmt.statements[1],
+            SequenceStatement::Note(_)
+        ));
+        assert!(matches!(
+            loop_stmt.statements[2],
+            SequenceStatement::Activate(_)
+        ));
+        assert!(matches!(
+            loop_stmt.statements[3],
+            SequenceStatement::Message(_)
+        ));
+        assert!(matches!(
+            loop_stmt.statements[4],
+            SequenceStatement::Deactivate(_)
+        ));
     }
 }
 
@@ -328,11 +355,11 @@ fn test_loop_with_empty_lines_and_comments() {
         %% Another comment
         
     end"#;
-    
+
     let result = sequence::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     if let Some(SequenceStatement::Loop(loop_stmt)) = diagram.statements.first() {
         assert_eq!(loop_stmt.statements.len(), 1);
     }
@@ -349,16 +376,16 @@ fn test_alt_with_else() {
     else Failure
         Bob->Alice: Error
     end"#;
-    
+
     let result = sequence::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     if let Some(SequenceStatement::Alt(alt)) = diagram.statements.first() {
         assert_eq!(alt.condition, "Success");
         assert_eq!(alt.statements.len(), 2);
         assert!(alt.else_branch.is_some());
-        
+
         let else_branch = alt.else_branch.as_ref().unwrap();
         assert_eq!(else_branch.condition, Some("Failure".to_string()));
         assert_eq!(else_branch.statements.len(), 1);
@@ -374,11 +401,11 @@ fn test_alt_with_simple_else() {
     else
         Alice->Alice: False case
     end"#;
-    
+
     let result = sequence::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     if let Some(SequenceStatement::Alt(alt)) = diagram.statements.first() {
         assert!(alt.else_branch.is_some());
         let else_branch = alt.else_branch.as_ref().unwrap();
@@ -398,11 +425,11 @@ fn test_alt_with_nested_statements() {
         Bob->Alice: Result
         deactivate Bob
     end"#;
-    
+
     let result = sequence::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     if let Some(SequenceStatement::Alt(alt)) = diagram.statements.first() {
         assert_eq!(alt.statements.len(), 5);
     }
@@ -420,11 +447,11 @@ fn test_opt_block() {
         Bob->Alice: Premium response
         deactivate Bob
     end"#;
-    
+
     let result = sequence::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     if let Some(SequenceStatement::Opt(opt)) = diagram.statements.first() {
         assert_eq!(opt.condition, "Premium user");
         assert_eq!(opt.statements.len(), 5);
@@ -438,11 +465,11 @@ fn test_opt_with_empty_body() {
     opt Maybe
         // Nothing here
     end"#;
-    
+
     let result = sequence::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     if let Some(SequenceStatement::Opt(opt)) = diagram.statements.first() {
         assert_eq!(opt.statements.len(), 0);
     }
@@ -460,7 +487,7 @@ fn test_nested_blocks() {
             Bob->Alice: Message 2
         end
     end"#;
-    
+
     // This test verifies that nested structures work but our parser
     // doesn't support nested blocks, so this should parse the outer loop
     // but likely miss the inner alt
@@ -476,19 +503,21 @@ fn test_activate_deactivate_with_aliases() {
     activate A
     A->B: Message
     deactivate A"#;
-    
+
     let result = sequence::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     // Activations should use real names, not aliases
-    let activations: Vec<_> = diagram.statements.iter()
+    let activations: Vec<_> = diagram
+        .statements
+        .iter()
         .filter_map(|s| match s {
             SequenceStatement::Activate(a) => Some(a),
             _ => None,
         })
         .collect();
-    
+
     assert_eq!(activations.len(), 1);
     assert_eq!(activations[0], "Alice");
 }
@@ -499,16 +528,14 @@ fn test_automatic_participant_creation() {
     Alice->Bob: Message 1
     Bob->Charlie: Message 2
     Charlie->Alice: Message 3"#;
-    
+
     let result = sequence::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     // All participants should be automatically created
-    let participant_names: Vec<_> = diagram.participants.iter()
-        .map(|p| &p.actor)
-        .collect();
-    
+    let participant_names: Vec<_> = diagram.participants.iter().map(|p| &p.actor).collect();
+
     assert!(participant_names.contains(&&"Alice".to_string()));
     assert!(participant_names.contains(&&"Bob".to_string()));
     assert!(participant_names.contains(&&"Charlie".to_string()));
@@ -526,13 +553,20 @@ fn test_comments_and_empty_lines() {
     
     // More comments
     %% And more"#;
-    
+
     let result = sequence::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     // Should have 1 participant explicitly declared and 1 message
-    assert_eq!(diagram.participants.iter().filter(|p| p.actor == "Alice").count(), 1);
+    assert_eq!(
+        diagram
+            .participants
+            .iter()
+            .filter(|p| p.actor == "Alice")
+            .count(),
+        1
+    );
     assert_eq!(diagram.statements.len(), 1);
 }
 
@@ -543,7 +577,7 @@ fn test_edge_case_empty_loop() {
     loop Empty
     end
     Alice->Alice: After loop"#;
-    
+
     let result = sequence::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -558,7 +592,7 @@ fn test_edge_case_empty_alt() {
     else Also empty
     end
     Alice->Alice: After alt"#;
-    
+
     let result = sequence::parse(input);
     assert!(result.is_ok());
 }
@@ -576,7 +610,7 @@ fn test_statements_after_blocks() {
         Bob->Alice: In alt
     end
     Bob->Alice: After alt"#;
-    
+
     let result = sequence::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();

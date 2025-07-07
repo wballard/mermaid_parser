@@ -9,7 +9,7 @@ fn test_empty_input_error() {
     let result = pie::parse(input);
     assert!(result.is_err());
     match result {
-        Err(ParseError::EmptyInput) => {},
+        Err(ParseError::EmptyInput) => {}
         _ => panic!("Expected EmptyInput error"),
     }
 }
@@ -18,13 +18,13 @@ fn test_empty_input_error() {
 fn test_missing_header_error() {
     let input = r#"title My Chart
     "Label" : 42"#;
-    
+
     let result = pie::parse(input);
     assert!(result.is_err());
     match result {
         Err(ParseError::SyntaxError { message, .. }) => {
             assert!(message.contains("Expected pie header"));
-        },
+        }
         _ => panic!("Expected SyntaxError for missing header"),
     }
 }
@@ -34,11 +34,14 @@ fn test_pie_header_with_acc_title() {
     let input = r#"pie accTitle: Chart Accessibility Title
     "Data A" : 30
     "Data B" : 70"#;
-    
+
     let result = pie::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    assert_eq!(diagram.accessibility.title, Some("Chart Accessibility Title".to_string()));
+    assert_eq!(
+        diagram.accessibility.title,
+        Some("Chart Accessibility Title".to_string())
+    );
     assert_eq!(diagram.data.len(), 2);
 }
 
@@ -47,11 +50,14 @@ fn test_pie_header_with_acc_descr() {
     let input = r#"pie accDescr: This chart shows data distribution
     "Category 1" : 25
     "Category 2" : 75"#;
-    
+
     let result = pie::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    assert_eq!(diagram.accessibility.description, Some("This chart shows data distribution".to_string()));
+    assert_eq!(
+        diagram.accessibility.description,
+        Some("This chart shows data distribution".to_string())
+    );
     assert_eq!(diagram.data.len(), 2);
 }
 
@@ -64,11 +70,14 @@ that spans multiple lines
 }
     "Item A" : 40
     "Item B" : 60"#;
-    
+
     let result = pie::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    assert_eq!(diagram.accessibility.description, Some("This is a multiline accessibility description that spans multiple lines".to_string()));
+    assert_eq!(
+        diagram.accessibility.description,
+        Some("This is a multiline accessibility description that spans multiple lines".to_string())
+    );
     assert_eq!(diagram.data.len(), 2);
 }
 
@@ -77,7 +86,7 @@ fn test_pie_header_with_text_after_pie() {
     let input = r#"pie chart data visualization
     "First Item" : 10
     "Second Item" : 20"#;
-    
+
     let result = pie::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -89,7 +98,7 @@ fn test_pie_header_with_text_after_pie() {
 fn test_pie_header_just_pie_keyword() {
     let input = r#"pie
     "Data Point" : 100"#;
-    
+
     let result = pie::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -106,14 +115,20 @@ accTitle: Standalone Accessibility Title
 accDescr: Standalone accessibility description
     "Value 1" : 50
     "Value 2" : 50"#;
-    
+
     let result = pie::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
     assert_eq!(diagram.title, Some("Standalone Title".to_string()));
     assert!(diagram.show_data);
-    assert_eq!(diagram.accessibility.title, Some("Standalone Accessibility Title".to_string()));
-    assert_eq!(diagram.accessibility.description, Some("Standalone accessibility description".to_string()));
+    assert_eq!(
+        diagram.accessibility.title,
+        Some("Standalone Accessibility Title".to_string())
+    );
+    assert_eq!(
+        diagram.accessibility.description,
+        Some("Standalone accessibility description".to_string())
+    );
     assert_eq!(diagram.data.len(), 2);
 }
 
@@ -126,11 +141,14 @@ multiline accessibility
 description block
 }
     "Test" : 100"#;
-    
+
     let result = pie::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    assert_eq!(diagram.accessibility.description, Some("This is a standalone multiline accessibility description block".to_string()));
+    assert_eq!(
+        diagram.accessibility.description,
+        Some("This is a standalone multiline accessibility description block".to_string())
+    );
     assert_eq!(diagram.data.len(), 1);
 }
 
@@ -139,7 +157,7 @@ fn test_labels_without_quotes() {
     let input = r#"pie
     Label1 : 25
     Label2 : 75"#;
-    
+
     let result = pie::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -153,7 +171,7 @@ fn test_labels_with_quotes() {
     let input = r#"pie
     "Label with spaces" : 30
     "Another label" : 70"#;
-    
+
     let result = pie::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -167,13 +185,13 @@ fn test_invalid_numeric_value() {
     let input = r#"pie
     "Valid" : 42
     "Invalid" : not_a_number"#;
-    
+
     let result = pie::parse(input);
     assert!(result.is_err());
     match result {
         Err(ParseError::SyntaxError { message, .. }) => {
             assert!(message.contains("Invalid numeric value"));
-        },
+        }
         _ => panic!("Expected SyntaxError for invalid numeric value"),
     }
 }
@@ -183,13 +201,13 @@ fn test_unrecognized_directive() {
     let input = r#"pie
     unknownDirective something
     "Data" : 100"#;
-    
+
     let result = pie::parse(input);
     assert!(result.is_err());
     match result {
         Err(ParseError::SyntaxError { message, .. }) => {
             assert!(message.contains("Expected data entry or directive"));
-        },
+        }
         _ => panic!("Expected SyntaxError for unrecognized directive"),
     }
 }
@@ -206,7 +224,7 @@ fn test_comments_and_empty_lines() {
     "Data B" : 60
     
     %% Final comment"#;
-    
+
     let result = pie::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -220,7 +238,7 @@ fn test_backslash_tab_escapes() {
 \ttitle Escaped Tab Title
 \tshowData
 \t"Category" : 100"#;
-    
+
     let result = pie::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -236,7 +254,7 @@ fn test_whitespace_only_lines() {
 \t
     
     "Data" : 50"#;
-    
+
     let result = pie::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -246,7 +264,7 @@ fn test_whitespace_only_lines() {
 #[test]
 fn test_empty_pie_chart() {
     let input = r#"pie title Empty Chart"#;
-    
+
     let result = pie::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -264,11 +282,14 @@ More content here
 Final content
 }
     "Test" : 100"#;
-    
+
     let result = pie::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    assert_eq!(diagram.accessibility.description, Some("This is content More content here Final content".to_string()));
+    assert_eq!(
+        diagram.accessibility.description,
+        Some("This is content More content here Final content".to_string())
+    );
 }
 
 #[test]
@@ -278,7 +299,7 @@ fn test_multiline_acc_descr_empty() {
 %% Nothing else
 }
     "Test" : 100"#;
-    
+
     let result = pie::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -292,7 +313,7 @@ fn test_complex_numeric_values() {
     "Negative" : -5.5
     "Large" : 999999.123456
     "Scientific" : 1.23e10"#;
-    
+
     let result = pie::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -309,7 +330,7 @@ fn test_mixed_quoted_unquoted_labels() {
     UnquotedLabel : 25
     "Quoted Label" : 35
     AnotherUnquoted : 40"#;
-    
+
     let result = pie::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -323,7 +344,7 @@ fn test_mixed_quoted_unquoted_labels() {
 fn test_pie_showdata_with_data() {
     let input = r#"pie showData
     "Visible Data" : 100"#;
-    
+
     let result = pie::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -337,7 +358,7 @@ fn test_overwriting_title() {
     let input = r#"pie title First Title
 title Second Title
     "Data" : 100"#;
-    
+
     let result = pie::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
@@ -352,12 +373,18 @@ accTitle: Second Title
 accDescr: First Description
 accDescr: Second Description
     "Data" : 100"#;
-    
+
     let result = pie::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    assert_eq!(diagram.accessibility.title, Some("Second Title".to_string()));
-    assert_eq!(diagram.accessibility.description, Some("Second Description".to_string()));
+    assert_eq!(
+        diagram.accessibility.title,
+        Some("Second Title".to_string())
+    );
+    assert_eq!(
+        diagram.accessibility.description,
+        Some("Second Description".to_string())
+    );
 }
 
 #[test]
@@ -369,7 +396,7 @@ fn test_all_pie_header_variations() {
         ("pie", None, false),
         ("pie custom text", Some("custom text".to_string()), false),
     ];
-    
+
     for (header, expected_title, expected_show_data) in variations {
         let input = format!("{}\n    \"Data\" : 42", header);
         let result = pie::parse(&input);

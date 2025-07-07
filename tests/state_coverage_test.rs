@@ -14,7 +14,7 @@ fn test_direction_directive() {
     let result = state::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     assert_eq!(diagram.version, StateVersion::V2);
     assert!(diagram.states.contains_key("State1"));
     assert_eq!(diagram.transitions.len(), 2);
@@ -32,7 +32,7 @@ fn test_composite_state_braces_same_line() {
     let result = state::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     let machine = &diagram.states["Machine"];
     assert_eq!(machine.state_type, StateType::Composite);
     assert!(machine.substates.contains(&"Idle".to_string()));
@@ -52,7 +52,7 @@ fn test_composite_state_braces_different_lines() {
     let result = state::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     let state = &diagram.states["LongNamedState"];
     // The parser doesn't detect composite states when braces are on different lines
     assert_eq!(state.state_type, StateType::Simple);
@@ -75,12 +75,12 @@ fn test_nested_composite_states() {
     let result = state::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     let outer = &diagram.states["OuterState"];
     assert_eq!(outer.state_type, StateType::Composite);
     assert!(outer.substates.contains(&"InnerState".to_string()));
     assert!(outer.substates.contains(&"Done".to_string()));
-    
+
     let inner = &diagram.states["InnerState"];
     assert_eq!(inner.state_type, StateType::Composite);
     assert!(inner.substates.contains(&"InnerFirst".to_string()));
@@ -103,7 +103,7 @@ fn test_concurrent_regions() {
     let result = state::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     let active = &diagram.states["Active"];
     assert_eq!(active.state_type, StateType::Composite);
     // The concurrent separator is parsed but regions aren't tracked separately yet
@@ -121,10 +121,10 @@ fn test_state_with_quoted_display_name_edge_cases() {
     let result = state::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     let s1 = &diagram.states["s1"];
     assert_eq!(s1.display_name, Some("Name with quotes".to_string()));
-    
+
     let s2 = &diagram.states["s2"];
     assert_eq!(s2.display_name, Some("Another name".to_string()));
 }
@@ -151,7 +151,7 @@ fn test_state_stereotypes_comprehensive() {
     let result = state::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     assert_eq!(diagram.states["fork1"].state_type, StateType::Fork);
     assert_eq!(diagram.states["join1"].state_type, StateType::Join);
     assert_eq!(diagram.states["choice1"].state_type, StateType::Choice);
@@ -161,7 +161,7 @@ fn test_state_stereotypes_comprehensive() {
 #[test]
 fn test_transitions_with_all_components() {
     // Test each transition pattern separately to understand parser behavior
-    
+
     // Test 1: Full transition with event[guard]/action
     let input = r#"stateDiagram-v2
     State1 --> State2 : event[guard]/action"#;
@@ -172,7 +172,7 @@ fn test_transitions_with_all_components() {
     assert_eq!(t.event, Some("event".to_string()));
     assert_eq!(t.guard, Some("guard".to_string()));
     assert_eq!(t.action, Some("action".to_string()));
-    
+
     // Test 2: Event with guard
     let input = r#"stateDiagram-v2
     State1 --> State2 : event[guard]"#;
@@ -183,7 +183,7 @@ fn test_transitions_with_all_components() {
     assert_eq!(t.event, Some("event".to_string()));
     assert_eq!(t.guard, Some("guard".to_string()));
     assert_eq!(t.action, None);
-    
+
     // Test 3: Event with action
     let input = r#"stateDiagram-v2
     State1 --> State2 : event/action"#;
@@ -194,7 +194,7 @@ fn test_transitions_with_all_components() {
     assert_eq!(t.event, Some("event".to_string()));
     assert_eq!(t.guard, None);
     assert_eq!(t.action, Some("action".to_string()));
-    
+
     // Test 4: Guard with action
     let input = r#"stateDiagram-v2
     State1 --> State2 : [guard]/action"#;
@@ -205,7 +205,7 @@ fn test_transitions_with_all_components() {
     assert_eq!(t.event, Some("".to_string()));
     assert_eq!(t.guard, Some("guard".to_string()));
     assert_eq!(t.action, Some("action".to_string()));
-    
+
     // Test 5: Action only
     let input = r#"stateDiagram-v2
     State1 --> State2 : /action"#;
@@ -217,7 +217,7 @@ fn test_transitions_with_all_components() {
     assert_eq!(t.event, Some("".to_string()));
     assert_eq!(t.guard, None);
     assert_eq!(t.action, Some("action".to_string()));
-    
+
     // Test 6: Guard only
     let input = r#"stateDiagram-v2
     State1 --> State2 : [guard]"#;
@@ -229,7 +229,7 @@ fn test_transitions_with_all_components() {
     assert_eq!(t.event, None);
     assert_eq!(t.guard, Some("guard".to_string()));
     assert_eq!(t.action, None);
-    
+
     // Test 7: Event only
     let input = r#"stateDiagram-v2
     State1 --> State2 : event"#;
@@ -269,20 +269,20 @@ fn test_complex_nested_composite_states() {
     let result = state::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     // Check top-level composite
     let vehicle = &diagram.states["Vehicle"];
     assert_eq!(vehicle.state_type, StateType::Composite);
     assert!(vehicle.substates.contains(&"Parked".to_string()));
     assert!(vehicle.substates.contains(&"Moving".to_string()));
-    
+
     // Check nested composite
     let moving = &diagram.states["Moving"];
     assert_eq!(moving.state_type, StateType::Composite);
     assert!(moving.substates.contains(&"Accelerating".to_string()));
     assert!(moving.substates.contains(&"Cruising".to_string()));
     assert!(moving.substates.contains(&"Decelerating".to_string()));
-    
+
     // Check deeply nested composite
     let cruising = &diagram.states["Cruising"];
     assert_eq!(cruising.state_type, StateType::Composite);
@@ -303,13 +303,13 @@ fn test_state_without_transitions() {
     let result = state::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     // All states should exist
     assert!(diagram.states.contains_key("Isolated"));
     assert!(diagram.states.contains_key("AlsoIsolated"));
     assert!(diagram.states.contains_key("Connected1"));
     assert!(diagram.states.contains_key("Connected2"));
-    
+
     // Only one transition
     assert_eq!(diagram.transitions.len(), 1);
 }
@@ -328,14 +328,14 @@ fn test_note_positions_comprehensive() {
     let result = state::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     assert_eq!(diagram.notes.len(), 6);
-    
+
     // Check note without space before colon
     let note5 = diagram.notes.iter().find(|n| n.target == "State5").unwrap();
     assert_eq!(note5.position, StateNotePosition::RightOf);
     assert_eq!(note5.text, "Note without space before colon");
-    
+
     // Check note with extra spaces
     let note6 = diagram.notes.iter().find(|n| n.target == "State6").unwrap();
     assert_eq!(note6.position, StateNotePosition::LeftOf);
@@ -355,19 +355,19 @@ fn test_start_end_state_inference() {
     let result = state::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     // The [*] state should be created and exist
     assert!(diagram.states.contains_key("[*]"));
-    
+
     // It should be used in multiple transitions
-    let start_transitions = diagram.transitions.iter()
+    let start_transitions = diagram
+        .transitions
+        .iter()
         .filter(|t| t.from == "[*]")
         .count();
     assert_eq!(start_transitions, 2);
-    
-    let end_transitions = diagram.transitions.iter()
-        .filter(|t| t.to == "[*]")
-        .count();
+
+    let end_transitions = diagram.transitions.iter().filter(|t| t.to == "[*]").count();
     assert_eq!(end_transitions, 2);
 }
 
@@ -377,7 +377,7 @@ fn test_empty_input_error() {
     let result = state::parse(input);
     assert!(result.is_err());
     match result {
-        Err(ParseError::EmptyInput) => {},
+        Err(ParseError::EmptyInput) => {}
         _ => panic!("Expected EmptyInput error"),
     }
 }
@@ -386,13 +386,13 @@ fn test_empty_input_error() {
 fn test_missing_header_error() {
     let input = r#"State1 --> State2
     State2 --> State3"#;
-    
+
     let result = state::parse(input);
     assert!(result.is_err());
     match result {
         Err(ParseError::SyntaxError { message, .. }) => {
             assert!(message.contains("Expected stateDiagram header"));
-        },
+        }
         _ => panic!("Expected SyntaxError for missing header"),
     }
 }
@@ -414,7 +414,7 @@ fn test_comments_and_blank_lines() {
     let result = state::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     assert_eq!(diagram.transitions.len(), 2);
     assert!(diagram.states.contains_key("State1"));
     assert!(diagram.states.contains_key("State2"));
@@ -435,7 +435,7 @@ fn test_composite_state_with_substates_on_same_line() {
     let result = state::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     let container = &diagram.states["Container"];
     assert_eq!(container.state_type, StateType::Composite);
     assert_eq!(container.substates.len(), 3);
@@ -457,14 +457,14 @@ fn test_mixed_state_declarations() {
     let result = state::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     let s1 = &diagram.states["id1"];
     assert_eq!(s1.display_name, Some("Display Name".to_string()));
     assert_eq!(s1.state_type, StateType::Simple);
-    
+
     let s2 = &diagram.states["id2"];
     assert_eq!(s2.state_type, StateType::Fork);
-    
+
     let s3 = &diagram.states["id3"];
     // The parser doesn't support display names with stereotypes
     assert_eq!(s3.display_name, None);
@@ -487,12 +487,12 @@ fn test_state_declaration_with_opening_brace() {
     let result = state::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
+
     let my_composite = &diagram.states["MyComposite"];
     assert_eq!(my_composite.state_type, StateType::Composite);
     assert!(my_composite.substates.contains(&"Inner1".to_string()));
     assert!(my_composite.substates.contains(&"Inner2".to_string()));
-    
+
     let nc = &diagram.states["nc"];
     assert_eq!(nc.display_name, Some("Named Composite".to_string()));
     assert_eq!(nc.state_type, StateType::Composite);
@@ -511,23 +511,39 @@ fn test_transitions_with_complex_labels() {
     let result = state::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
-    let t1 = diagram.transitions.iter().find(|t| t.from == "State1" && t.to == "State2").unwrap();
+
+    let t1 = diagram
+        .transitions
+        .iter()
+        .find(|t| t.from == "State1" && t.to == "State2")
+        .unwrap();
     assert_eq!(t1.event, Some("trigger_event".to_string()));
     assert_eq!(t1.guard, Some("complex && guard || condition".to_string()));
     assert_eq!(t1.action, Some("(action1(); action2())".to_string()));
-    
-    let t2 = diagram.transitions.iter().find(|t| t.from == "State2" && t.to == "State3").unwrap();
+
+    let t2 = diagram
+        .transitions
+        .iter()
+        .find(|t| t.from == "State2" && t.to == "State3")
+        .unwrap();
     assert_eq!(t2.event, Some("event_with_params(x, y)".to_string()));
     assert_eq!(t2.guard, Some("guard_func(a, b)".to_string()));
     assert_eq!(t2.action, Some("set_value(42)".to_string()));
-    
-    let t3 = diagram.transitions.iter().find(|t| t.from == "State3" && t.to == "State4").unwrap();
+
+    let t3 = diagram
+        .transitions
+        .iter()
+        .find(|t| t.from == "State3" && t.to == "State4")
+        .unwrap();
     assert_eq!(t3.event, Some("simple".to_string()));
     assert_eq!(t3.guard, None);
     assert_eq!(t3.action, None);
-    
-    let t4 = diagram.transitions.iter().find(|t| t.from == "State4" && t.to == "State5").unwrap();
+
+    let t4 = diagram
+        .transitions
+        .iter()
+        .find(|t| t.from == "State4" && t.to == "State5")
+        .unwrap();
     assert_eq!(t4.event, None);
     assert_eq!(t4.guard, None);
     assert_eq!(t4.action, None);
@@ -546,20 +562,26 @@ fn test_self_transitions() {
     let result = state::parse(input);
     assert!(result.is_ok());
     let diagram = result.unwrap();
-    
-    let self_trans1 = diagram.transitions.iter()
+
+    let self_trans1 = diagram
+        .transitions
+        .iter()
         .find(|t| t.from == "State1" && t.to == "State1")
         .unwrap();
     assert_eq!(self_trans1.event, Some("self_loop".to_string()));
-    
-    let self_trans2 = diagram.transitions.iter()
+
+    let self_trans2 = diagram
+        .transitions
+        .iter()
         .find(|t| t.from == "State2" && t.to == "State2")
         .unwrap();
     assert_eq!(self_trans2.event, Some("check".to_string()));
     assert_eq!(self_trans2.guard, Some("condition".to_string()));
     assert_eq!(self_trans2.action, Some("reset()".to_string()));
-    
-    let inner_trans = diagram.transitions.iter()
+
+    let inner_trans = diagram
+        .transitions
+        .iter()
         .find(|t| t.from == "Inner" && t.to == "Inner")
         .unwrap();
     assert_eq!(inner_trans.event, Some("internal_loop".to_string()));
