@@ -7,6 +7,7 @@ use crate::common::ast::{
     AccessibilityInfo, State, StateDiagram, StateNote, StateNotePosition, StateTransition,
     StateType, StateVersion,
 };
+use crate::common::constants::{comments, diagram_headers, directives, state_keywords};
 use crate::error::{ParseError, Result};
 use std::collections::HashMap;
 
@@ -36,24 +37,24 @@ pub fn parse(input: &str) -> Result<StateDiagram> {
         let trimmed = line.trim();
 
         // Skip empty lines and comments
-        if trimmed.is_empty() || trimmed.starts_with("//") || trimmed.starts_with("%%") {
+        if trimmed.is_empty() || comments::COMMENT_PREFIXES.iter().any(|p| trimmed.starts_with(p)) {
             continue;
         }
 
         // First meaningful line should start with "stateDiagram"
         if !first_line_processed {
-            if trimmed.starts_with("stateDiagram-v2") {
+            if trimmed.starts_with(diagram_headers::STATE_V2) {
                 diagram.version = StateVersion::V2;
                 first_line_processed = true;
                 continue;
-            } else if trimmed.starts_with("stateDiagram") {
+            } else if trimmed.starts_with(diagram_headers::STATE_V1) {
                 diagram.version = StateVersion::V1;
                 first_line_processed = true;
                 continue;
             }
             return Err(ParseError::SyntaxError {
                 message: "Expected stateDiagram header".to_string(),
-                expected: vec!["stateDiagram".to_string(), "stateDiagram-v2".to_string()],
+                expected: vec![diagram_headers::STATE_V1.to_string(), diagram_headers::STATE_V2.to_string()],
                 found: trimmed.to_string(),
                 line: line_num + 1,
                 column: 1,
@@ -61,18 +62,18 @@ pub fn parse(input: &str) -> Result<StateDiagram> {
         }
 
         // Handle title directive
-        if let Some(title_text) = trimmed.strip_prefix("title ") {
+        if let Some(title_text) = trimmed.strip_prefix(directives::TITLE) {
             diagram.title = Some(title_text.trim().to_string());
             continue;
         }
 
         // Handle direction directive (ignore for now)
-        if trimmed.starts_with("direction ") {
+        if trimmed.starts_with(state_keywords::DIRECTION) {
             continue;
         }
 
         // Handle state declarations
-        if trimmed.starts_with("state ") {
+        if trimmed.starts_with(state_keywords::STATE) {
             if let Some(state) = parse_state_declaration(trimmed, &mut diagram.states) {
                 // Check if this is a composite state (ends with {)
                 if trimmed.ends_with(" {") {
@@ -253,10 +254,10 @@ fn parse_state_declaration(line: &str, states: &mut HashMap<String, State>) -> O
             .trim_end_matches(">>")
             .trim();
         let stype = match stereotype {
-            "choice" => StateType::Choice,
-            "fork" => StateType::Fork,
-            "join" => StateType::Join,
-            "end" => StateType::End,
+            state_keywords::CHOICE => StateType::Choice,
+            state_keywords::FORK => StateType::Fork,
+            state_keywords::JOIN => StateType::Join,
+            state_keywords::END => StateType::End,
             _ => StateType::Simple,
         };
         (id, stype)

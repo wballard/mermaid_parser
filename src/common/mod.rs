@@ -9,6 +9,7 @@
 //! - [`lexer`] - Lexical analysis components for tokenizing input
 //! - [`metrics`] - Diagram complexity analysis and quality assessment
 //! - [`parser_utils`] - Shared parsing utilities and helpers
+//! - [`parsing`] - Comprehensive parsing utilities for common patterns
 //! - [`pretty_print`] - Pretty-printing utilities for formatting output
 //! - [`tokens`] - Token definitions and token stream handling
 //! - [`validation`] - Diagram validation and semantic analysis
@@ -31,9 +32,11 @@
 //! ```
 
 pub mod ast;
+pub mod constants;
 pub mod lexer;
 pub mod metrics;
 pub mod parser_utils;
+pub mod parsing;
 pub mod pretty_print;
 pub mod tokens;
 pub mod validation;

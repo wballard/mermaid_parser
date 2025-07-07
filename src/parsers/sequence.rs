@@ -59,6 +59,7 @@ use crate::common::ast::{
     AccessibilityInfo, Alternative, ArrowType, AutoNumber, ElseBranch, Loop, Message, Note,
     NotePosition, Optional, Participant, ParticipantType, SequenceDiagram, SequenceStatement,
 };
+use crate::common::constants::{comments, diagram_headers, directives, sequence_keywords};
 use crate::error::{ParseError, Result};
 use std::collections::HashMap;
 
@@ -87,16 +88,16 @@ pub fn parse(input: &str) -> Result<SequenceDiagram> {
         let trimmed = line.trim();
 
         // Skip empty lines and comments
-        if trimmed.is_empty() || trimmed.starts_with("//") || trimmed.starts_with("%%") {
+        if trimmed.is_empty() || comments::COMMENT_PREFIXES.iter().any(|p| trimmed.starts_with(p)) {
             continue;
         }
 
         // First meaningful line should start with "sequenceDiagram"
         if !first_line_processed {
-            if !trimmed.starts_with("sequenceDiagram") {
+            if !trimmed.starts_with(diagram_headers::SEQUENCE) {
                 return Err(ParseError::SyntaxError {
                     message: "Expected sequenceDiagram header".to_string(),
-                    expected: vec!["sequenceDiagram".to_string()],
+                    expected: vec![diagram_headers::SEQUENCE.to_string()],
                     found: trimmed.to_string(),
                     line: line_num + 1,
                     column: 1,
@@ -107,13 +108,13 @@ pub fn parse(input: &str) -> Result<SequenceDiagram> {
         }
 
         // Handle title directive
-        if let Some(title_text) = trimmed.strip_prefix("title ") {
+        if let Some(title_text) = trimmed.strip_prefix(directives::TITLE) {
             diagram.title = Some(title_text.trim().to_string());
             continue;
         }
 
         // Handle autonumber directive
-        if trimmed.starts_with("autonumber") {
+        if trimmed.starts_with(sequence_keywords::AUTONUMBER) {
             let parts: Vec<&str> = trimmed.split_whitespace().collect();
             let start = if parts.len() > 1 {
                 parts[1].parse::<i32>().ok()
@@ -134,12 +135,12 @@ pub fn parse(input: &str) -> Result<SequenceDiagram> {
         }
 
         // Handle participant/actor declarations
-        if trimmed.starts_with("participant ") || trimmed.starts_with("actor ") {
-            let is_actor = trimmed.starts_with("actor ");
+        if trimmed.starts_with(sequence_keywords::PARTICIPANT) || trimmed.starts_with(sequence_keywords::ACTOR) {
+            let is_actor = trimmed.starts_with(sequence_keywords::ACTOR);
             let declaration = if is_actor {
-                trimmed.strip_prefix("actor ").unwrap()
+                trimmed.strip_prefix(sequence_keywords::ACTOR).unwrap()
             } else {
-                trimmed.strip_prefix("participant ").unwrap()
+                trimmed.strip_prefix(sequence_keywords::PARTICIPANT).unwrap()
             };
 
             let (actor, alias) = if let Some(as_pos) = declaration.find(" as ") {
@@ -172,8 +173,8 @@ pub fn parse(input: &str) -> Result<SequenceDiagram> {
         }
 
         // Handle loop blocks
-        if trimmed.starts_with("loop ") {
-            let condition = trimmed.strip_prefix("loop ").unwrap().trim().to_string();
+        if trimmed.starts_with(sequence_keywords::LOOP) {
+            let condition = trimmed.strip_prefix(sequence_keywords::LOOP).unwrap().trim().to_string();
             if let Some(loop_stmt) = parse_loop_block(
                 &mut line_iter,
                 condition,
@@ -187,8 +188,8 @@ pub fn parse(input: &str) -> Result<SequenceDiagram> {
         }
 
         // Handle alt blocks
-        if trimmed.starts_with("alt ") {
-            let condition = trimmed.strip_prefix("alt ").unwrap().trim().to_string();
+        if trimmed.starts_with(sequence_keywords::ALT) {
+            let condition = trimmed.strip_prefix(sequence_keywords::ALT).unwrap().trim().to_string();
             if let Some(alt_stmt) = parse_alt_block(
                 &mut line_iter,
                 condition,
@@ -202,8 +203,8 @@ pub fn parse(input: &str) -> Result<SequenceDiagram> {
         }
 
         // Handle opt blocks
-        if trimmed.starts_with("opt ") {
-            let condition = trimmed.strip_prefix("opt ").unwrap().trim().to_string();
+        if trimmed.starts_with(sequence_keywords::OPT) {
+            let condition = trimmed.strip_prefix(sequence_keywords::OPT).unwrap().trim().to_string();
             if let Some(opt_stmt) = parse_opt_block(
                 &mut line_iter,
                 condition,
@@ -217,7 +218,7 @@ pub fn parse(input: &str) -> Result<SequenceDiagram> {
         }
 
         // Handle notes
-        if trimmed.starts_with("note ") {
+        if trimmed.starts_with(sequence_keywords::NOTE) {
             if let Some(note) = parse_note(trimmed) {
                 diagram.statements.push(SequenceStatement::Note(note));
             }
@@ -225,8 +226,8 @@ pub fn parse(input: &str) -> Result<SequenceDiagram> {
         }
 
         // Handle activate/deactivate
-        if trimmed.starts_with("activate ") {
-            let actor_name = trimmed.strip_prefix("activate ").unwrap().trim();
+        if trimmed.starts_with(sequence_keywords::ACTIVATE) {
+            let actor_name = trimmed.strip_prefix(sequence_keywords::ACTIVATE).unwrap().trim();
             let resolved_actor = resolve_alias(actor_name, &alias_map);
             ensure_participant(
                 &resolved_actor,
@@ -239,8 +240,8 @@ pub fn parse(input: &str) -> Result<SequenceDiagram> {
             continue;
         }
 
-        if trimmed.starts_with("deactivate ") {
-            let actor_name = trimmed.strip_prefix("deactivate ").unwrap().trim();
+        if trimmed.starts_with(sequence_keywords::DEACTIVATE) {
+            let actor_name = trimmed.strip_prefix(sequence_keywords::DEACTIVATE).unwrap().trim();
             let resolved_actor = resolve_alias(actor_name, &alias_map);
             ensure_participant(
                 &resolved_actor,

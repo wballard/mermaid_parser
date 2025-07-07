@@ -48,6 +48,7 @@
 use crate::common::ast::{
     AccessibilityInfo, EdgeType, FlowDirection, FlowEdge, FlowNode, FlowchartDiagram, NodeShape,
 };
+use crate::common::constants::{directions, flowchart_keywords};
 use crate::common::parser_utils::{parse_comment, parse_whitespace};
 use crate::error::Result;
 use chumsky::prelude::*;
@@ -112,17 +113,17 @@ fn flowchart_lexer<'src>(
 ) -> impl Parser<'src, &'src str, Vec<FlowToken>, extra::Err<Simple<'src, char>>> {
     let comment = parse_comment().map(|_| FlowToken::Comment("".to_string()));
 
-    let flowchart_keyword = just("flowchart").map(|_| FlowToken::Flowchart);
+    let flowchart_keyword = just(flowchart_keywords::FLOWCHART).map(|_| FlowToken::Flowchart);
 
-    let graph_keyword = just("graph").map(|_| FlowToken::Graph);
+    let graph_keyword = just(flowchart_keywords::GRAPH).map(|_| FlowToken::Graph);
 
     // Directions
-    let directions = choice((
-        just("TB").to(FlowToken::TB),
-        just("TD").to(FlowToken::TD),
-        just("BT").to(FlowToken::BT),
-        just("RL").to(FlowToken::RL),
-        just("LR").to(FlowToken::LR),
+    let directions_parser = choice((
+        just(directions::TOP_BOTTOM).to(FlowToken::TB),
+        just(directions::TOP_DOWN).to(FlowToken::TD),
+        just(directions::BOTTOM_TOP).to(FlowToken::BT),
+        just(directions::RIGHT_LEFT).to(FlowToken::RL),
+        just(directions::LEFT_RIGHT).to(FlowToken::LR),
     ));
 
     // Node shape brackets (order matters for overlapping patterns)
@@ -148,7 +149,7 @@ fn flowchart_lexer<'src>(
     // Edge patterns (order matters for overlapping patterns)
     let edge_patterns = choice((
         just("-->").to(FlowToken::Arrow),
-        just("--").to(FlowToken::DashDash),
+        just(flowchart_keywords::DOUBLE_DASH).to(FlowToken::DashDash),
         just('-').to(FlowToken::Dash),
         just('>').to(FlowToken::RightAngle),
     ));
@@ -184,7 +185,7 @@ fn flowchart_lexer<'src>(
         comment,
         flowchart_keyword,
         graph_keyword,
-        directions,
+        directions_parser,
         edge_patterns,
         node_brackets,
         edge_label,
