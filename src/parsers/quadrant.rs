@@ -1,6 +1,7 @@
 use crate::common::ast::{
     AccessibilityInfo, AxisDefinition, ClassDefinition, DataPoint, QuadrantDiagram, QuadrantLabels,
 };
+use crate::common::parser_utils::parse_common_directives;
 use crate::error::{ParseError, Result};
 
 /// Simple string-based parser for quadrant diagrams
@@ -42,31 +43,8 @@ pub fn parse(input: &str) -> Result<QuadrantDiagram> {
             continue;
         }
 
-        // Handle title directive
-        if trimmed.starts_with("title ") {
-            let title = trimmed.strip_prefix("title ").unwrap().trim();
-            diagram.title = Some(title.to_string());
-            continue;
-        }
-
-        // Handle accessibility directives
-        if trimmed.starts_with("accTitle:") || trimmed.starts_with("accTitle ") {
-            let title = if trimmed.starts_with("accTitle:") {
-                trimmed.strip_prefix("accTitle:").unwrap().trim()
-            } else {
-                trimmed.strip_prefix("accTitle ").unwrap().trim()
-            };
-            diagram.accessibility.title = Some(title.to_string());
-            continue;
-        }
-
-        if trimmed.starts_with("accDescr:") || trimmed.starts_with("accDescr ") {
-            let desc = if trimmed.starts_with("accDescr:") {
-                trimmed.strip_prefix("accDescr:").unwrap().trim()
-            } else {
-                trimmed.strip_prefix("accDescr ").unwrap().trim()
-            };
-            diagram.accessibility.description = Some(desc.to_string());
+        // Handle common directives (title, accTitle, accDescr)
+        if parse_common_directives(line, &mut diagram.title, &mut diagram.accessibility) {
             continue;
         }
 
@@ -134,7 +112,6 @@ pub fn parse(input: &str) -> Result<QuadrantDiagram> {
                         if let Some(point) = parse_data_point(name_part, value_part, line_num) {
                             diagram.points.push(point);
                         }
-                        continue;
                     }
                 }
             }

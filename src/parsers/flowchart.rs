@@ -423,11 +423,10 @@ fn parse_simple_node_and_edges(tokens: &[FlowToken]) -> (HashMap<String, FlowNod
 
                                     if found_closing {
                                         continue;
-                                    } else {
-                                        // No closing bracket found for target node - treat as malformed, skip to end
-                                        i = tokens.len(); // End parsing to avoid infinite loop
-                                        continue;
                                     }
+                                    // No closing bracket found for target node - treat as malformed, skip to end
+                                    i = tokens.len(); // End parsing to avoid infinite loop
+                                    continue;
                                 }
                             }
                         }

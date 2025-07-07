@@ -434,7 +434,8 @@ fn parse_task_data(
         if part.starts_with("after ") {
             // Dependency
             continue;
-        } else if part.contains("-") && part.len() == 10 {
+        }
+        if part.contains("-") && part.len() == 10 {
             // Date format YYYY-MM-DD
             start_date = Some(part.to_string());
         } else if part.ends_with("d") || part.ends_with("h") || part.ends_with("w") {

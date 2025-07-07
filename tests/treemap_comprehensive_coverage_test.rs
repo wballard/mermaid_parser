@@ -103,7 +103,7 @@ Root
             // Looking at the parser code, it expects 4-space indentation
             // With 2-space indentation, it may parse differently
             // Let's check what actually happens
-            if diagram.root.children.len() > 0 {
+            if !diagram.root.children.is_empty() {
                 // It seems Grandchild1 becomes the first child
                 assert_eq!(diagram.root.children[0].name, "Grandchild1");
                 assert_eq!(diagram.root.children[0].value, Some(10.0));
@@ -656,7 +656,7 @@ fn test_mixed_indentation_levels() {
         DiagramType::Treemap(diagram) => {
             assert_eq!(diagram.root.name, "Root");
             // Due to irregular indentation, structure may be different than expected
-            assert!(diagram.root.children.len() >= 1);
+            assert!(!diagram.root.children.is_empty());
         }
         _ => panic!("Expected Treemap diagram"),
     }

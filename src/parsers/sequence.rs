@@ -261,7 +261,6 @@ pub fn parse(input: &str) -> Result<SequenceDiagram> {
             &alias_map,
         ) {
             diagram.statements.push(SequenceStatement::Message(msg));
-            continue;
         }
     }
 

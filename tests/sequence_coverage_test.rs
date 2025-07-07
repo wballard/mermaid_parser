@@ -1,8 +1,6 @@
 //! Additional tests to improve coverage for sequence.rs parser
 
-use mermaid_parser::common::ast::{
-    ArrowType, AutoNumber, ElseBranch, NotePosition, ParticipantType, SequenceStatement,
-};
+use mermaid_parser::common::ast::{ArrowType, NotePosition, ParticipantType, SequenceStatement};
 use mermaid_parser::error::ParseError;
 use mermaid_parser::parsers::sequence;
 

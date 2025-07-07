@@ -110,7 +110,7 @@ fn misc_parser<'src>(
         let mut first_token = None;
         for token in &tokens {
             match token {
-                MiscToken::Comment(_) | MiscToken::NewLine => continue,
+                MiscToken::Comment(_) | MiscToken::NewLine => {}
                 _ => {
                     first_token = Some(token);
                     break;

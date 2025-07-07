@@ -252,9 +252,8 @@ fn parse_node_content(content: &str) -> (Option<String>, String) {
             if id.is_empty() {
                 // Just [text] without id
                 return (None, text);
-            } else {
-                return (Some(id.to_string()), text);
             }
+            return (Some(id.to_string()), text);
         }
     }
 

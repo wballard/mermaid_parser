@@ -1,6 +1,6 @@
 //! Test the visitor pattern example from documentation
 
-use mermaid_parser::common::visitor::{AstVisitor, NodeCounter};
+use mermaid_parser::common::visitor::NodeCounter;
 use mermaid_parser::parse_diagram;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

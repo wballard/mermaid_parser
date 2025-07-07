@@ -87,7 +87,6 @@ pub fn parse(input: &str) -> Result<XyChartDiagram> {
         if trimmed.starts_with("line ") {
             let series = parse_data_series(trimmed, SeriesType::Line)?;
             diagram.data_series.push(series);
-            continue;
         }
     }
 

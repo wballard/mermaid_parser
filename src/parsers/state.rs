@@ -50,15 +50,14 @@ pub fn parse(input: &str) -> Result<StateDiagram> {
                 diagram.version = StateVersion::V1;
                 first_line_processed = true;
                 continue;
-            } else {
-                return Err(ParseError::SyntaxError {
-                    message: "Expected stateDiagram header".to_string(),
-                    expected: vec!["stateDiagram".to_string(), "stateDiagram-v2".to_string()],
-                    found: trimmed.to_string(),
-                    line: line_num + 1,
-                    column: 1,
-                });
             }
+            return Err(ParseError::SyntaxError {
+                message: "Expected stateDiagram header".to_string(),
+                expected: vec!["stateDiagram".to_string(), "stateDiagram-v2".to_string()],
+                found: trimmed.to_string(),
+                line: line_num + 1,
+                column: 1,
+            });
         }
 
         // Handle title directive

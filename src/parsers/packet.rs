@@ -144,12 +144,10 @@ pub fn parse(input: &str) -> Result<PacketDiagram> {
                 name,
                 is_optional,
             });
-        } else {
-            // Handle other packet directives or ignore unrecognized lines
-            // Some test files have various directives like "packet structure", "packetTitle", etc.
-            // We'll skip these for now to be more lenient
-            continue;
         }
+        // Handle other packet directives or ignore unrecognized lines
+        // Some test files have various directives like "packet structure", "packetTitle", etc.
+        // We'll skip these for now to be more lenient
     }
 
     Ok(diagram)

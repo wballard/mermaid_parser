@@ -373,7 +373,7 @@ fn test_mixed_service_declarations() {
     assert!(result.is_ok());
     let diagram = result.unwrap();
     // Mixed declarations might not all be parsed
-    assert!(diagram.services.len() >= 1);
+    assert!(!diagram.services.is_empty());
 }
 
 #[test]

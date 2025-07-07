@@ -1,4 +1,5 @@
 use crate::common::ast::{AccessibilityInfo, PieDiagram, PieSlice};
+use crate::common::parser_utils::{parse_common_directives, CommonDirectiveParser};
 use crate::error::{ParseError, Result};
 
 /// Simple string-based parser for pie chart diagrams
@@ -17,8 +18,7 @@ pub fn parse(input: &str) -> Result<PieDiagram> {
     };
 
     let mut first_line_processed = false;
-    let mut in_multiline_acc_descr = false;
-    let mut multiline_content = Vec::new();
+    let mut common_parser = CommonDirectiveParser::new();
 
     for (line_num, line) in lines.iter().enumerate() {
         let trimmed = line.trim();
@@ -28,26 +28,9 @@ pub fn parse(input: &str) -> Result<PieDiagram> {
             continue;
         }
 
-        // Handle multiline accessibility content
-        if in_multiline_acc_descr {
-            if trimmed == "}" {
-                // End of multiline block
-                in_multiline_acc_descr = false;
-                if !multiline_content.is_empty() {
-                    diagram.accessibility.description = Some(multiline_content.join(" "));
-                    multiline_content.clear();
-                }
-                continue;
-            } else if !trimmed.is_empty()
-                && !trimmed.starts_with("//")
-                && !trimmed.starts_with("%%")
-            {
-                // Accumulate content
-                multiline_content.push(trimmed.to_string());
-                continue;
-            } else {
-                continue;
-            }
+        // Handle common directives with multiline support
+        if common_parser.parse_line(line, &mut diagram.title, &mut diagram.accessibility) {
+            continue;
         }
 
         // Skip lines that are just whitespace or escape sequences like \t
@@ -83,16 +66,17 @@ pub fn parse(input: &str) -> Result<PieDiagram> {
                 // pie with showData
                 diagram.show_data = true;
             } else if trimmed.starts_with("pie accTitle:") {
-                // pie accTitle: content
-                let acc_title = trimmed.strip_prefix("pie accTitle:").unwrap().trim();
-                diagram.accessibility.title = Some(acc_title.to_string());
+                // pie accTitle: content - convert to standard format
+                let acc_line = trimmed.strip_prefix("pie ").unwrap();
+                parse_common_directives(acc_line, &mut diagram.title, &mut diagram.accessibility);
             } else if trimmed.starts_with("pie accDescr:") {
-                // pie accDescr: content
-                let acc_descr = trimmed.strip_prefix("pie accDescr:").unwrap().trim();
-                diagram.accessibility.description = Some(acc_descr.to_string());
+                // pie accDescr: content - convert to standard format
+                let acc_line = trimmed.strip_prefix("pie ").unwrap();
+                parse_common_directives(acc_line, &mut diagram.title, &mut diagram.accessibility);
             } else if trimmed.starts_with("pie accDescr {") {
-                // pie accDescr { ... } - start multiline block
-                in_multiline_acc_descr = true;
+                // pie accDescr { ... } - convert to standard format and start multiline block
+                let acc_line = trimmed.strip_prefix("pie ").unwrap();
+                common_parser.parse_line(acc_line, &mut diagram.title, &mut diagram.accessibility);
             } else if trimmed.starts_with("pie ") {
                 // "pie chart" or other text after pie - treat as title
                 let title = trimmed.strip_prefix("pie ").unwrap().trim();
@@ -106,21 +90,11 @@ pub fn parse(input: &str) -> Result<PieDiagram> {
             continue;
         }
 
-        // Handle other directives
-        if effective_trimmed.starts_with("title ") {
-            let title = effective_trimmed.strip_prefix("title ").unwrap().trim();
-            diagram.title = Some(title.to_string());
+        // Handle directives - both direct and with \t prefix
+        if parse_common_directives(line, &mut diagram.title, &mut diagram.accessibility) {
+            // Directive was handled
         } else if effective_trimmed == "showData" {
             diagram.show_data = true;
-        } else if effective_trimmed.starts_with("accTitle:") {
-            let acc_title = effective_trimmed.strip_prefix("accTitle:").unwrap().trim();
-            diagram.accessibility.title = Some(acc_title.to_string());
-        } else if effective_trimmed.starts_with("accDescr:") {
-            let acc_descr = effective_trimmed.strip_prefix("accDescr:").unwrap().trim();
-            diagram.accessibility.description = Some(acc_descr.to_string());
-        } else if effective_trimmed.starts_with("accDescr {") {
-            // accDescr { ... } - start multiline block (standalone version)
-            in_multiline_acc_descr = true;
         } else if let Some(colon_pos) = effective_trimmed.find(':') {
             // Parse data entry: "Label" : value
             let label_part = effective_trimmed[..colon_pos].trim();
