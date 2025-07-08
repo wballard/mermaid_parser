@@ -28,7 +28,7 @@ pub fn parse(input: &str) -> Result<PieDiagram> {
             if trimmed.is_empty() || trimmed.starts_with("//") || trimmed.starts_with("%%") {
                 continue; // Skip empty lines and comments before header
             }
-            
+
             if !trimmed.starts_with("pie") {
                 return Err(ParseError::SyntaxError {
                     message: "Expected pie header".to_string(),
@@ -38,7 +38,7 @@ pub fn parse(input: &str) -> Result<PieDiagram> {
                     column: 1,
                 });
             }
-            
+
             first_line_processed = true;
             // Continue processing this line as it may have additional content
         }
@@ -52,7 +52,7 @@ pub fn parse(input: &str) -> Result<PieDiagram> {
         if trimmed.is_empty() || trimmed.chars().all(|c| c.is_whitespace()) || trimmed == "\\t" {
             continue;
         }
-        
+
         // Skip comments
         if trimmed.starts_with("//") || trimmed.starts_with("%%") {
             continue;
