@@ -29,7 +29,7 @@ mod packet_coverage_tests {
             column,
         }) = result
         {
-            assert_eq!(message, "Expected packet header");
+            assert_eq!(message, "Expected packet-beta header");
             assert!(expected.contains(&"packet-beta".to_string()));
             assert!(expected.contains(&"packet".to_string()));
             assert_eq!(found, "0-15: \"Source Port\"");

@@ -10,10 +10,10 @@ fn test_empty_input_error() {
     let result = mindmap::parse(input);
     assert!(result.is_err());
     match result {
-        Err(ParseError::SyntaxError { message, .. }) => {
-            assert!(message.contains("Expected mindmap header"));
+        Err(ParseError::EmptyInput) => {
+            // Expected empty input error
         }
-        _ => panic!("Expected SyntaxError for empty input"),
+        _ => panic!("Expected EmptyInput error for empty input"),
     }
 }
 

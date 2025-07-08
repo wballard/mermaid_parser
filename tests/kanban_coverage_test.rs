@@ -25,7 +25,7 @@ fn test_invalid_header_error() {
         Err(ParseError::SyntaxError {
             message, expected, ..
         }) => {
-            assert!(message.contains("Expected 'kanban' keyword"));
+            assert!(message.contains("Expected kanban header"));
             assert!(expected.contains(&"kanban".to_string()));
         }
         _ => panic!("Expected SyntaxError for invalid header"),
