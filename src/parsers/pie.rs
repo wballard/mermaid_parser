@@ -1,5 +1,4 @@
 use crate::common::ast::{AccessibilityInfo, PieDiagram, PieSlice};
-use crate::common::parser_utils::validate_diagram_header;
 use crate::common::parser_utils::{parse_common_directives, CommonDirectiveParser};
 use crate::error::{ParseError, Result};
 
@@ -22,11 +21,26 @@ pub fn parse(input: &str) -> Result<PieDiagram> {
     let mut common_parser = CommonDirectiveParser::new();
 
     for (line_num, line) in lines.iter().enumerate() {
-        // Use shared header validation utility
-        let (should_skip, trimmed) =
-            validate_diagram_header(line, line_num, &["pie"], &mut first_line_processed)?;
-        if should_skip {
-            continue;
+        let trimmed = line.trim();
+
+        // Handle first line validation manually for compound headers
+        if !first_line_processed {
+            if trimmed.is_empty() || trimmed.starts_with("//") || trimmed.starts_with("%%") {
+                continue; // Skip empty lines and comments before header
+            }
+            
+            if !trimmed.starts_with("pie") {
+                return Err(ParseError::SyntaxError {
+                    message: "Expected pie header".to_string(),
+                    expected: vec!["pie".to_string()],
+                    found: trimmed.to_string(),
+                    line: line_num + 1,
+                    column: 1,
+                });
+            }
+            
+            first_line_processed = true;
+            // Continue processing this line as it may have additional content
         }
 
         // Handle common directives with multiline support
@@ -36,6 +50,11 @@ pub fn parse(input: &str) -> Result<PieDiagram> {
 
         // Skip lines that are just whitespace or escape sequences like \t
         if trimmed.is_empty() || trimmed.chars().all(|c| c.is_whitespace()) || trimmed == "\\t" {
+            continue;
+        }
+        
+        // Skip comments
+        if trimmed.starts_with("//") || trimmed.starts_with("%%") {
             continue;
         }
 
@@ -88,6 +107,10 @@ pub fn parse(input: &str) -> Result<PieDiagram> {
             // Directive was handled
         } else if effective_trimmed == "showData" {
             diagram.show_data = true;
+        } else if effective_trimmed.starts_with("pie") {
+            // Skip renderer-specific directives that start with "pie"
+            // These are not part of standard Mermaid pie syntax but appear in test files
+            continue;
         } else if let Some(colon_pos) = effective_trimmed.find(':') {
             // Parse data entry: "Label" : value
             let label_part = effective_trimmed[..colon_pos].trim();

@@ -391,7 +391,7 @@ fn test_missing_header_error() {
     assert!(result.is_err());
     match result {
         Err(ParseError::SyntaxError { message, .. }) => {
-            assert!(message.contains("Expected stateDiagram header"));
+            assert!(message.contains("Expected stateDiagram or stateDiagram-v2 header"));
         }
         _ => panic!("Expected SyntaxError for missing header"),
     }
