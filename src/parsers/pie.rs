@@ -22,11 +22,10 @@ pub fn parse(input: &str) -> Result<PieDiagram> {
 
     for (line_num, line) in lines.iter().enumerate() {
         // Use shared header validation utility
-        if validate_diagram_header(line, line_num, &["pie"], &mut first_line_processed)? {
+        let (should_skip, trimmed) = validate_diagram_header(line, line_num, &["pie"], &mut first_line_processed)?;
+        if should_skip {
             continue;
         }
-
-        let trimmed = line.trim();
 
         // Handle common directives with multiline support
         if common_parser.parse_line(line, &mut diagram.title, &mut diagram.accessibility) {

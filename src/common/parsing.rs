@@ -8,7 +8,6 @@ use crate::error::{ParseError, Result};
 
 /// Utilities for parsing quoted strings
 pub mod quoted_strings {
-    use super::*;
     
     /// Extract content from a quoted string, handling both single and double quotes
     /// Returns the unquoted content, or the original string if not quoted
@@ -48,7 +47,6 @@ pub mod quoted_strings {
 
 /// Utilities for key-value pair parsing
 pub mod key_value {
-    use super::*;
     
     /// Parse a line containing key-value pairs separated by a delimiter
     pub fn parse_separated(line: &str, delimiter: char) -> Option<(String, String)> {
@@ -82,7 +80,6 @@ pub mod key_value {
 
 /// Utilities for bracket and parentheses handling
 pub mod brackets {
-    use super::*;
     
     /// Extract content between brackets [content]
     pub fn extract_square_bracket_content(input: &str) -> Option<String> {
@@ -208,7 +205,6 @@ pub mod fields {
 
 /// Utilities for line processing and filtering
 pub mod lines {
-    use super::*;
     
     /// Common comment prefixes used in Mermaid diagrams
     const COMMENT_PREFIXES: &[&str] = &["//", "%%"];
@@ -322,7 +318,6 @@ pub mod numbers {
 
 /// Utilities for identifier and name validation
 pub mod identifiers {
-    use super::*;
     
     /// Check if a string is a valid identifier (alphanumeric + underscore, starts with letter)
     pub fn is_valid_identifier(name: &str) -> bool {
@@ -373,7 +368,6 @@ pub mod identifiers {
 
 /// Pattern matching utilities for common diagram patterns
 pub mod patterns {
-    use super::*;
     
     /// Match common arrow patterns in diagrams
     /// Returns (source, arrow_type, target) if matched
@@ -434,7 +428,6 @@ pub mod patterns {
 
 /// Validation utilities for common patterns
 pub mod validation {
-    use super::*;
     
     /// Validate that all referenced IDs exist
     pub fn validate_references(ids: &[String], references: &[String]) -> Vec<String> {

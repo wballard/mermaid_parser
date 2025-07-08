@@ -87,11 +87,10 @@ pub fn parse(input: &str) -> Result<SequenceDiagram> {
 
     while let Some((line_num, line)) = line_iter.next() {
         // Use shared header validation utility
-        if validate_diagram_header(line, line_num, &[diagram_headers::SEQUENCE], &mut first_line_processed)? {
+        let (should_skip, trimmed) = validate_diagram_header(line, line_num, &[diagram_headers::SEQUENCE], &mut first_line_processed)?;
+        if should_skip {
             continue;
         }
-
-        let trimmed = line.trim();
 
         // Handle title directive
         if let Some(title_text) = trimmed.strip_prefix(directives::TITLE) {
@@ -141,7 +140,7 @@ pub fn parse(input: &str) -> Result<SequenceDiagram> {
                 participant_map.insert(actor.clone(), diagram.participants.len());
 
                 // Track alias mapping
-                if let Some(ref alias_name) = alias {
+                if let Some(alias_name) = &alias {
                     alias_map.insert(alias_name.clone(), actor.clone());
                 }
 

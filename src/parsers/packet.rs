@@ -21,11 +21,10 @@ pub fn parse(input: &str) -> Result<PacketDiagram> {
 
     for (line_num, line) in lines.iter().enumerate() {
         // Use shared header validation utility
-        if validate_diagram_header(line, line_num, &["packet-beta", "packet"], &mut first_line_processed)? {
+        let (should_skip, trimmed) = validate_diagram_header(line, line_num, &["packet-beta", "packet"], &mut first_line_processed)?;
+        if should_skip {
             continue;
         }
-
-        let trimmed = line.trim();
 
         // Handle common directives (title, accTitle, accDescr)
         if parse_common_directives(line, &mut diagram.title, &mut diagram.accessibility) {
