@@ -38,15 +38,16 @@ pub fn parse(input: &str) -> Result<XyChartDiagram> {
     for (line_num, line) in lines.iter().enumerate() {
         // Use shared header validation utility
         match validate_diagram_header(line, line_num, &["xychart", "xychart-beta"], &mut first_line_processed) {
-            Ok(true) => {
+            Ok((true, trimmed)) => {
                 // Check for horizontal orientation in header
-                let trimmed = line.trim();
                 if trimmed.contains("horizontal") {
                     diagram.orientation = ChartOrientation::Horizontal;
                 }
                 continue;
             }
-            Ok(false) => {}, // Line should be processed by parser
+            Ok((false, _trimmed)) => {
+                // Line should be processed by parser - trimmed is now available
+            }, 
             Err(_) => {
                 return Ok(diagram); // Lenient parsing
             }

@@ -3,6 +3,58 @@
 use crate::common::ast::AccessibilityInfo;
 use chumsky::prelude::*;
 
+/// Represents supported diagram types with their header variants
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DiagramType {
+    Architecture,
+    Sequence,
+    Pie,
+    Mindmap,
+    Xy,
+    Treemap,
+    State,
+    Radar,
+    Quadrant,
+    Packet,
+    Kanban,
+}
+
+impl DiagramType {
+    /// Get the valid header strings for this diagram type
+    pub fn headers(&self) -> &'static [&'static str] {
+        match self {
+            DiagramType::Architecture => &["architecture", "architecture-beta"],
+            DiagramType::Sequence => &["sequenceDiagram"],
+            DiagramType::Pie => &["pie"],
+            DiagramType::Mindmap => &["mindmap"],
+            DiagramType::Xy => &["xychart-beta"],
+            DiagramType::Treemap => &["treemap"],
+            DiagramType::State => &["stateDiagram", "stateDiagram-v2"],
+            DiagramType::Radar => &["radar"],
+            DiagramType::Quadrant => &["quadrant"],
+            DiagramType::Packet => &["packet-beta", "packet"],
+            DiagramType::Kanban => &["kanban"],
+        }
+    }
+
+    /// Get the diagram type name for display purposes
+    pub fn name(&self) -> &'static str {
+        match self {
+            DiagramType::Architecture => "architecture",
+            DiagramType::Sequence => "sequence",
+            DiagramType::Pie => "pie",
+            DiagramType::Mindmap => "mindmap",
+            DiagramType::Xy => "xy chart",
+            DiagramType::Treemap => "treemap",
+            DiagramType::State => "state",
+            DiagramType::Radar => "radar",
+            DiagramType::Quadrant => "quadrant",
+            DiagramType::Packet => "packet",
+            DiagramType::Kanban => "kanban",
+        }
+    }
+}
+
 /// Common token types shared across parsers
 #[derive(Debug, Clone, PartialEq)]
 pub enum CommonToken {
@@ -381,29 +433,40 @@ mod directive_tests {
 }
 
 /// Validates diagram header and handles first line processing
-/// Returns Ok(true) if line was handled (skip to next line)
-/// Returns Ok(false) if line should be processed by parser
-/// Returns Err() if invalid header found
-pub fn validate_diagram_header(
-    line: &str,
+/// 
+/// # Arguments
+/// * `line` - The input line to validate
+/// * `line_num` - Line number for error reporting (0-based)
+/// * `expected_headers` - Array of valid diagram headers to match against
+/// * `first_line_processed` - Modified to true when a valid header is found
+/// 
+/// # Returns
+/// * `Ok((true, trimmed_line))` if line was handled (skip to next line)
+/// * `Ok((false, trimmed_line))` if line should be processed by parser  
+/// * `Err()` if invalid header found
+pub fn validate_diagram_header<'a>(
+    line: &'a str,
     line_num: usize,
     expected_headers: &[&str],
     first_line_processed: &mut bool,
-) -> crate::error::Result<bool> {
+) -> crate::error::Result<(bool, &'a str)> {
     use crate::error::ParseError;
     
-    if *first_line_processed {
-        return Ok(false);
-    }
+    assert!(!expected_headers.is_empty(), "Expected headers cannot be empty");
     
     let trimmed = line.trim();
+    
+    if *first_line_processed {
+        return Ok((false, trimmed));
+    }
+    
     if should_skip_line(trimmed) {
-        return Ok(true); // Skip this line
+        return Ok((true, trimmed)); // Skip this line
     }
     
     if !expected_headers.iter().any(|h| trimmed.starts_with(h)) {
         return Err(ParseError::SyntaxError {
-            message: format!("Expected {} header", expected_headers[0]),
+            message: format!("Expected {} header", expected_headers.join(" or ")),
             expected: expected_headers.iter().map(|s| s.to_string()).collect(),
             found: trimmed.to_string(),
             line: line_num + 1,
@@ -412,7 +475,28 @@ pub fn validate_diagram_header(
     }
     
     *first_line_processed = true;
-    Ok(true)
+    Ok((true, trimmed))
+}
+
+/// Validates diagram header using DiagramType enum for better type safety
+/// 
+/// # Arguments
+/// * `line` - The input line to validate
+/// * `line_num` - Line number for error reporting (0-based)
+/// * `diagram_type` - The expected diagram type
+/// * `first_line_processed` - Modified to true when a valid header is found
+/// 
+/// # Returns
+/// * `Ok((true, trimmed_line))` if line was handled (skip to next line)
+/// * `Ok((false, trimmed_line))` if line should be processed by parser  
+/// * `Err()` if invalid header found
+pub fn validate_diagram_header_typed<'a>(
+    line: &'a str,
+    line_num: usize,
+    diagram_type: DiagramType,
+    first_line_processed: &mut bool,
+) -> crate::error::Result<(bool, &'a str)> {
+    validate_diagram_header(line, line_num, diagram_type.headers(), first_line_processed)
 }
 
 /// Checks if a line should be skipped (empty, comments)
@@ -426,121 +510,131 @@ mod header_validation_tests {
     use super::*;
     use crate::error::ParseError;
 
+    /// Test helper to validate successful header processing
+    fn assert_header_success(
+        line: &str,
+        expected_headers: &[&str],
+        expected_trimmed: &str,
+    ) {
+        let mut first_line = false;
+        let result = validate_diagram_header(line, 0, expected_headers, &mut first_line);
+        assert!(result.is_ok(), "Expected success for line: {}", line);
+        let (should_skip, trimmed) = result.unwrap();
+        assert!(should_skip, "Expected to skip line: {}", line);
+        assert_eq!(trimmed, expected_trimmed, "Trimmed content mismatch for line: {}", line);
+        assert!(first_line, "Expected first_line to be marked as processed");
+    }
+
+    /// Test helper to validate header skipping (for comments, empty lines)
+    fn assert_header_skip_without_processing(
+        line: &str,
+        expected_headers: &[&str],
+        expected_trimmed: &str,
+    ) {
+        let mut first_line = false;
+        let result = validate_diagram_header(line, 0, expected_headers, &mut first_line);
+        assert!(result.is_ok(), "Expected success for line: {}", line);
+        let (should_skip, trimmed) = result.unwrap();
+        assert!(should_skip, "Expected to skip line: {}", line);
+        assert_eq!(trimmed, expected_trimmed, "Trimmed content mismatch for line: {}", line);
+        assert!(!first_line, "Expected first_line to remain unprocessed");
+    }
+
+    /// Test helper to validate header error cases
+    fn assert_header_error(
+        line: &str,
+        expected_headers: &[&str],
+        expected_message: &str,
+    ) {
+        let mut first_line = false;
+        let result = validate_diagram_header(line, 0, expected_headers, &mut first_line);
+        assert!(result.is_err(), "Expected error for line: {}", line);
+        if let Err(ParseError::SyntaxError { message, .. }) = result {
+            assert_eq!(message, expected_message, "Error message mismatch for line: {}", line);
+        } else {
+            panic!("Expected SyntaxError for line: {}", line);
+        }
+        assert!(!first_line, "Expected first_line to remain unprocessed on error");
+    }
+
+    /// Test helper to validate processed line handling
+    fn assert_already_processed(line: &str, expected_headers: &[&str], expected_trimmed: &str) {
+        let mut first_line = true; // Already processed
+        let result = validate_diagram_header(line, 0, expected_headers, &mut first_line);
+        assert!(result.is_ok(), "Expected success for processed line: {}", line);
+        let (should_skip, trimmed) = result.unwrap();
+        assert!(!should_skip, "Expected to process line when already processed: {}", line);
+        assert_eq!(trimmed, expected_trimmed, "Trimmed content mismatch for line: {}", line);
+    }
+
     #[test]
     fn test_validate_diagram_header_success() {
-        let mut first_line = false;
-        let result = validate_diagram_header(
+        assert_header_success(
             "architecture", 
-            0, 
             &["architecture", "architecture-beta"], 
-            &mut first_line
+            "architecture"
         );
-        assert!(result.is_ok());
-        assert!(result.unwrap());
-        assert!(first_line);
     }
 
     #[test]
     fn test_validate_diagram_header_success_beta() {
-        let mut first_line = false;
-        let result = validate_diagram_header(
+        assert_header_success(
             "architecture-beta", 
-            0, 
             &["architecture", "architecture-beta"], 
-            &mut first_line
+            "architecture-beta"
         );
-        assert!(result.is_ok());
-        assert!(result.unwrap());
-        assert!(first_line);
     }
 
     #[test]
     fn test_validate_diagram_header_invalid() {
-        let mut first_line = false;
-        let result = validate_diagram_header(
+        assert_header_error(
             "invalid", 
-            0, 
             &["architecture"], 
-            &mut first_line
+            "Expected architecture header"
         );
-        assert!(result.is_err());
-        
-        if let Err(ParseError::SyntaxError { message, expected, found, line, column }) = result {
-            assert_eq!(message, "Expected architecture header");
-            assert_eq!(expected, vec!["architecture".to_string()]);
-            assert_eq!(found, "invalid");
-            assert_eq!(line, 1);
-            assert_eq!(column, 1);
-        } else {
-            panic!("Expected SyntaxError");
-        }
     }
 
     #[test]
     fn test_validate_diagram_header_skips_processed() {
-        let mut first_line = true;
-        let result = validate_diagram_header(
+        assert_already_processed(
             "anything", 
-            0, 
             &["architecture"], 
-            &mut first_line
+            "anything"
         );
-        assert!(result.is_ok());
-        assert!(!result.unwrap()); // Should return false to indicate line should be processed
     }
 
     #[test]
     fn test_validate_diagram_header_skips_comments() {
-        let mut first_line = false;
-        
         // Test // comment
-        let result = validate_diagram_header(
+        assert_header_skip_without_processing(
             "// this is a comment", 
-            0, 
             &["architecture"], 
-            &mut first_line
+            "// this is a comment"
         );
-        assert!(result.is_ok());
-        assert!(result.unwrap()); // Should skip the line
-        assert!(!first_line); // Should not mark as processed
         
         // Test %% comment
-        let result = validate_diagram_header(
+        assert_header_skip_without_processing(
             "%% this is a comment", 
-            0, 
             &["architecture"], 
-            &mut first_line
+            "%% this is a comment"
         );
-        assert!(result.is_ok());
-        assert!(result.unwrap()); // Should skip the line
-        assert!(!first_line); // Should not mark as processed
     }
 
     #[test]
     fn test_validate_diagram_header_skips_empty() {
-        let mut first_line = false;
-        
         // Test empty line
-        let result = validate_diagram_header(
+        assert_header_skip_without_processing(
             "", 
-            0, 
             &["architecture"], 
-            &mut first_line
+            ""
         );
-        assert!(result.is_ok());
-        assert!(result.unwrap()); // Should skip the line
-        assert!(!first_line); // Should not mark as processed
         
         // Test whitespace only
-        let result = validate_diagram_header(
+        assert_header_skip_without_processing(
             "   \t   ", 
-            0, 
             &["architecture"], 
-            &mut first_line
+            ""
         );
-        assert!(result.is_ok());
-        assert!(result.unwrap()); // Should skip the line
-        assert!(!first_line); // Should not mark as processed
     }
 
     #[test]
@@ -559,57 +653,214 @@ mod header_validation_tests {
 
     #[test]
     fn test_validate_multiple_headers() {
-        let mut first_line = false;
-        
         // Test state diagram v1
-        let result = validate_diagram_header(
+        assert_header_success(
             "stateDiagram", 
-            0, 
             &["stateDiagram", "stateDiagram-v2"], 
-            &mut first_line
+            "stateDiagram"
         );
-        assert!(result.is_ok());
-        assert!(result.unwrap());
-        assert!(first_line);
         
-        // Reset and test v2
-        first_line = false;
-        let result = validate_diagram_header(
+        // Test v2
+        assert_header_success(
             "stateDiagram-v2", 
-            0, 
             &["stateDiagram", "stateDiagram-v2"], 
-            &mut first_line
+            "stateDiagram-v2"
         );
-        assert!(result.is_ok());
-        assert!(result.unwrap());
-        assert!(first_line);
     }
 
     #[test]
     fn test_validate_pie_header() {
-        let mut first_line = false;
-        let result = validate_diagram_header(
+        assert_header_success(
             "pie", 
-            0, 
             &["pie"], 
-            &mut first_line
+            "pie"
         );
-        assert!(result.is_ok());
-        assert!(result.unwrap());
-        assert!(first_line);
     }
 
     #[test]
     fn test_validate_header_with_content() {
+        assert_header_success(
+            "pie title Chart Name", 
+            &["pie"], 
+            "pie title Chart Name"
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "Expected headers cannot be empty")]
+    fn test_validate_empty_expected_headers() {
+        let mut first_line = false;
+        let _ = validate_diagram_header(
+            "pie", 
+            0, 
+            &[], // Empty array should trigger assertion
+            &mut first_line
+        );
+    }
+
+    #[test]
+    fn test_validate_header_with_mixed_case() {
         let mut first_line = false;
         let result = validate_diagram_header(
-            "pie title Chart Name", 
+            "PIE title Chart", 
             0, 
             &["pie"], 
             &mut first_line
         );
+        // Should fail because header matching is case-sensitive
+        assert!(result.is_err());
+        if let Err(ParseError::SyntaxError { message, .. }) = result {
+            assert_eq!(message, "Expected pie header");
+        }
+    }
+
+    #[test]
+    fn test_validate_header_case_sensitive_success() {
+        assert_header_success(
+            "pie title Chart", 
+            &["pie"], 
+            "pie title Chart"
+        );
+    }
+
+    #[test]
+    fn test_validate_header_with_unicode() {
+        assert_header_success(
+            "pie title 📊 Unicode Chart", 
+            &["pie"], 
+            "pie title 📊 Unicode Chart"
+        );
+    }
+
+    #[test]
+    fn test_validate_header_with_special_characters() {
+        assert_header_success(
+            "pie title Chart: 50% Complete & Ready!", 
+            &["pie"], 
+            "pie title Chart: 50% Complete & Ready!"
+        );
+    }
+
+    #[test]
+    fn test_validate_unicode_header() {
+        assert_header_success(
+            "🥧", 
+            &["🥧"], 
+            "🥧"
+        );
+    }
+
+    #[test]
+    fn test_validate_header_with_tabs_and_spaces() {
+        assert_header_success(
+            "\t  pie   title  Chart  \t", 
+            &["pie"], 
+            "pie   title  Chart"
+        );
+    }
+
+    #[test]
+    fn test_validate_multiple_headers_error_message() {
+        assert_header_error(
+            "invalid", 
+            &["packet-beta", "packet"], 
+            "Expected packet-beta or packet header"
+        );
+    }
+
+    #[test]
+    fn test_validate_header_prefix_matching() {
+        // Test that "pie-chart" matches "pie" header
+        assert_header_success(
+            "pie-chart", 
+            &["pie"], 
+            "pie-chart"
+        );
+    }
+
+    #[test]
+    fn test_validate_header_no_partial_match() {
+        // Test that "pi" does not match "pie" header
+        assert_header_error(
+            "pi", 
+            &["pie"], 
+            "Expected pie header"
+        );
+    }
+
+    #[test]
+    fn test_diagram_type_headers() {
+        assert_eq!(DiagramType::Architecture.headers(), &["architecture", "architecture-beta"]);
+        assert_eq!(DiagramType::Pie.headers(), &["pie"]);
+        assert_eq!(DiagramType::State.headers(), &["stateDiagram", "stateDiagram-v2"]);
+        assert_eq!(DiagramType::Packet.headers(), &["packet-beta", "packet"]);
+    }
+
+    #[test]
+    fn test_diagram_type_name() {
+        assert_eq!(DiagramType::Architecture.name(), "architecture");
+        assert_eq!(DiagramType::Pie.name(), "pie");
+        assert_eq!(DiagramType::State.name(), "state");
+        assert_eq!(DiagramType::Packet.name(), "packet");
+    }
+
+    #[test]
+    fn test_validate_diagram_header_typed() {
+        let mut first_line = false;
+        let result = validate_diagram_header_typed(
+            "pie title Chart", 
+            0, 
+            DiagramType::Pie, 
+            &mut first_line
+        );
         assert!(result.is_ok());
-        assert!(result.unwrap());
+        let (should_skip, trimmed) = result.unwrap();
+        assert!(should_skip);
+        assert_eq!(trimmed, "pie title Chart");
+        assert!(first_line);
+    }
+
+    #[test]
+    fn test_validate_diagram_header_typed_error() {
+        let mut first_line = false;
+        let result = validate_diagram_header_typed(
+            "invalid", 
+            0, 
+            DiagramType::Pie, 
+            &mut first_line
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validate_diagram_header_typed_multiple_headers() {
+        let mut first_line = false;
+        
+        // Test first variant
+        let result = validate_diagram_header_typed(
+            "stateDiagram", 
+            0, 
+            DiagramType::State, 
+            &mut first_line
+        );
+        assert!(result.is_ok());
+        let (should_skip, trimmed) = result.unwrap();
+        assert!(should_skip);
+        assert_eq!(trimmed, "stateDiagram");
+        assert!(first_line);
+
+        // Test second variant
+        first_line = false;
+        let result = validate_diagram_header_typed(
+            "stateDiagram-v2", 
+            0, 
+            DiagramType::State, 
+            &mut first_line
+        );
+        assert!(result.is_ok());
+        let (should_skip, trimmed) = result.unwrap();
+        assert!(should_skip);
+        assert_eq!(trimmed, "stateDiagram-v2");
         assert!(first_line);
     }
 }

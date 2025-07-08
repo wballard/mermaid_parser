@@ -59,7 +59,8 @@ use crate::common::ast::{
     AccessibilityInfo, Alternative, ArrowType, AutoNumber, ElseBranch, Loop, Message, Note,
     NotePosition, Optional, Participant, ParticipantType, SequenceDiagram, SequenceStatement,
 };
-use crate::common::constants::{comments, diagram_headers, directives, sequence_keywords};
+use crate::common::constants::{diagram_headers, directives, sequence_keywords};
+use crate::common::parser_utils::validate_diagram_header;
 use crate::error::{ParseError, Result};
 use std::collections::HashMap;
 
@@ -85,25 +86,9 @@ pub fn parse(input: &str) -> Result<SequenceDiagram> {
     let mut alias_map: HashMap<String, String> = HashMap::new();
 
     while let Some((line_num, line)) = line_iter.next() {
-        let trimmed = line.trim();
-
-        // Skip empty lines and comments
-        if trimmed.is_empty() || comments::COMMENT_PREFIXES.iter().any(|p| trimmed.starts_with(p)) {
-            continue;
-        }
-
-        // First meaningful line should start with "sequenceDiagram"
-        if !first_line_processed {
-            if !trimmed.starts_with(diagram_headers::SEQUENCE) {
-                return Err(ParseError::SyntaxError {
-                    message: "Expected sequenceDiagram header".to_string(),
-                    expected: vec![diagram_headers::SEQUENCE.to_string()],
-                    found: trimmed.to_string(),
-                    line: line_num + 1,
-                    column: 1,
-                });
-            }
-            first_line_processed = true;
+        // Use shared header validation utility
+        let (should_skip, trimmed) = validate_diagram_header(line, line_num, &[diagram_headers::SEQUENCE], &mut first_line_processed)?;
+        if should_skip {
             continue;
         }
 
@@ -155,7 +140,7 @@ pub fn parse(input: &str) -> Result<SequenceDiagram> {
                 participant_map.insert(actor.clone(), diagram.participants.len());
 
                 // Track alias mapping
-                if let Some(ref alias_name) = alias {
+                if let Some(alias_name) = &alias {
                     alias_map.insert(alias_name.clone(), actor.clone());
                 }
 

@@ -20,7 +20,17 @@ pub fn parse(input: &str) -> Result<MindmapDiagram> {
 
     // Use shared header validation utility
     let mut first_line_processed = false;
-    validate_diagram_header(lines[0], 0, &["mindmap"], &mut first_line_processed)?;
+    let (should_skip, _) = validate_diagram_header(lines[0], 0, &["mindmap"], &mut first_line_processed)?;
+    if !should_skip {
+        // This should not happen since we're validating the header
+        return Err(ParseError::SyntaxError {
+            message: "Invalid mindmap header".to_string(),
+            expected: vec!["mindmap".to_string()],
+            found: lines[0].to_string(),
+            line: 1,
+            column: 1,
+        });
+    }
 
     let mut nodes = Vec::new();
 
