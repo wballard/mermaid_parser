@@ -23,7 +23,12 @@ pub fn parse(input: &str) -> Result<TreemapDiagram> {
     let mut first_line_processed = false;
     let mut start_line = 0;
     for (i, line) in lines.iter().enumerate() {
-        match validate_diagram_header(line, i, &["treemap", "treemap-beta"], &mut first_line_processed) {
+        match validate_diagram_header(
+            line,
+            i,
+            &["treemap", "treemap-beta"],
+            &mut first_line_processed,
+        ) {
             Ok((true, _)) => {
                 start_line = i + 1;
                 break;

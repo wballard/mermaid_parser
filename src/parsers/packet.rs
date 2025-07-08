@@ -1,6 +1,6 @@
 use crate::common::ast::{AccessibilityInfo, PacketDiagram, PacketField};
-use crate::common::parsing::{key_value, quoted_strings, brackets};
 use crate::common::parser_utils::{parse_common_directives, validate_diagram_header};
+use crate::common::parsing::{brackets, key_value, quoted_strings};
 use crate::error::{ParseError, Result};
 
 /// Simple string-based parser for packet diagrams
@@ -21,7 +21,12 @@ pub fn parse(input: &str) -> Result<PacketDiagram> {
 
     for (line_num, line) in lines.iter().enumerate() {
         // Use shared header validation utility
-        let (should_skip, trimmed) = validate_diagram_header(line, line_num, &["packet-beta", "packet"], &mut first_line_processed)?;
+        let (should_skip, trimmed) = validate_diagram_header(
+            line,
+            line_num,
+            &["packet-beta", "packet"],
+            &mut first_line_processed,
+        )?;
         if should_skip {
             continue;
         }
@@ -33,7 +38,6 @@ pub fn parse(input: &str) -> Result<PacketDiagram> {
 
         // Parse field definition: "0-15: \"Source Port\"" or "+16: \"Source Port\""
         if let Some((range_part, field_part)) = key_value::parse_colon_separated(trimmed) {
-
             // Parse bit range - handle different formats
             let (start_bit, end_bit) = if range_part.starts_with('+') {
                 // Additive format: "+16" means next 16 bits from current position

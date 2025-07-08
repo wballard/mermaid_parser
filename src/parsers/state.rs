@@ -36,7 +36,12 @@ pub fn parse(input: &str) -> Result<StateDiagram> {
 
     while let Some((line_num, line)) = line_iter.next() {
         // Use shared header validation utility
-        let (should_skip, trimmed) = validate_diagram_header(line, line_num, diagram_headers::STATE_HEADERS, &mut first_line_processed)?;
+        let (should_skip, trimmed) = validate_diagram_header(
+            line,
+            line_num,
+            diagram_headers::STATE_HEADERS,
+            &mut first_line_processed,
+        )?;
         if should_skip {
             // Determine version based on which header was matched
             if trimmed.starts_with(diagram_headers::STATE_V2) {

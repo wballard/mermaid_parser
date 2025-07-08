@@ -64,7 +64,12 @@ fn parse_kanban_diagram(lines: Vec<Line>) -> Result<KanbanDiagram> {
     // Validate header using shared utility
     let mut first_line_processed = false;
     let first_line = &lines[0];
-    let (should_skip, _) = validate_diagram_header(&first_line.content, first_line.line_number, &["kanban"], &mut first_line_processed)?;
+    let (should_skip, _) = validate_diagram_header(
+        &first_line.content,
+        first_line.line_number,
+        &["kanban"],
+        &mut first_line_processed,
+    )?;
     if !should_skip {
         // This should not happen since we're validating the header
         return Err(ParseError::SyntaxError {

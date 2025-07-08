@@ -20,7 +20,8 @@ pub fn parse(input: &str) -> Result<MindmapDiagram> {
 
     // Use shared header validation utility
     let mut first_line_processed = false;
-    let (should_skip, _) = validate_diagram_header(lines[0], 0, &["mindmap"], &mut first_line_processed)?;
+    let (should_skip, _) =
+        validate_diagram_header(lines[0], 0, &["mindmap"], &mut first_line_processed)?;
     if !should_skip {
         // This should not happen since we're validating the header
         return Err(ParseError::SyntaxError {

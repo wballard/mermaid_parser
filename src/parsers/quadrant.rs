@@ -26,9 +26,14 @@ pub fn parse(input: &str) -> Result<QuadrantDiagram> {
 
     for (line_num, line) in lines.iter().enumerate() {
         // Use shared header validation utility
-        match validate_diagram_header(line, line_num, &["quadrantChart"], &mut first_line_processed) {
+        match validate_diagram_header(
+            line,
+            line_num,
+            &["quadrantChart"],
+            &mut first_line_processed,
+        ) {
             Ok((true, _)) => continue, // Header was handled, skip to next line
-            Ok((false, _)) => {}, // Line should be processed by parser
+            Ok((false, _)) => {}       // Line should be processed by parser
             Err(_) => {
                 // For lenient parsing, skip files that don't start with quadrantChart
                 // These are likely configuration files or test files, not actual diagrams

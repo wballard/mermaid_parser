@@ -87,7 +87,12 @@ pub fn parse(input: &str) -> Result<SequenceDiagram> {
 
     while let Some((line_num, line)) = line_iter.next() {
         // Use shared header validation utility
-        let (should_skip, trimmed) = validate_diagram_header(line, line_num, &[diagram_headers::SEQUENCE], &mut first_line_processed)?;
+        let (should_skip, trimmed) = validate_diagram_header(
+            line,
+            line_num,
+            &[diagram_headers::SEQUENCE],
+            &mut first_line_processed,
+        )?;
         if should_skip {
             continue;
         }
@@ -120,12 +125,16 @@ pub fn parse(input: &str) -> Result<SequenceDiagram> {
         }
 
         // Handle participant/actor declarations
-        if trimmed.starts_with(sequence_keywords::PARTICIPANT) || trimmed.starts_with(sequence_keywords::ACTOR) {
+        if trimmed.starts_with(sequence_keywords::PARTICIPANT)
+            || trimmed.starts_with(sequence_keywords::ACTOR)
+        {
             let is_actor = trimmed.starts_with(sequence_keywords::ACTOR);
             let declaration = if is_actor {
                 trimmed.strip_prefix(sequence_keywords::ACTOR).unwrap()
             } else {
-                trimmed.strip_prefix(sequence_keywords::PARTICIPANT).unwrap()
+                trimmed
+                    .strip_prefix(sequence_keywords::PARTICIPANT)
+                    .unwrap()
             };
 
             let (actor, alias) = if let Some(as_pos) = declaration.find(" as ") {
@@ -159,7 +168,11 @@ pub fn parse(input: &str) -> Result<SequenceDiagram> {
 
         // Handle loop blocks
         if trimmed.starts_with(sequence_keywords::LOOP) {
-            let condition = trimmed.strip_prefix(sequence_keywords::LOOP).unwrap().trim().to_string();
+            let condition = trimmed
+                .strip_prefix(sequence_keywords::LOOP)
+                .unwrap()
+                .trim()
+                .to_string();
             if let Some(loop_stmt) = parse_loop_block(
                 &mut line_iter,
                 condition,
@@ -174,7 +187,11 @@ pub fn parse(input: &str) -> Result<SequenceDiagram> {
 
         // Handle alt blocks
         if trimmed.starts_with(sequence_keywords::ALT) {
-            let condition = trimmed.strip_prefix(sequence_keywords::ALT).unwrap().trim().to_string();
+            let condition = trimmed
+                .strip_prefix(sequence_keywords::ALT)
+                .unwrap()
+                .trim()
+                .to_string();
             if let Some(alt_stmt) = parse_alt_block(
                 &mut line_iter,
                 condition,
@@ -189,7 +206,11 @@ pub fn parse(input: &str) -> Result<SequenceDiagram> {
 
         // Handle opt blocks
         if trimmed.starts_with(sequence_keywords::OPT) {
-            let condition = trimmed.strip_prefix(sequence_keywords::OPT).unwrap().trim().to_string();
+            let condition = trimmed
+                .strip_prefix(sequence_keywords::OPT)
+                .unwrap()
+                .trim()
+                .to_string();
             if let Some(opt_stmt) = parse_opt_block(
                 &mut line_iter,
                 condition,
@@ -212,7 +233,10 @@ pub fn parse(input: &str) -> Result<SequenceDiagram> {
 
         // Handle activate/deactivate
         if trimmed.starts_with(sequence_keywords::ACTIVATE) {
-            let actor_name = trimmed.strip_prefix(sequence_keywords::ACTIVATE).unwrap().trim();
+            let actor_name = trimmed
+                .strip_prefix(sequence_keywords::ACTIVATE)
+                .unwrap()
+                .trim();
             let resolved_actor = resolve_alias(actor_name, &alias_map);
             ensure_participant(
                 &resolved_actor,
@@ -226,7 +250,10 @@ pub fn parse(input: &str) -> Result<SequenceDiagram> {
         }
 
         if trimmed.starts_with(sequence_keywords::DEACTIVATE) {
-            let actor_name = trimmed.strip_prefix(sequence_keywords::DEACTIVATE).unwrap().trim();
+            let actor_name = trimmed
+                .strip_prefix(sequence_keywords::DEACTIVATE)
+                .unwrap()
+                .trim();
             let resolved_actor = resolve_alias(actor_name, &alias_map);
             ensure_participant(
                 &resolved_actor,

@@ -37,7 +37,12 @@ pub fn parse(input: &str) -> Result<XyChartDiagram> {
 
     for (line_num, line) in lines.iter().enumerate() {
         // Use shared header validation utility
-        match validate_diagram_header(line, line_num, &["xychart", "xychart-beta"], &mut first_line_processed) {
+        match validate_diagram_header(
+            line,
+            line_num,
+            &["xychart", "xychart-beta"],
+            &mut first_line_processed,
+        ) {
             Ok((true, trimmed)) => {
                 // Check for horizontal orientation in header
                 if trimmed.contains("horizontal") {
@@ -47,7 +52,7 @@ pub fn parse(input: &str) -> Result<XyChartDiagram> {
             }
             Ok((false, _trimmed)) => {
                 // Line should be processed by parser - trimmed is now available
-            }, 
+            }
             Err(_) => {
                 return Ok(diagram); // Lenient parsing
             }

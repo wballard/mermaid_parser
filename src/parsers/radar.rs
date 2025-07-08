@@ -74,7 +74,7 @@ pub fn parse(input: &str) -> Result<RadarDiagram> {
         // Use shared header validation utility
         match validate_diagram_header(line, 0, &["radar"], &mut first_line_processed) {
             Ok((true, _)) => continue, // Header was handled, skip to next line
-            Ok((false, _)) => {}, // Line should be processed by parser
+            Ok((false, _)) => {}       // Line should be processed by parser
             Err(_) => {
                 // For lenient parsing, skip files that don't start with radar
                 return Ok(diagram);
