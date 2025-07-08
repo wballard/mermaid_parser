@@ -4,6 +4,7 @@
 //! multivariate data on axes starting from the same point.
 
 use crate::common::ast::{AccessibilityInfo, Dataset, RadarConfig, RadarDiagram};
+use crate::common::parser_utils::validate_diagram_header;
 use crate::error::{ParseError, Result};
 use std::collections::HashMap;
 
@@ -70,14 +71,14 @@ pub fn parse(input: &str) -> Result<RadarDiagram> {
             continue;
         }
 
-        // First meaningful line should start with "radar"
-        if !first_line_processed {
-            if !trimmed.starts_with("radar") {
+        // Use shared header validation utility
+        match validate_diagram_header(line, 0, &["radar"], &mut first_line_processed) {
+            Ok(true) => continue, // Header was handled, skip to next line
+            Ok(false) => {}, // Line should be processed by parser
+            Err(_) => {
                 // For lenient parsing, skip files that don't start with radar
                 return Ok(diagram);
             }
-            first_line_processed = true;
-            continue;
         }
 
         // Handle title directive

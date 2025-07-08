@@ -1,4 +1,6 @@
 use crate::common::ast::{AccessibilityInfo, PacketDiagram, PacketField};
+use crate::common::parsing::{key_value, quoted_strings, brackets};
+use crate::common::parser_utils::{parse_common_directives, validate_diagram_header};
 use crate::error::{ParseError, Result};
 
 /// Simple string-based parser for packet diagrams
@@ -18,39 +20,20 @@ pub fn parse(input: &str) -> Result<PacketDiagram> {
     let mut first_line_processed = false;
 
     for (line_num, line) in lines.iter().enumerate() {
+        // Use shared header validation utility
+        if validate_diagram_header(line, line_num, &["packet-beta", "packet"], &mut first_line_processed)? {
+            continue;
+        }
+
         let trimmed = line.trim();
 
-        // Skip empty lines and comments
-        if trimmed.is_empty() || trimmed.starts_with("//") || trimmed.starts_with("%%") {
-            continue;
-        }
-
-        // First meaningful line should start with "packet-beta" or "packet"
-        if !first_line_processed {
-            if !(trimmed.starts_with("packet-beta") || trimmed.starts_with("packet")) {
-                return Err(ParseError::SyntaxError {
-                    message: "Expected packet header".to_string(),
-                    expected: vec!["packet-beta".to_string(), "packet".to_string()],
-                    found: trimmed.to_string(),
-                    line: line_num + 1,
-                    column: 1,
-                });
-            }
-            first_line_processed = true;
-            continue;
-        }
-
-        // Handle title directive
-        if trimmed.starts_with("title ") {
-            let title = trimmed.strip_prefix("title ").unwrap().trim();
-            diagram.title = Some(title.to_string());
+        // Handle common directives (title, accTitle, accDescr)
+        if parse_common_directives(line, &mut diagram.title, &mut diagram.accessibility) {
             continue;
         }
 
         // Parse field definition: "0-15: \"Source Port\"" or "+16: \"Source Port\""
-        if let Some(colon_pos) = trimmed.find(':') {
-            let range_part = trimmed[..colon_pos].trim();
-            let field_part = trimmed[colon_pos + 1..].trim();
+        if let Some((range_part, field_part)) = key_value::parse_colon_separated(trimmed) {
 
             // Parse bit range - handle different formats
             let (start_bit, end_bit) = if range_part.starts_with('+') {
@@ -125,17 +108,13 @@ pub fn parse(input: &str) -> Result<PacketDiagram> {
             let (name, is_optional) = if field_part.is_empty() {
                 // Empty field name - skip this field
                 continue;
-            } else if field_part.starts_with('"') && field_part.ends_with('"') {
-                // Quoted string: "Source Port"
-                let name = field_part[1..field_part.len() - 1].to_string();
-                (name, false)
-            } else if field_part.starts_with('(') && field_part.ends_with(')') {
+            } else if let Some(optional_name) = brackets::extract_paren_content(&field_part) {
                 // Optional field: (Options and Padding)
-                let name = field_part[1..field_part.len() - 1].to_string();
-                (name, true)
+                (optional_name, true)
             } else {
-                // Unquoted identifier: Source
-                (field_part.to_string(), false)
+                // Quoted or unquoted field: "Source Port" or Source
+                let (name, _was_quoted) = quoted_strings::parse_field(&field_part);
+                (name, false)
             };
 
             diagram.fields.push(PacketField {

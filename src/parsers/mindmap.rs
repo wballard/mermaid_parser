@@ -1,21 +1,20 @@
 //! Mindmap diagram parser implementation
 
 use crate::common::ast::{AccessibilityInfo, MindmapDiagram, MindmapNode, MindmapNodeShape};
+use crate::common::parser_utils::validate_diagram_header;
 use crate::error::{ParseError, Result};
 
 pub fn parse(input: &str) -> Result<MindmapDiagram> {
     // Simple string-based parsing for now
     let lines: Vec<&str> = input.lines().collect();
 
-    if lines.is_empty() || !lines[0].trim().starts_with("mindmap") {
-        return Err(ParseError::SyntaxError {
-            message: "Expected mindmap header".to_string(),
-            expected: vec!["mindmap".to_string()],
-            found: lines.first().unwrap_or(&"").to_string(),
-            line: 1,
-            column: 1,
-        });
+    if lines.is_empty() {
+        return Err(ParseError::EmptyInput);
     }
+
+    // Use shared header validation utility
+    let mut first_line_processed = false;
+    validate_diagram_header(lines[0], 0, &["mindmap"], &mut first_line_processed)?;
 
     let mut nodes = Vec::new();
 

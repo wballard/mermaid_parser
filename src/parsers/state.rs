@@ -7,7 +7,8 @@ use crate::common::ast::{
     AccessibilityInfo, State, StateDiagram, StateNote, StateNotePosition, StateTransition,
     StateType, StateVersion,
 };
-use crate::common::constants::{comments, diagram_headers, directives, state_keywords};
+use crate::common::constants::{diagram_headers, directives, state_keywords};
+use crate::common::parser_utils::validate_diagram_header;
 use crate::error::{ParseError, Result};
 use std::collections::HashMap;
 
@@ -34,32 +35,19 @@ pub fn parse(input: &str) -> Result<StateDiagram> {
     let mut _brace_count = 0;
 
     while let Some((line_num, line)) = line_iter.next() {
-        let trimmed = line.trim();
-
-        // Skip empty lines and comments
-        if trimmed.is_empty() || comments::COMMENT_PREFIXES.iter().any(|p| trimmed.starts_with(p)) {
+        // Use shared header validation utility
+        if validate_diagram_header(line, line_num, diagram_headers::STATE_HEADERS, &mut first_line_processed)? {
+            // Determine version based on which header was matched
+            let trimmed = line.trim();
+            if trimmed.starts_with(diagram_headers::STATE_V2) {
+                diagram.version = StateVersion::V2;
+            } else if trimmed.starts_with(diagram_headers::STATE_V1) {
+                diagram.version = StateVersion::V1;
+            }
             continue;
         }
 
-        // First meaningful line should start with "stateDiagram"
-        if !first_line_processed {
-            if trimmed.starts_with(diagram_headers::STATE_V2) {
-                diagram.version = StateVersion::V2;
-                first_line_processed = true;
-                continue;
-            } else if trimmed.starts_with(diagram_headers::STATE_V1) {
-                diagram.version = StateVersion::V1;
-                first_line_processed = true;
-                continue;
-            }
-            return Err(ParseError::SyntaxError {
-                message: "Expected stateDiagram header".to_string(),
-                expected: vec![diagram_headers::STATE_V1.to_string(), diagram_headers::STATE_V2.to_string()],
-                found: trimmed.to_string(),
-                line: line_num + 1,
-                column: 1,
-            });
-        }
+        let trimmed = line.trim();
 
         // Handle title directive
         if let Some(title_text) = trimmed.strip_prefix(directives::TITLE) {

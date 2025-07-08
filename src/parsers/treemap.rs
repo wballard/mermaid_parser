@@ -3,6 +3,7 @@
 //! Parses hierarchical treemap diagrams with indentation-based structure.
 
 use crate::common::ast::{AccessibilityInfo, TreemapDiagram, TreemapNode};
+use crate::common::parser_utils::validate_diagram_header;
 use crate::error::{ParseError, Result};
 
 pub fn parse(input: &str) -> Result<TreemapDiagram> {
@@ -18,11 +19,11 @@ pub fn parse(input: &str) -> Result<TreemapDiagram> {
         });
     }
 
-    // Find the treemap keyword (treemap or treemap-beta)
+    // Use shared header validation utility
+    let mut first_line_processed = false;
     let mut start_line = 0;
     for (i, line) in lines.iter().enumerate() {
-        let trimmed = line.trim();
-        if trimmed == "treemap" || trimmed == "treemap-beta" {
+        if validate_diagram_header(line, i, &["treemap", "treemap-beta"], &mut first_line_processed).is_ok() {
             start_line = i + 1;
             break;
         }

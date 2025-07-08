@@ -1,4 +1,5 @@
 use crate::common::ast::{AccessibilityInfo, KanbanDiagram, KanbanItem, KanbanSection};
+use crate::common::parser_utils::validate_diagram_header;
 use crate::error::{ParseError, Result};
 use std::collections::HashMap;
 
@@ -60,20 +61,13 @@ fn parse_kanban_diagram(lines: Vec<Line>) -> Result<KanbanDiagram> {
         });
     }
 
-    // First line must be "kanban" (or related keywords for test files)
-    let first_line = &lines[0].content;
-    if !first_line.starts_with("kanban") {
-        return Err(ParseError::SyntaxError {
-            message: "Expected 'kanban' keyword".to_string(),
-            expected: vec!["kanban".to_string()],
-            found: lines[0].content.clone(),
-            line: lines[0].line_number,
-            column: lines[0].indent,
-        });
-    }
+    // Validate header using shared utility
+    let mut first_line_processed = false;
+    let first_line = &lines[0];
+    validate_diagram_header(&first_line.content, first_line.line_number, &["kanban"], &mut first_line_processed)?;
 
     // Handle test files that have kanbanSection, kanbanItem, etc.
-    if first_line != "kanban" {
+    if first_line.content != "kanban" {
         // These are component test files, return a minimal diagram
         return Ok(KanbanDiagram {
             title: None,

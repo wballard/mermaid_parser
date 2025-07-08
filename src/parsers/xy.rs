@@ -6,6 +6,7 @@
 use crate::common::ast::{
     AccessibilityInfo, ChartOrientation, DataSeries, SeriesType, XAxis, XyChartDiagram, YAxis,
 };
+use crate::common::parser_utils::validate_diagram_header;
 use crate::error::{ParseError, Result};
 
 /// Simple string-based parser for XY chart diagrams
@@ -34,28 +35,24 @@ pub fn parse(input: &str) -> Result<XyChartDiagram> {
 
     let mut first_line_processed = false;
 
-    for line in lines.iter() {
-        let trimmed = line.trim();
-
-        // Skip empty lines and comments
-        if trimmed.is_empty() || trimmed.starts_with("//") || trimmed.starts_with("%%") {
-            continue;
-        }
-
-        // First meaningful line should start with "xychart-beta" or "xychart"
-        if !first_line_processed {
-            if !trimmed.starts_with("xychart") {
+    for (line_num, line) in lines.iter().enumerate() {
+        // Use shared header validation utility
+        match validate_diagram_header(line, line_num, &["xychart", "xychart-beta"], &mut first_line_processed) {
+            Ok(true) => {
+                // Check for horizontal orientation in header
+                let trimmed = line.trim();
+                if trimmed.contains("horizontal") {
+                    diagram.orientation = ChartOrientation::Horizontal;
+                }
+                continue;
+            }
+            Ok(false) => {}, // Line should be processed by parser
+            Err(_) => {
                 return Ok(diagram); // Lenient parsing
             }
-
-            // Check for horizontal orientation
-            if trimmed.contains("horizontal") {
-                diagram.orientation = ChartOrientation::Horizontal;
-            }
-
-            first_line_processed = true;
-            continue;
         }
+
+        let trimmed = line.trim();
 
         // Handle title directive
         if trimmed.starts_with("title ") {

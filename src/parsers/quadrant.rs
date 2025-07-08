@@ -1,7 +1,7 @@
 use crate::common::ast::{
     AccessibilityInfo, AxisDefinition, ClassDefinition, DataPoint, QuadrantDiagram, QuadrantLabels,
 };
-use crate::common::parser_utils::parse_common_directives;
+use crate::common::parser_utils::{parse_common_directives, validate_diagram_header};
 use crate::error::{ParseError, Result};
 
 /// Simple string-based parser for quadrant diagrams
@@ -25,23 +25,18 @@ pub fn parse(input: &str) -> Result<QuadrantDiagram> {
     let mut first_line_processed = false;
 
     for (line_num, line) in lines.iter().enumerate() {
-        let trimmed = line.trim();
-
-        // Skip empty lines and comments
-        if trimmed.is_empty() || trimmed.starts_with("//") || trimmed.starts_with("%%") {
-            continue;
-        }
-
-        // First meaningful line should start with "quadrantChart"
-        if !first_line_processed {
-            if !trimmed.starts_with("quadrantChart") {
+        // Use shared header validation utility
+        match validate_diagram_header(line, line_num, &["quadrantChart"], &mut first_line_processed) {
+            Ok(true) => continue, // Header was handled, skip to next line
+            Ok(false) => {}, // Line should be processed by parser
+            Err(_) => {
                 // For lenient parsing, skip files that don't start with quadrantChart
                 // These are likely configuration files or test files, not actual diagrams
                 return Ok(diagram);
             }
-            first_line_processed = true;
-            continue;
         }
+
+        let trimmed = line.trim();
 
         // Handle common directives (title, accTitle, accDescr)
         if parse_common_directives(line, &mut diagram.title, &mut diagram.accessibility) {

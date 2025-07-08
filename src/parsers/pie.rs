@@ -1,5 +1,5 @@
 use crate::common::ast::{AccessibilityInfo, PieDiagram, PieSlice};
-use crate::common::parser_utils::{parse_common_directives, CommonDirectiveParser};
+use crate::common::parser_utils::{parse_common_directives, CommonDirectiveParser, validate_diagram_header};
 use crate::error::{ParseError, Result};
 
 /// Simple string-based parser for pie chart diagrams
@@ -21,12 +21,12 @@ pub fn parse(input: &str) -> Result<PieDiagram> {
     let mut common_parser = CommonDirectiveParser::new();
 
     for (line_num, line) in lines.iter().enumerate() {
-        let trimmed = line.trim();
-
-        // Skip empty lines, comments, and lines with only whitespace
-        if trimmed.is_empty() || trimmed.starts_with("//") || trimmed.starts_with("%%") {
+        // Use shared header validation utility
+        if validate_diagram_header(line, line_num, &["pie"], &mut first_line_processed)? {
             continue;
         }
+
+        let trimmed = line.trim();
 
         // Handle common directives with multiline support
         if common_parser.parse_line(line, &mut diagram.title, &mut diagram.accessibility) {
@@ -45,48 +45,40 @@ pub fn parse(input: &str) -> Result<PieDiagram> {
             trimmed
         };
 
-        // First meaningful line should start with "pie"
-        if !first_line_processed {
-            if !trimmed.starts_with("pie") {
-                return Err(ParseError::SyntaxError {
-                    message: "Expected pie header".to_string(),
-                    expected: vec!["pie".to_string()],
-                    found: trimmed.to_string(),
-                    line: line_num + 1,
-                    column: 1,
-                });
-            }
-
-            // Handle various pie header formats
-            if trimmed.starts_with("pie title ") {
-                // Inline title: "pie title Chart Name"
-                let title = trimmed.strip_prefix("pie title ").unwrap().trim();
+        // Handle pie-specific header variations
+        if trimmed.starts_with("pie title ") {
+            // Inline title: "pie title Chart Name"
+            let title = trimmed.strip_prefix("pie title ").unwrap().trim();
+            diagram.title = Some(title.to_string());
+            continue;
+        } else if trimmed == "pie showData" {
+            // pie with showData
+            diagram.show_data = true;
+            continue;
+        } else if trimmed.starts_with("pie accTitle:") {
+            // pie accTitle: content - convert to standard format
+            let acc_line = trimmed.strip_prefix("pie ").unwrap();
+            parse_common_directives(acc_line, &mut diagram.title, &mut diagram.accessibility);
+            continue;
+        } else if trimmed.starts_with("pie accDescr:") {
+            // pie accDescr: content - convert to standard format
+            let acc_line = trimmed.strip_prefix("pie ").unwrap();
+            parse_common_directives(acc_line, &mut diagram.title, &mut diagram.accessibility);
+            continue;
+        } else if trimmed.starts_with("pie accDescr {") {
+            // pie accDescr { ... } - convert to standard format and start multiline block
+            let acc_line = trimmed.strip_prefix("pie ").unwrap();
+            common_parser.parse_line(acc_line, &mut diagram.title, &mut diagram.accessibility);
+            continue;
+        } else if trimmed.starts_with("pie ") {
+            // "pie chart" or other text after pie - treat as title
+            let title = trimmed.strip_prefix("pie ").unwrap().trim();
+            if !title.is_empty() {
                 diagram.title = Some(title.to_string());
-            } else if trimmed == "pie showData" {
-                // pie with showData
-                diagram.show_data = true;
-            } else if trimmed.starts_with("pie accTitle:") {
-                // pie accTitle: content - convert to standard format
-                let acc_line = trimmed.strip_prefix("pie ").unwrap();
-                parse_common_directives(acc_line, &mut diagram.title, &mut diagram.accessibility);
-            } else if trimmed.starts_with("pie accDescr:") {
-                // pie accDescr: content - convert to standard format
-                let acc_line = trimmed.strip_prefix("pie ").unwrap();
-                parse_common_directives(acc_line, &mut diagram.title, &mut diagram.accessibility);
-            } else if trimmed.starts_with("pie accDescr {") {
-                // pie accDescr { ... } - convert to standard format and start multiline block
-                let acc_line = trimmed.strip_prefix("pie ").unwrap();
-                common_parser.parse_line(acc_line, &mut diagram.title, &mut diagram.accessibility);
-            } else if trimmed.starts_with("pie ") {
-                // "pie chart" or other text after pie - treat as title
-                let title = trimmed.strip_prefix("pie ").unwrap().trim();
-                if !title.is_empty() {
-                    diagram.title = Some(title.to_string());
-                }
             }
-            // else: just "pie" keyword alone
-
-            first_line_processed = true;
+            continue;
+        } else if trimmed == "pie" {
+            // Just "pie" keyword alone
             continue;
         }
 
