@@ -5,8 +5,6 @@
 [![Crates.io](https://img.shields.io/crates/v/mermaid-parser.svg)](https://crates.io/crates/mermaid-parser)
 [![Documentation](https://docs.rs/mermaid-parser/badge.svg)](https://docs.rs/mermaid-parser)
 [![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](https://github.com/wballard/mermaid-parser)
-[![CI](https://github.com/wballard/mermaid-parser/workflows/CI/badge.svg)](https://github.com/wballard/mermaid-parser/actions)
-[![codecov](https://codecov.io/gh/wballard/mermaid-parser/branch/main/graph/badge.svg)](https://codecov.io/gh/wballard/mermaid-parser)
 
 A fast, reliable parser for [Mermaid](https://mermaid.js.org/) diagram syntax written in Rust. This crate provides comprehensive support for parsing various Mermaid diagram types into structured AST representations.
 
