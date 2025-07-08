@@ -9,7 +9,13 @@ pub fn parse(input: &str) -> Result<MindmapDiagram> {
     let lines: Vec<&str> = input.lines().collect();
 
     if lines.is_empty() {
-        return Err(ParseError::EmptyInput);
+        return Err(ParseError::SyntaxError {
+            message: "Empty mindmap diagram".to_string(),
+            expected: vec!["mindmap".to_string()],
+            found: "empty input".to_string(),
+            line: 0,
+            column: 0,
+        });
     }
 
     // Use shared header validation utility

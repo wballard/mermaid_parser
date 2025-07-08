@@ -11,7 +11,7 @@ fn test_empty_input_error() {
     assert!(result.is_err());
     match result {
         Err(ParseError::SyntaxError { message, .. }) => {
-            assert!(message.contains("Expected mindmap header"));
+            assert!(message.contains("Empty mindmap diagram"));
         }
         _ => panic!("Expected SyntaxError for empty input"),
     }
